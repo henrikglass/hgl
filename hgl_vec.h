@@ -51,7 +51,9 @@
  *     void hgl_charp_vec_push(hgl_charp_vec_t *vec, char *elem);
  *     char *hgl_charp_vec_pop(hgl_charp_vec_t *vec);
  *     char *hgl_charp_vec_remove(hgl_charp_vec_t *vec, size_t index);
- *     char *hgl_charp_vec_insert(hgl_charp_vec_t *vec, const hgl_charp_vec_t *other_vec, size_t index);
+ *     char *hgl_charp_vec_insert(hgl_charp_vec_t *vec,
+                                  const hgl_charp_vec_t *other_vec,
+                                  size_t index);
  *     char *hgl_charp_vec_extend(hgl_charp_vec_t *vec, const hgl_charp_vec_t *other_vec);
  *     char *hgl_charp_vec_extend_array(hgl_charp_vec_t *vec, const *other_vec);
  *
@@ -68,9 +70,26 @@
  *     #define HGL_VEC_TYPE_ID int
  *     #include "hgl_vec.h"
  *
- * If HGL_VEC_TYPE and HGL_VEC_TYPE_ID are left undefined, the default element type of hgl_vec
- * will be void *, and the default element type identifier will be "voidp".
+ * If HGL_VEC_TYPE and HGL_VEC_TYPE_ID are left undefined, the default element type of 
+ * hgl_vec will be void *, and the default element type identifier will be "voidp".
  *
+ * hgl_vec allows fine-grained control over the internals of the implementation 
+ * including configurable growth rate and growth type (linear or exponential), as well
+ * as support for custom allocators. The following defines (shown with their default 
+ * values) may be changed before including hgl_vec.h:
+ *
+ *     #define HGL_VEC_GROWTH_TYPE              HGL_VEC_EXPONENTIAL
+ *     #define HGL_VEC_EXPONENTIAL_GROWTH_RATE  1.5
+ *     #define HGL_VEC_LINEAR_GROWTH_RATE       64
+ *     #define HGL_VEC_ALLOCATOR                (malloc)
+ *     #define HGL_VEC_REALLOCATOR              (realloc)
+ *     #define HGL_VEC_FREE                     (free)
+ *
+ * HGL_VEC_GROWTH_TYPE can take on the values HGL_VEC_EXPONENTIAL and HGL_VEC_LINEAR. 
+ * HGL_VEC_EXPONENTIAL_GROWTH_RATE and HGL_VEC_LINEAR_GROWTH_RATE can take on any numeric 
+ * literal. HGL_VEC_ALLOCATOR, HGL_VEC_REALLOCATOR, and HGL_VEC_FREE can take on any 
+ * function identifiers whose function types match those of malloc, realloc, and free, 
+ * respectively.
  *
  * AUTHOR: Henrik A. Glass
  *
@@ -97,7 +116,7 @@
 
 /* CONFIGURABLE: HGL_VEC_EXPONENTIAL_GROWTH_RATE */
 #ifndef HGL_VEC_EXPONENTIAL_GROWTH_RATE
-#define HGL_VEC_EXPONENTIAL_GROWTH_RATE 2
+#define HGL_VEC_EXPONENTIAL_GROWTH_RATE 1.5
 #endif
 
 /* CONFIGURABLE: HGL_VEC_LINEAR_GROWTH_RATE */
