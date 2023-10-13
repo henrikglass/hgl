@@ -1,4 +1,79 @@
 
+/**
+ * LICENSE:
+ *
+ * MIT License
+ * 
+ * Copyright (c) [year] [fullname]
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *
+ * ABOUT:
+ *
+ * hgl_vec.h implements a dynamic array similar to the vector class in C++.
+ *
+ *
+ * USAGE:
+ *
+ * Include hgl_vec.h file like this:
+ *
+ *     #define HGL_VEC_TYPE char *
+ *     #define HGL_VEC_TYPE_ID charp
+ *     #include "hgl_vec.h"
+ *
+ * This will create an implementation of hgl_vec capable of holding elements of type char *.
+ * "charp" is used as an infix in the identifiers exposed by the library. Below is a complete
+ * list of the generated API:
+ *
+ *     void hgl_charp_vec_init_capacity(hgl_charp_vec_t *vec, size_t initial_capacity);
+ *     void hgl_charp_vec_init(hgl_charp_vec_t *vec);
+ *     void hgl_charp_vec_free(hgl_charp_vec_t *vec);
+ *     void hgl_charp_vec_reserve(hgl_charp_vec_t *vec, size_t new_capacity);
+ *     void hgl_charp_vec_shrink_to_fit(hgl_charp_vec_t *vec);
+ *     void hgl_charp_vec_push(hgl_charp_vec_t *vec, char *elem);
+ *     char *hgl_charp_vec_pop(hgl_charp_vec_t *vec);
+ *     char *hgl_charp_vec_remove(hgl_charp_vec_t *vec, size_t index);
+ *     char *hgl_charp_vec_insert(hgl_charp_vec_t *vec, const hgl_charp_vec_t *other_vec, size_t index);
+ *     char *hgl_charp_vec_extend(hgl_charp_vec_t *vec, const hgl_charp_vec_t *other_vec);
+ *     char *hgl_charp_vec_extend_array(hgl_charp_vec_t *vec, const *other_vec);
+ *
+ * HGL_VEC_TYPE and HGL_VEC_TYPE_ID may be redefined and hgl_vec.h included multiple times
+ * to create implementations of hgl_vec for different types:
+ *
+ *     #define HGL_VEC_TYPE char *
+ *     #define HGL_VEC_TYPE_ID charp
+ *     #include "hgl_vec.h"
+ *
+ *     #undef HGL_VEC_TYPE
+ *     #undef HGL_VEC_TYPE_ID
+ *     #define HGL_VEC_TYPE int
+ *     #define HGL_VEC_TYPE_ID int
+ *     #include "hgl_vec.h"
+ *
+ * If HGL_VEC_TYPE and HGL_VEC_TYPE_ID are left undefined, the default element type of hgl_vec
+ * will be void *, and the default element type identifier will be "voidp".
+ *
+ *
+ * AUTHOR: Henrik A. Glass
+ *
+ */
 
 /*--- Helper macros ---------------------------------------------------------------------*/
 
@@ -115,15 +190,15 @@ static inline void HGL_VEC_FUNC_PUSH_NAME(HGL_VEC_STRUCT_NAME *vec, HGL_VEC_TYPE
     if (vec->len == vec->capacity) {
         HGL_VEC_FUNC_GROW_VEC_NAME(vec);
     }
-    
-    vec->arr[vec->len++] = elem; 
+
+    vec->arr[vec->len++] = elem;
 }
 
 #define HGL_VEC_FUNC_POP_NAME _CONCAT3(hgl_, HGL_VEC_TYPE_ID, _vec_pop)
 static inline HGL_VEC_TYPE HGL_VEC_FUNC_POP_NAME(HGL_VEC_STRUCT_NAME *vec)
 {
     assert(vec->len > 0 && "tried to pop from a vector of size 0");
-    return vec->arr[--vec->len]; 
+    return vec->arr[--vec->len];
 }
 
 #define HGL_VEC_FUNC_REMOVE_NAME _CONCAT3(hgl_, HGL_VEC_TYPE_ID, _vec_remove)
@@ -133,11 +208,11 @@ static inline HGL_VEC_TYPE HGL_VEC_FUNC_REMOVE_NAME(HGL_VEC_STRUCT_NAME *vec, si
     HGL_VEC_TYPE retval = vec->arr[index];
     memmove(&vec->arr[index], &vec->arr[index+1], sizeof(HGL_VEC_TYPE)*(vec->len - index));
     vec->len--;
-    return retval; 
+    return retval;
 }
 
 #define HGL_VEC_FUNC_INSERT_NAME _CONCAT3(hgl_, HGL_VEC_TYPE_ID, _vec_insert)
-static inline void HGL_VEC_FUNC_INSERT_NAME(HGL_VEC_STRUCT_NAME *vec, 
+static inline void HGL_VEC_FUNC_INSERT_NAME(HGL_VEC_STRUCT_NAME *vec,
                                             const HGL_VEC_STRUCT_NAME *other_vec,
                                             size_t index)
 {
@@ -145,8 +220,8 @@ static inline void HGL_VEC_FUNC_INSERT_NAME(HGL_VEC_STRUCT_NAME *vec,
         HGL_VEC_FUNC_GROW_VEC_NAME(vec);
     }
 
-    /* 
-     * Do the simpler (but in some cases probably a lot slower) version. 
+    /*
+     * Do the simpler (but in some cases probably a lot slower) version.
      *
      * TODO: We could get away with a smaller temporary buffer with some clever tricks.
      */
@@ -154,11 +229,11 @@ static inline void HGL_VEC_FUNC_INSERT_NAME(HGL_VEC_STRUCT_NAME *vec,
     /* allocate temporary buffer */
     size_t temp_buf_size = sizeof(HGL_VEC_TYPE) * (vec->len - index);
     HGL_VEC_TYPE *temp_buf = HGL_VEC_ALLOCATOR(temp_buf_size);
-    
+
     /* copy displaced elements (+ end) into temporary buffer */
     memcpy(temp_buf, &vec->arr[index], temp_buf_size);
 
-    /* write new elements into vec->arr at specified index */    
+    /* write new elements into vec->arr at specified index */
     memcpy(&vec->arr[index], other_vec->arr, other_vec->len * sizeof(HGL_VEC_TYPE));
 
     /* write temporary buffer to end of newly inserted elements */
@@ -166,13 +241,13 @@ static inline void HGL_VEC_FUNC_INSERT_NAME(HGL_VEC_STRUCT_NAME *vec,
 
     /* update vec length */
     vec->len += other_vec->len;
-    
+
     /* free temporary buffer */
     HGL_VEC_FREE(temp_buf);
 }
 
 #define HGL_VEC_FUNC_EXTEND_NAME _CONCAT3(hgl_, HGL_VEC_TYPE_ID, _vec_extend)
-static inline void HGL_VEC_FUNC_EXTEND_NAME(HGL_VEC_STRUCT_NAME *vec, 
+static inline void HGL_VEC_FUNC_EXTEND_NAME(HGL_VEC_STRUCT_NAME *vec,
                                             const HGL_VEC_STRUCT_NAME *other_vec)
 {
     while (vec->len + other_vec->len > vec->capacity) {
@@ -185,7 +260,7 @@ static inline void HGL_VEC_FUNC_EXTEND_NAME(HGL_VEC_STRUCT_NAME *vec,
 #define HGL_VEC_FUNC_EXTEND_ARRAY_NAME _CONCAT3(hgl_, HGL_VEC_TYPE_ID, _vec_extend_array)
 static inline void HGL_VEC_FUNC_EXTEND_ARRAY_NAME(HGL_VEC_STRUCT_NAME *vec,
                                                   const HGL_VEC_TYPE other_arr[],
-                                                  size_t other_arr_len) 
+                                                  size_t other_arr_len)
 {
     while (vec->len + other_arr_len > vec->capacity) {
         HGL_VEC_FUNC_GROW_VEC_NAME(vec);
