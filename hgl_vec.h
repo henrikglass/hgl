@@ -52,10 +52,15 @@
  *     char *hgl_charp_vec_pop(hgl_charp_vec_t *vec);
  *     char *hgl_charp_vec_remove(hgl_charp_vec_t *vec, size_t index);
  *     char *hgl_charp_vec_insert(hgl_charp_vec_t *vec,
-                                  const hgl_charp_vec_t *other_vec,
-                                  size_t index);
+ *                                const hgl_charp_vec_t *other_vec,
+ *                                size_t index);
  *     char *hgl_charp_vec_extend(hgl_charp_vec_t *vec, const hgl_charp_vec_t *other_vec);
  *     char *hgl_charp_vec_extend_array(hgl_charp_vec_t *vec, const *other_vec);
+ *     void hgl_charp_vec_sort(hgl_charp_vec_t *vec,
+ *                             int (cmpfnc*)(const void *, const void *));
+ *     void hgl_charp_vec_bsearch(hgl_charp_vec_t *vec, 
+ *                                char **key,
+ *                                int (cmpfnc*)(const void *, const void *));
  *
  * HGL_VEC_TYPE and HGL_VEC_TYPE_ID may be redefined and hgl_vec.h included multiple times
  * to create implementations of hgl_vec for different types:
@@ -163,6 +168,18 @@ static inline void HGL_VEC_FUNC_GROW_VEC_NAME(HGL_VEC_STRUCT_NAME *vec)
         vec->capacity += HGL_VEC_LINEAR_GROWTH_RATE;
 #endif
         vec->arr = HGL_VEC_REALLOCATOR(vec->arr, vec->capacity * sizeof(HGL_VEC_TYPE));
+}
+
+#define HGL_VEC_FUNC_DEFAULT_CMPFNC_NAME _CONCAT3(hgl_, HGL_VEC_TYPE_ID, _vec_default_cmpfnc_)
+int HGL_VEC_FUNC_DEFAULT_CMPFNC_NAME(const void * a, const void * b)
+{
+    /* 
+     * NOTE: this works as a default for built in arithmetic types. For more complex 
+     *       types, supply your own compare function to hgl_vec_*_sort(...) instead
+     */
+    HGL_VEC_TYPE a_ = *(const HGL_VEC_TYPE*) a;
+    HGL_VEC_TYPE b_ = *(const HGL_VEC_TYPE*) b;
+    return (a_ > b_) - (a_ < b_);
 }
 
 /*--- vector functions ------------------------------------------------------------------*/
@@ -287,5 +304,38 @@ static inline void HGL_VEC_FUNC_EXTEND_ARRAY_NAME(HGL_VEC_STRUCT_NAME *vec,
     }
     memcpy(&vec->arr[vec->len], other_arr, sizeof(HGL_VEC_TYPE)*other_arr_len);
     vec->len += other_arr_len;
+}
+
+#define HGL_VEC_FUNC_SORT_NAME _CONCAT3(hgl_, HGL_VEC_TYPE_ID, _vec_sort)
+static inline void HGL_VEC_FUNC_SORT_NAME(HGL_VEC_STRUCT_NAME *vec,  
+                                          int (*cmpfnc)(const void *, const void *))
+{
+    /* 
+     * No compare function supplied, attempt to use the default one... This will only work
+     * for simple built-in arithmetic types (char, int, float, ...)
+     */
+    if (cmpfnc == NULL) {
+        cmpfnc = &HGL_VEC_FUNC_DEFAULT_CMPFNC_NAME;
+    }
+    
+    qsort(vec->arr, vec->len, sizeof(HGL_VEC_TYPE), cmpfnc);
+
+}
+
+#define HGL_VEC_FUNC_BSEARCH_NAME _CONCAT3(hgl_, HGL_VEC_TYPE_ID, _vec_bsearch)
+static inline HGL_VEC_TYPE *HGL_VEC_FUNC_BSEARCH_NAME(HGL_VEC_STRUCT_NAME *vec,
+                                                      HGL_VEC_TYPE *key,
+                                                      int (*cmpfnc)(const void *, const void *))
+{
+    /* 
+     * No compare function supplied, attempt to use the default one... This will only work
+     * for simple built-in arithmetic types (char, int, float, ...)
+     */
+    if (cmpfnc == NULL) {
+        cmpfnc = &HGL_VEC_FUNC_DEFAULT_CMPFNC_NAME;
+    }
+    
+    return bsearch(key, vec->arr, vec->len, sizeof(HGL_VEC_TYPE), cmpfnc);
+
 }
 

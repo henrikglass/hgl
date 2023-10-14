@@ -109,6 +109,12 @@ int main(void)
     printf("\n");
    
     hgl_int_vec_remove(&v, 0);
+    hgl_int_vec_sort(&v, NULL);
+    int seven = 7;
+    int *resp = hgl_int_vec_bsearch(&v, &seven, NULL);
+
+    printf("res: %p\n", (void*)resp);
+    printf("arrbegin: %p\n", (void*)v.arr);
 
     for (size_t i = 0; i < v.len; i++) {
         printf("%d ", v.arr[i]);
