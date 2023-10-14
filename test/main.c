@@ -2,15 +2,19 @@
 #include <assert.h>
 #include <stdbool.h>
 
-#define HGL_VEC_TYPE int
-#define HGL_VEC_TYPE_ID int
-#include "hgl_vec.h"
+//#define HGL_VEC_TYPE int
+//#define HGL_VEC_TYPE_ID int
+//#include "hgl_vec.h"
+//
+//#undef HGL_VEC_TYPE
+//#undef HGL_VEC_TYPE_ID
+//#define HGL_VEC_TYPE float
+//#define HGL_VEC_TYPE_ID float
+//#include "hgl_vec.h"
 
-#undef HGL_VEC_TYPE
-#undef HGL_VEC_TYPE_ID
-#define HGL_VEC_TYPE float
-#define HGL_VEC_TYPE_ID float
-#include "hgl_vec.h"
+#define HGL_RBUF_TYPE float
+#define HGL_RBUF_TYPE_ID float
+#include "hgl_ringbuf.h"
 
 #define STR(x)   #x
 #define SHOW_DEFINE(x) printf("%s=%s\n", #x, STR(x))
@@ -40,11 +44,40 @@ int main(void)
     SHOW_DEFINE(HGL_VEC_EXPONENTIAL_GROWTH_RATE);
 #endif
 
-    hgl_int_vec_t v;
-    hgl_int_vec_t v2;
-    hgl_float_vec_t vf;
+    //hgl_int_vec_t v;
+    //hgl_int_vec_t v2;
+    //hgl_float_vec_t vf;
+    hgl_float_rbuf_t rbuf;
+    
+    float *f;
+    hgl_float_rbuf_init(&rbuf, 8);
+    hgl_float_rbuf_push_back(&rbuf, 1.0f);
+    hgl_float_rbuf_push_back(&rbuf, 2.0f);
+    hgl_float_rbuf_push_back(&rbuf, 3.0f);
+    hgl_float_rbuf_push_back(&rbuf, 6.0f);
+    f = hgl_float_rbuf_pop_front(&rbuf);
+    f = hgl_float_rbuf_pop_front(&rbuf);
+    f = hgl_float_rbuf_pop_front(&rbuf);
+    f = hgl_float_rbuf_pop_front(&rbuf);
+    f = hgl_float_rbuf_pop_front(&rbuf);
+    f = hgl_float_rbuf_pop_front(&rbuf);
+    hgl_float_rbuf_push_back(&rbuf, 1.0f);
+    hgl_float_rbuf_push_back(&rbuf, 1.0f);
+    hgl_float_rbuf_push_back(&rbuf, 1.0f);
+    hgl_float_rbuf_push_back(&rbuf, 2.0f);
+    hgl_float_rbuf_push_back(&rbuf, 3.0f);
+    hgl_float_rbuf_push_back(&rbuf, 6.0f);
+    hgl_float_rbuf_push_back(&rbuf, 2.0f);
+    hgl_float_rbuf_push_back(&rbuf, 3.0f);
+    hgl_float_rbuf_push_back(&rbuf, 6.0f);
+    hgl_float_rbuf_push_back(&rbuf, 2.0f);
+    hgl_float_rbuf_push_back(&rbuf, 3.0f);
+    hgl_float_rbuf_push_back(&rbuf, 6.0f);
+    f = hgl_float_rbuf_pop_front(&rbuf);
+    hgl_float_rbuf_free(&rbuf);
+    (void) f;
 
-#if 1
+#if 0
     hgl_float_vec_init(&vf);
     hgl_float_vec_push(&vf, 23.4f);
     hgl_float_vec_push(&vf, 20.4f);
@@ -54,7 +87,7 @@ int main(void)
     hgl_float_vec_free(&vf);
 #endif
 
-#if 1
+#if 0
     int arr[] = {4, 2, 0};
     hgl_int_vec_init_capacity(&v, 2);
     hgl_int_vec_init(&v2);
@@ -75,7 +108,7 @@ int main(void)
     hgl_int_vec_free(&v);
     hgl_int_vec_free(&v2);
 #endif
-#if 1
+#if 0
     hgl_int_vec_init(&v);
     printf("vector -- len: %lu capacity: %lu\n", v.len, v.capacity);
     hgl_int_vec_push(&v, 1);
