@@ -2,19 +2,15 @@
 #include <assert.h>
 #include <stdbool.h>
 
-//#define HGL_VEC_TYPE int
-//#define HGL_VEC_TYPE_ID int
-//#include "hgl_vec.h"
-//
-//#undef HGL_VEC_TYPE
-//#undef HGL_VEC_TYPE_ID
-//#define HGL_VEC_TYPE float
-//#define HGL_VEC_TYPE_ID float
-//#include "hgl_vec.h"
+#define HGL_VEC_TYPE int
+#define HGL_VEC_TYPE_ID int
+#include "hgl_vec.h"
 
-#define HGL_RBUF_TYPE float
-#define HGL_RBUF_TYPE_ID float
-#include "hgl_ringbuf.h"
+#undef HGL_VEC_TYPE
+#undef HGL_VEC_TYPE_ID
+#define HGL_VEC_TYPE float
+#define HGL_VEC_TYPE_ID float
+#include "hgl_vec.h"
 
 #define STR(x)   #x
 #define SHOW_DEFINE(x) printf("%s=%s\n", #x, STR(x))
@@ -44,83 +40,55 @@ int main(void)
     SHOW_DEFINE(HGL_VEC_EXPONENTIAL_GROWTH_RATE);
 #endif
 
-    //hgl_int_vec_t v;
-    //hgl_int_vec_t v2;
-    //hgl_float_vec_t vf;
-    hgl_float_rbuf_t rbuf;
-    
-    float *f;
-    hgl_float_rbuf_init(&rbuf, 8);
-    hgl_float_rbuf_push_back(&rbuf, 1.0f);
-    hgl_float_rbuf_push_back(&rbuf, 2.0f);
-    hgl_float_rbuf_push_back(&rbuf, 3.0f);
-    hgl_float_rbuf_push_back(&rbuf, 6.0f);
-    f = hgl_float_rbuf_pop_front(&rbuf);
-    f = hgl_float_rbuf_pop_front(&rbuf);
-    f = hgl_float_rbuf_pop_front(&rbuf);
-    f = hgl_float_rbuf_pop_front(&rbuf);
-    f = hgl_float_rbuf_pop_front(&rbuf);
-    f = hgl_float_rbuf_pop_front(&rbuf);
-    hgl_float_rbuf_push_back(&rbuf, 1.0f);
-    hgl_float_rbuf_push_back(&rbuf, 1.0f);
-    hgl_float_rbuf_push_back(&rbuf, 1.0f);
-    hgl_float_rbuf_push_back(&rbuf, 2.0f);
-    hgl_float_rbuf_push_back(&rbuf, 3.0f);
-    hgl_float_rbuf_push_back(&rbuf, 6.0f);
-    hgl_float_rbuf_push_back(&rbuf, 2.0f);
-    hgl_float_rbuf_push_back(&rbuf, 3.0f);
-    hgl_float_rbuf_push_back(&rbuf, 6.0f);
-    hgl_float_rbuf_push_back(&rbuf, 2.0f);
-    hgl_float_rbuf_push_back(&rbuf, 3.0f);
-    hgl_float_rbuf_push_back(&rbuf, 6.0f);
-    f = hgl_float_rbuf_pop_front(&rbuf);
-    hgl_float_rbuf_free(&rbuf);
-    (void) f;
+    hgl_int_vec_t v;
+    hgl_int_vec_t v2;
+    hgl_float_vec_t vf;
 
-#if 0
+#if 1
     hgl_float_vec_init(&vf);
-    hgl_float_vec_push(&vf, 23.4f);
-    hgl_float_vec_push(&vf, 20.4f);
-    hgl_float_vec_push(&vf, 8.4f);
-    hgl_float_vec_push(&vf, 27.4f);
+    hgl_float_vec_push_value(&vf, 23.4f);
+    hgl_float_vec_push_value(&vf, 20.4f);
+    hgl_float_vec_push_value(&vf, 8.4f);
+    hgl_float_vec_push_value(&vf, 27.4f);
     hgl_float_vec_pop(&vf);
     hgl_float_vec_free(&vf);
 #endif
 
-#if 0
+#if 1
     int arr[] = {4, 2, 0};
     hgl_int_vec_init_capacity(&v, 2);
     hgl_int_vec_init(&v2);
     hgl_int_vec_extend_array(&v, arr, 3);
     hgl_int_vec_shrink_to_fit(&v);
-    hgl_int_vec_push(&v, 1);
-    hgl_int_vec_push(&v, 3);
-    hgl_int_vec_push(&v, 3);
-    hgl_int_vec_push(&v, 7);
-    hgl_int_vec_push(&v2, 4);
-    hgl_int_vec_push(&v2, 2);
-    hgl_int_vec_push(&v2, 0);
-    hgl_int_vec_push(&v2, 6);
-    hgl_int_vec_push(&v2, 9);
+    hgl_int_vec_push_value(&v, 1);
+    hgl_int_vec_push_value(&v, 3);
+    hgl_int_vec_push_value(&v, 3);
+    hgl_int_vec_push_value(&v, 7);
+    hgl_int_vec_push_value(&v2, 4);
+    hgl_int_vec_push_value(&v2, 2);
+    hgl_int_vec_push_value(&v2, 0);
+    hgl_int_vec_push_value(&v2, 6);
+    hgl_int_vec_push_value(&v2, 9);
     
     hgl_int_vec_insert(&v, &v2, 2);
 
     hgl_int_vec_free(&v);
     hgl_int_vec_free(&v2);
 #endif
-#if 0
+#if 1
     hgl_int_vec_init(&v);
     printf("vector -- len: %lu capacity: %lu\n", v.len, v.capacity);
-    hgl_int_vec_push(&v, 1);
-    hgl_int_vec_push(&v, 3);
-    hgl_int_vec_push(&v, 3);
-    hgl_int_vec_push(&v, 7);
+    hgl_int_vec_push_value(&v, 1);
+    int asd = 3;
+    hgl_int_vec_push(&v, &asd);
+    hgl_int_vec_push_value(&v, 3);
+    hgl_int_vec_push_value(&v, 7);
     printf("vector -- len: %lu capacity: %lu\n", v.len, v.capacity);
 
     hgl_int_vec_init(&v2);
-    hgl_int_vec_push(&v2, 4);
-    hgl_int_vec_push(&v2, 2);
-    hgl_int_vec_push(&v2, 0);
+    hgl_int_vec_push_value(&v2, 4);
+    hgl_int_vec_push_value(&v2, 2);
+    hgl_int_vec_push_value(&v2, 0);
 
     hgl_int_vec_extend(&v, &v2);
     printf("vector -- len: %lu capacity: %lu\n", v.len, v.capacity);

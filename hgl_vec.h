@@ -3,19 +3,19 @@
  * LICENSE:
  *
  * MIT License
- * 
+ *
  * Copyright (c) 2023 Henrik A. Glass
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -48,7 +48,8 @@
  *     void hgl_charp_vec_free(hgl_charp_vec_t *vec);
  *     void hgl_charp_vec_reserve(hgl_charp_vec_t *vec, size_t new_capacity);
  *     void hgl_charp_vec_shrink_to_fit(hgl_charp_vec_t *vec);
- *     void hgl_charp_vec_push(hgl_charp_vec_t *vec, char *elem);
+ *     void hgl_charp_vec_push(hgl_charp_vec_t *vec, char **elem);
+ *     void hgl_charp_vec_push_value(hgl_charp_vec_t *vec, char *elem);
  *     char *hgl_charp_vec_pop(hgl_charp_vec_t *vec);
  *     char *hgl_charp_vec_remove(hgl_charp_vec_t *vec, size_t index);
  *     char *hgl_charp_vec_insert(hgl_charp_vec_t *vec,
@@ -58,7 +59,7 @@
  *     char *hgl_charp_vec_extend_array(hgl_charp_vec_t *vec, const *other_vec);
  *     void hgl_charp_vec_sort(hgl_charp_vec_t *vec,
  *                             int (cmpfnc*)(const void *, const void *));
- *     void hgl_charp_vec_bsearch(hgl_charp_vec_t *vec, 
+ *     void hgl_charp_vec_bsearch(hgl_charp_vec_t *vec,
  *                                char **key,
  *                                int (cmpfnc*)(const void *, const void *));
  *
@@ -75,12 +76,12 @@
  *     #define HGL_VEC_TYPE_ID int
  *     #include "hgl_vec.h"
  *
- * If HGL_VEC_TYPE and HGL_VEC_TYPE_ID are left undefined, the default element type of 
+ * If HGL_VEC_TYPE and HGL_VEC_TYPE_ID are left undefined, the default element type of
  * hgl_vec will be void *, and the default element type identifier will be "voidp".
  *
- * hgl_vec allows fine-grained control over the internals of the implementation 
+ * hgl_vec allows fine-grained control over the internals of the implementation
  * including configurable growth rate and growth type (linear or exponential), as well
- * as support for custom allocators. The following defines (shown with their default 
+ * as support for custom allocators. The following defines (shown with their default
  * values) may be changed before including hgl_vec.h:
  *
  *     #define HGL_VEC_GROWTH_TYPE              HGL_VEC_EXPONENTIAL
@@ -90,10 +91,10 @@
  *     #define HGL_VEC_REALLOCATOR              (realloc)
  *     #define HGL_VEC_FREE                     (free)
  *
- * HGL_VEC_GROWTH_TYPE can take on the values HGL_VEC_EXPONENTIAL and HGL_VEC_LINEAR. 
- * HGL_VEC_EXPONENTIAL_GROWTH_RATE and HGL_VEC_LINEAR_GROWTH_RATE can take on any numeric 
- * literal. HGL_VEC_ALLOCATOR, HGL_VEC_REALLOCATOR, and HGL_VEC_FREE can take on any 
- * function identifiers whose function types match those of malloc, realloc, and free, 
+ * HGL_VEC_GROWTH_TYPE can take on the values HGL_VEC_EXPONENTIAL and HGL_VEC_LINEAR.
+ * HGL_VEC_EXPONENTIAL_GROWTH_RATE and HGL_VEC_LINEAR_GROWTH_RATE can take on any numeric
+ * literal. HGL_VEC_ALLOCATOR, HGL_VEC_REALLOCATOR, and HGL_VEC_FREE can take on any
+ * function identifiers whose function types match those of malloc, realloc, and free,
  * respectively.
  *
  * AUTHOR: Henrik A. Glass
@@ -173,8 +174,8 @@ static inline void HGL_VEC_FUNC_GROW_VEC_NAME(HGL_VEC_STRUCT_NAME *vec)
 #define HGL_VEC_FUNC_DEFAULT_CMPFNC_NAME _CONCAT3(hgl_, HGL_VEC_TYPE_ID, _vec_default_cmpfnc_)
 int HGL_VEC_FUNC_DEFAULT_CMPFNC_NAME(const void * a, const void * b)
 {
-    /* 
-     * NOTE: this works as a default for built in arithmetic types. For more complex 
+    /*
+     * NOTE: this works as a default for built in arithmetic types. For more complex
      *       types, supply your own compare function to hgl_vec_*_sort(...) instead
      */
     HGL_VEC_TYPE a_ = *(const HGL_VEC_TYPE*) a;
@@ -222,13 +223,19 @@ static inline void HGL_VEC_FUNC_SHRINK_TO_FIT_NAME(HGL_VEC_STRUCT_NAME *vec)
 }
 
 #define HGL_VEC_FUNC_PUSH_NAME _CONCAT3(hgl_, HGL_VEC_TYPE_ID, _vec_push)
-static inline void HGL_VEC_FUNC_PUSH_NAME(HGL_VEC_STRUCT_NAME *vec, HGL_VEC_TYPE elem)
+static inline void HGL_VEC_FUNC_PUSH_NAME(HGL_VEC_STRUCT_NAME *vec, HGL_VEC_TYPE *elem)
 {
     if (vec->len == vec->capacity) {
         HGL_VEC_FUNC_GROW_VEC_NAME(vec);
     }
 
-    vec->arr[vec->len++] = elem;
+    vec->arr[vec->len++] = *elem;
+}
+
+#define HGL_VEC_FUNC_PUSH_VALUE_NAME _CONCAT3(hgl_, HGL_VEC_TYPE_ID, _vec_push_value)
+static inline void HGL_VEC_FUNC_PUSH_VALUE_NAME(HGL_VEC_STRUCT_NAME *vec, HGL_VEC_TYPE elem)
+{
+    HGL_VEC_FUNC_PUSH_NAME(vec, &elem);
 }
 
 #define HGL_VEC_FUNC_POP_NAME _CONCAT3(hgl_, HGL_VEC_TYPE_ID, _vec_pop)
@@ -307,17 +314,17 @@ static inline void HGL_VEC_FUNC_EXTEND_ARRAY_NAME(HGL_VEC_STRUCT_NAME *vec,
 }
 
 #define HGL_VEC_FUNC_SORT_NAME _CONCAT3(hgl_, HGL_VEC_TYPE_ID, _vec_sort)
-static inline void HGL_VEC_FUNC_SORT_NAME(HGL_VEC_STRUCT_NAME *vec,  
+static inline void HGL_VEC_FUNC_SORT_NAME(HGL_VEC_STRUCT_NAME *vec,
                                           int (*cmpfnc)(const void *, const void *))
 {
-    /* 
+    /*
      * No compare function supplied, attempt to use the default one... This will only work
      * for simple built-in arithmetic types (char, int, float, ...)
      */
     if (cmpfnc == NULL) {
         cmpfnc = &HGL_VEC_FUNC_DEFAULT_CMPFNC_NAME;
     }
-    
+
     qsort(vec->arr, vec->len, sizeof(HGL_VEC_TYPE), cmpfnc);
 
 }
@@ -327,14 +334,14 @@ static inline HGL_VEC_TYPE *HGL_VEC_FUNC_BSEARCH_NAME(HGL_VEC_STRUCT_NAME *vec,
                                                       HGL_VEC_TYPE *key,
                                                       int (*cmpfnc)(const void *, const void *))
 {
-    /* 
+    /*
      * No compare function supplied, attempt to use the default one... This will only work
      * for simple built-in arithmetic types (char, int, float, ...)
      */
     if (cmpfnc == NULL) {
         cmpfnc = &HGL_VEC_FUNC_DEFAULT_CMPFNC_NAME;
     }
-    
+
     return bsearch(key, vec->arr, vec->len, sizeof(HGL_VEC_TYPE), cmpfnc);
 
 }
