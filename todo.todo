@@ -1,3 +1,6 @@
 rrhashtbl
 rrhashset
 str
+arena_alloc
+stack_alloc
+typedefs
