@@ -1,6 +1,4 @@
-rrhashtbl
 rrhashset
 str
-arena_alloc
-stack_alloc
 typedefs
+math (vec, matrix, quaterinions)

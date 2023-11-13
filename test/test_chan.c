@@ -6,9 +6,9 @@
 #define HGL_CHAN_TYPE_ID int
 #include "hgl_chan.h"
 
-#define HGL_BUFCHAN_TYPE float
-#define HGL_BUFCHAN_TYPE_ID float
-#include "hgl_bufchan.h"
+#define HGL_BUFFERED_CHAN_TYPE float
+#define HGL_BUFFERED_CHAN_TYPE_ID float
+#include "hgl_buffered_chan.h"
 
 #define STR(x)   #x
 #define SHOW_DEFINE(x) printf("%s=%s\n", #x, STR(x))
@@ -30,20 +30,48 @@ int main(void)
     printf("c\n");
     fflush(stdout);
     hgl_int_chan_free(&c);
+    
+    // select test
+    hgl_int_chan_t c1;
+    hgl_int_chan_init(&c1);
+    hgl_int_chan_t c2;
+    hgl_int_chan_init(&c2);
+    hgl_int_chan_t c3;
+    hgl_int_chan_init(&c3);
+    printf("&c1 is %p\n", (void *) &c1);
+    printf("&c2 is %p\n", (void *) &c2);
+    printf("&c3 is %p\n", (void *) &c3);
+    hgl_int_chan_send_value(&c1, 123);
+    hgl_int_chan_send_value(&c2, 456);
+    hgl_int_chan_t *ret = hgl_int_chan_select(3, &c1, &c2, &c3);
+    int val = hgl_int_chan_recv(ret);
+    printf("returned1: %p\n", (void *) ret);
+    printf("read value1: %d\n", val);
+    ret = hgl_int_chan_select(3, &c1, &c2, &c3);
+    val = hgl_int_chan_recv(ret);
+    printf("returned2: %p\n", (void *) ret);
+    printf("read value2: %d\n", val);
+    hgl_int_chan_free(&c1);
+    hgl_int_chan_free(&c2);
+    hgl_int_chan_free(&c3);
 
-    hgl_float_bufchan_t bc;
-    hgl_float_bufchan_init(&bc, 8);
-    hgl_float_bufchan_send_value(&bc, 1.232f);
+
+    hgl_float_buffered_chan_t bc;
+    hgl_float_buffered_chan_init(&bc, 8);
+    hgl_float_buffered_chan_send_value(&bc, 1.232f);
     float f1 = 69.0f;
-    hgl_float_bufchan_send(&bc, &f1);
-    hgl_float_bufchan_send_value(&bc, 2.1f);
-    hgl_float_bufchan_send_value(&bc, 4.0f);
-    hgl_float_bufchan_send_value(&bc, 8.0f);
-    hgl_float_bufchan_send_value(&bc, 17.2f);
-    float f = hgl_float_bufchan_recv(&bc);
-    f = hgl_float_bufchan_recv(&bc);
-    f = hgl_float_bufchan_recv(&bc);
+    hgl_float_buffered_chan_send(&bc, &f1);
+    hgl_float_buffered_chan_send_value(&bc, 2.1f);
+    hgl_float_buffered_chan_send_value(&bc, 4.0f);
+    hgl_float_buffered_chan_send_value(&bc, 8.0f);
+    hgl_float_buffered_chan_send_value(&bc, 17.2f);
+    float f = hgl_float_buffered_chan_recv(&bc);
+    printf("f: %f\n", f);
+    f = hgl_float_buffered_chan_recv(&bc);
+    printf("f: %f\n", f);
+    f = hgl_float_buffered_chan_recv(&bc);
+    printf("f: %f\n", f);
     (void) f;
-    hgl_float_bufchan_free(&bc);
+    hgl_float_buffered_chan_free(&bc);
 
 }

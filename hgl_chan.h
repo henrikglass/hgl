@@ -48,6 +48,7 @@
  *     void hgl_charp_chan_send(hgl_charp_chan_t *chan, char **item);
  *     void hgl_charp_chan_send_value(hgl_charp_chan_t *chan, char *item);
  *     char *hgl_charp_chan_recv(hgl_charp_chan_t *chan);
+ *     hgl_charp_chan_t *hgl_charp_chan_select(int n_args, ...);
  *
  * HGL_CHAN_TYPE and HGL_CHAN_TYPE_ID may be redefined and hgl_chan.h included multiple times
  * to create implementations of hgl_chan for different types:
@@ -85,8 +86,13 @@
 
 /*--- Include files ---------------------------------------------------------------------*/
 
+#include <stdlib.h>
 #include <stdbool.h>
 #include <pthread.h>
+#include <stdarg.h>
+#include <sys/eventfd.h>
+#include <unistd.h>
+#include <poll.h>
 
 /*--- Public type definitions -----------------------------------------------------------*/
 
@@ -98,6 +104,7 @@ typedef struct
     pthread_cond_t cvar_writable;
     pthread_cond_t cvar_readable;
     bool readable;
+    int efd;
 } HGL_CHAN_STRUCT_NAME;
 
 /*--- Public variables ------------------------------------------------------------------*/
@@ -111,6 +118,7 @@ static inline void HGL_CHAN_FUNC_INIT_NAME(HGL_CHAN_STRUCT_NAME *chan)
     pthread_mutex_init(&chan->mutex, NULL);
     pthread_cond_init(&chan->cvar_writable, NULL);
     pthread_cond_init(&chan->cvar_readable, NULL);
+    chan->efd = eventfd(0,0);
 }
 
 #define HGL_CHAN_FUNC_FREE_NAME _CONCAT3(hgl_, HGL_CHAN_TYPE_ID, _chan_free)
@@ -119,6 +127,7 @@ static inline void HGL_CHAN_FUNC_FREE_NAME(HGL_CHAN_STRUCT_NAME *chan)
     pthread_mutex_destroy(&chan->mutex);
     pthread_cond_destroy(&chan->cvar_writable);
     pthread_cond_destroy(&chan->cvar_readable);
+    close(chan->efd);
 }
 
 #define HGL_CHAN_FUNC_SEND_NAME _CONCAT3(hgl_, HGL_CHAN_TYPE_ID, _chan_send)
@@ -130,6 +139,8 @@ static inline void HGL_CHAN_FUNC_SEND_NAME(HGL_CHAN_STRUCT_NAME *chan, HGL_CHAN_
     }
     chan->item = *item;
     chan->readable = true;
+    uint64_t efd_counter = 1;
+    write(chan->efd, &efd_counter, 8);
     pthread_cond_signal(&chan->cvar_readable);
     pthread_mutex_unlock(&chan->mutex);
 }
@@ -149,7 +160,45 @@ static inline HGL_CHAN_TYPE HGL_CHAN_FUNC_RECV_NAME(HGL_CHAN_STRUCT_NAME *chan)
     }
     HGL_CHAN_TYPE item = chan->item;
     chan->readable = false;
+    uint64_t efd_counter;
+    read(chan->efd, &efd_counter, 8); // resets counter to zero
     pthread_cond_signal(&chan->cvar_writable);
     pthread_mutex_unlock(&chan->mutex);
     return item;
+}
+
+#define HGL_CHAN_FUNC_SELECT_NAME _CONCAT3(hgl_, HGL_CHAN_TYPE_ID, _chan_select)
+static inline HGL_CHAN_STRUCT_NAME *HGL_CHAN_FUNC_SELECT_NAME(int n_args, ...)
+{
+    /* setup va_list & pfds */
+    HGL_CHAN_STRUCT_NAME *ret = NULL;
+    struct pollfd *pfds = malloc(n_args * sizeof(struct pollfd));
+    va_list args1, args2;    
+    va_start(args1, n_args);
+    va_copy(args2, args1);
+
+    /* populate pfds */
+    for (int i = 0; i < n_args; i++) {
+        HGL_CHAN_STRUCT_NAME *c = va_arg(args1, HGL_CHAN_STRUCT_NAME *);
+        pfds[i].fd = c->efd;
+        pfds[i].events = POLLIN;
+    }
+
+    /* poll: wait (forever) till one of the channels becomes readable */
+    poll(pfds, (unsigned long) n_args, -1);
+
+    /* find the readable channel */
+    for (int i = 0; i < n_args; i++) {
+        HGL_CHAN_STRUCT_NAME *c = va_arg(args2, HGL_CHAN_STRUCT_NAME *);
+        if (c->readable) {
+            ret = c;
+            break;
+        }
+    }
+
+    /* cleanup and return the readable channel */
+    va_end(args1);
+    va_end(args2);
+    free(pfds);
+    return ret;
 }
