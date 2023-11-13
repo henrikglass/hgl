@@ -66,7 +66,7 @@
 
 /*--- stack alloc-specific macros -------------------------------------------------------*/
 
-#define HGL_STACK_ALLOC_DEBUG_PRINTS
+//#define HGL_STACK_ALLOC_DEBUG_PRINTS
 
 /*--- Include files ---------------------------------------------------------------------*/
 

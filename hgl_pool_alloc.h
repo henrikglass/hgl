@@ -67,7 +67,7 @@
 
 /*--- Pool alloc-specific macros --------------------------------------------------------*/
 
-#define HGL_POOL_ALLOC_DEBUG_PRINTS
+//#define HGL_POOL_ALLOC_DEBUG_PRINTS
 
 #ifndef HGL_POOL_ALIGNMENT
 #define HGL_POOL_ALIGNMENT 16

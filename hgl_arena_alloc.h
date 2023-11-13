@@ -66,7 +66,7 @@
 
 /*--- Arena alloc-specific macros -------------------------------------------------------*/
 
-#define HGL_ARENA_ALLOC_DEBUG_PRINTS
+//#define HGL_ARENA_ALLOC_DEBUG_PRINTS
 
 #ifndef HGL_ARENA_ALIGNMENT
 #define HGL_ARENA_ALIGNMENT 16
