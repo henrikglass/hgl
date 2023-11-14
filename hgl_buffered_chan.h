@@ -111,6 +111,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <stdarg.h>
+#include <sys/eventfd.h>
+#include <unistd.h>
+#include <poll.h>
 
 /*--- Public type definitions -----------------------------------------------------------*/
 
@@ -124,6 +128,7 @@ typedef struct
     pthread_mutex_t mutex;
     pthread_cond_t cvar_writable;
     pthread_cond_t cvar_readable;
+    int efd;
 } HGL_BUFFERED_CHAN_STRUCT;
 
 /*--- Public variables ------------------------------------------------------------------*/
@@ -141,6 +146,7 @@ static inline void HGL_BUFFERED_CHAN_FUNC_INIT(HGL_BUFFERED_CHAN_STRUCT *chan, s
     pthread_mutex_init(&chan->mutex, NULL);
     pthread_cond_init(&chan->cvar_writable, NULL);
     pthread_cond_init(&chan->cvar_readable, NULL);
+    chan->efd = eventfd(0, EFD_SEMAPHORE);
 }
 
 #define HGL_BUFFERED_CHAN_FUNC_FREE _CONCAT3(hgl_, HGL_BUFFERED_CHAN_TYPE_ID, _buffered_chan_free)
@@ -150,6 +156,7 @@ static inline void HGL_BUFFERED_CHAN_FUNC_FREE(HGL_BUFFERED_CHAN_STRUCT *chan)
     pthread_cond_destroy(&chan->cvar_writable);
     pthread_cond_destroy(&chan->cvar_readable);
     HGL_BUFFERED_CHAN_FREE(chan->buf);
+    close(chan->efd);
 }
 
 #define HGL_BUFFERED_CHAN_FUNC_SEND _CONCAT3(hgl_, HGL_BUFFERED_CHAN_TYPE_ID, _buffered_chan_send)
@@ -163,6 +170,8 @@ static inline void HGL_BUFFERED_CHAN_FUNC_SEND(HGL_BUFFERED_CHAN_STRUCT *chan,
     }
     chan->buf[chan->write_offset] = *item;
     chan->write_offset = (chan->write_offset + 1) & (chan->capacity - 1);
+    uint64_t efd_inc = 1;
+    write(chan->efd, &efd_inc, sizeof(uint64_t)); // increment counter
     pthread_cond_signal(&chan->cvar_readable);
     pthread_mutex_unlock(&chan->mutex);
 }
@@ -184,7 +193,51 @@ static inline HGL_BUFFERED_CHAN_TYPE HGL_BUFFERED_CHAN_FUNC_RECV(HGL_BUFFERED_CH
     }
     HGL_BUFFERED_CHAN_TYPE item = chan->buf[chan->read_offset];
     chan->read_offset = (chan->read_offset + 1) & (chan->capacity - 1);
+    uint64_t efd_counter;
+    read(chan->efd, &efd_counter, sizeof(uint64_t)); // decrement counter
     pthread_cond_signal(&chan->cvar_writable);
     pthread_mutex_unlock(&chan->mutex);
     return item;
 }
+
+#define HGL_BUFFERED_CHAN_FUNC_SELECT _CONCAT3(hgl_, HGL_BUFFERED_CHAN_TYPE_ID, _buffered_chan_select)
+static inline HGL_BUFFERED_CHAN_STRUCT *HGL_BUFFERED_CHAN_FUNC_SELECT(int n_args, ...)
+{
+    HGL_BUFFERED_CHAN_STRUCT *ret = NULL;
+
+    /* setup va_list */
+    va_list args1, args2;    
+    va_start(args1, n_args);
+    va_copy(args2, args1);
+
+    /* populate pfds */
+    struct pollfd *pfds = malloc(n_args * sizeof(struct pollfd));
+    if (pfds == NULL) {
+        goto out;
+    }
+    for (int i = 0; i < n_args; i++) {
+        HGL_BUFFERED_CHAN_STRUCT *c = va_arg(args1, HGL_BUFFERED_CHAN_STRUCT *);
+        pfds[i].fd = c->efd;
+        pfds[i].events = POLLIN;
+    }
+
+    /* poll: wait (forever) till one of the channels becomes readable */
+    poll(pfds, (unsigned long) n_args, -1);
+
+    /* find the first readable channel */
+    for (int i = 0; i < n_args; i++) {
+        HGL_BUFFERED_CHAN_STRUCT *c = va_arg(args2, HGL_BUFFERED_CHAN_STRUCT *);
+        if (c->write_offset != c->read_offset /* readble */) {
+            ret = c;
+            break;
+        }
+    }
+
+out:
+    /* cleanup and return the readable channel */
+    va_end(args1);
+    va_end(args2);
+    free(pfds);
+    return ret;
+}
+

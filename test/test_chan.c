@@ -45,6 +45,14 @@ int main(void)
     hgl_int_chan_send_value(&c2, 456);
     hgl_int_chan_t *ret = hgl_int_chan_select(3, &c1, &c2, &c3);
     int val = hgl_int_chan_recv(ret);
+    if (ret == &c1) {
+        printf("c1!\n");
+    } else if (ret == &c2) {
+        printf("c2!\n");
+    } else if (ret == &c3) {
+        printf("c3!\n");
+    }
+
     printf("returned1: %p\n", (void *) ret);
     printf("read value1: %d\n", val);
     ret = hgl_int_chan_select(3, &c1, &c2, &c3);
@@ -56,22 +64,36 @@ int main(void)
     hgl_int_chan_free(&c3);
 
 
-    hgl_float_buffered_chan_t bc;
-    hgl_float_buffered_chan_init(&bc, 8);
-    hgl_float_buffered_chan_send_value(&bc, 1.232f);
+    hgl_float_buffered_chan_t bc1;
+    hgl_float_buffered_chan_t bc2;
+    hgl_float_buffered_chan_init(&bc1, 8);
+    hgl_float_buffered_chan_init(&bc2, 8);
+    hgl_float_buffered_chan_send_value(&bc1, 1.232f);
     float f1 = 69.0f;
-    hgl_float_buffered_chan_send(&bc, &f1);
-    hgl_float_buffered_chan_send_value(&bc, 2.1f);
-    hgl_float_buffered_chan_send_value(&bc, 4.0f);
-    hgl_float_buffered_chan_send_value(&bc, 8.0f);
-    hgl_float_buffered_chan_send_value(&bc, 17.2f);
-    float f = hgl_float_buffered_chan_recv(&bc);
-    printf("f: %f\n", f);
-    f = hgl_float_buffered_chan_recv(&bc);
-    printf("f: %f\n", f);
-    f = hgl_float_buffered_chan_recv(&bc);
-    printf("f: %f\n", f);
-    (void) f;
-    hgl_float_buffered_chan_free(&bc);
+    hgl_float_buffered_chan_send(&bc1, &f1);
+    hgl_float_buffered_chan_send_value(&bc1, 2.1f);
+    hgl_float_buffered_chan_send_value(&bc1, 4.0f);
+    hgl_float_buffered_chan_send_value(&bc1, 8.0f);
+    hgl_float_buffered_chan_send_value(&bc2, 1000.0f);
+    hgl_float_buffered_chan_send_value(&bc2, 1100.0f);
+    hgl_float_buffered_chan_send_value(&bc2, 1200.0f);
+    hgl_float_buffered_chan_send_value(&bc1, 17.2f);
+
+    while (true) {
+        hgl_float_buffered_chan_t *retf = hgl_float_buffered_chan_select(2, &bc1, &bc2);
+        if (retf == &bc1) {
+            printf("receive from bc1: ");
+        } else if (retf == &bc2) {
+            printf("receive from bc2: ");
+        } 
+        float f = hgl_float_buffered_chan_recv(retf);
+        printf("%f\n", f);
+    }
+
+    //float f = hgl_float_buffered_chan_recv(&bc1);
+    //f = hgl_float_buffered_chan_recv(&bc1);
+    //f = hgl_float_buffered_chan_recv(&bc1);
+    //(void) f;
+    //hgl_float_buffered_chan_free(&bc1);
 
 }
