@@ -211,7 +211,7 @@ static inline HGL_BUFFERED_CHAN_STRUCT *HGL_BUFFERED_CHAN_FUNC_SELECT(int n_args
     va_copy(args2, args1);
 
     /* populate pfds */
-    struct pollfd *pfds = malloc(n_args * sizeof(struct pollfd));
+    struct pollfd *pfds = HGL_BUFFERED_CHAN_ALLOCATOR(n_args * sizeof(struct pollfd));
     if (pfds == NULL) {
         goto out;
     }
@@ -233,7 +233,7 @@ static inline HGL_BUFFERED_CHAN_STRUCT *HGL_BUFFERED_CHAN_FUNC_SELECT(int n_args
         }
     }
     
-    free(pfds);
+    HGL_BUFFERED_CHAN_FREE(pfds);
 out:
     va_end(args1);
     va_end(args2);
