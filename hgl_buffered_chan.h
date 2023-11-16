@@ -222,7 +222,7 @@ static inline HGL_BUFFERED_CHAN_STRUCT *HGL_BUFFERED_CHAN_FUNC_SELECT(int n_args
     }
 
     /* poll: wait (forever) till one of the channels becomes readable */
-    poll(pfds, (unsigned long) n_args, -1);
+    poll(pfds, (nfds_t) n_args, -1);
 
     /* find the first readable channel */
     for (int i = 0; i < n_args; i++) {
