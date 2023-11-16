@@ -232,12 +232,11 @@ static inline HGL_BUFFERED_CHAN_STRUCT *HGL_BUFFERED_CHAN_FUNC_SELECT(int n_args
             break;
         }
     }
-
+    
+    free(pfds);
 out:
-    /* cleanup and return the readable channel */
     va_end(args1);
     va_end(args2);
-    free(pfds);
     return ret;
 }
 
