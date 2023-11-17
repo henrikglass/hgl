@@ -11,6 +11,7 @@ int test() {
 
 int main()
 {
+    show_build_info();
     f32 fisk = 123.0f;
     printf("fisk = %f\n", (double)fisk);
     printf("fisk bits = 0x%08X\n", TRANSMUTE(u32, fisk));

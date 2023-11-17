@@ -14,12 +14,12 @@
 /*--- Public macros ---------------------------------------------------------------------*/
 
 /* zig-style try macro */
-#define TRY(expr)                \
-    do {                         \
-        int err_ = (int) (expr); \
-        if (err_ != 0) {         \
-            return err_;         \
-        }                        \
+#define TRY(expr)                   \
+    do {                            \
+        int err_ = (int) (expr);    \
+        if (err_ != 0) {            \
+            return err_;            \
+        }                           \
     } while (0)
 
 /* technically UB, but works in a pinch */
@@ -41,6 +41,17 @@ typedef double   f64;
 /* just in case... */
 static_assert(sizeof(float) == 4, "");
 static_assert(sizeof(double) == 8, "");
+
+/*--- Public functions ------------------------------------------------------------------*/ 
+
+/* Show executable name and build timestamp */
+static inline void show_build_info(void)
+{
+    extern const char *__progname;
+    printf("-------------------------------------------------- \n");
+    printf("Executable: %s\nBuilt on: %s %s\n", __progname, __DATE__, __TIME__);
+    printf("-------------------------------------------------- \n");
+}
 
 #endif /* HGL_NEAT_H */
 
