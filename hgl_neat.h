@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <assert.h>
+#include <stdio.h>
 
 /*--- Public macros ---------------------------------------------------------------------*/
 
