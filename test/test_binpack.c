@@ -1,6 +1,8 @@
-#include <stdio.h>
 
-#include "hgl_binparse.h"
+#include <stdio.h>
+#include <assert.h>
+
+#include "hgl_binpack.h"
 
 typedef struct __attribute__((__packed__)) {
     uint8_t a;
@@ -36,9 +38,9 @@ int main(void)
     //void *offset = hgl_binparse((void *) &my_struct, (void *) bytes, "[BE]BBW'hgl''!'#a0#BBB");
     
 
-    void *offset = hgl_binparse((void *) &my_struct, (void *) bytes, "[BE]2{B}W'hgl!'#00#BBB+[LE]DW");
+    void *offset = hgl_binpack((void *) &my_struct, (void *) bytes, "[BE]2{B}W'hgl!'#00#BBB+[LE]DW");
     float my_float;
-    void *result = hgl_binparse(&my_float, bytes, "[LE]#00AABBCC#<0C>DW");
+    void *result = hgl_binpack(&my_float, bytes, "[LE]#00AABBCC#<0C>DW");
     printf("%s\n", (result != NULL) ? "OK": "FAILED");
     //hgl_binparse((void *) &my_str, (void *) bytes, "4{-}'hgl!'-3{B}");
 
@@ -52,7 +54,19 @@ int main(void)
         printf("str = %s\n", my_struct.str);
         printf("ff = %f\n", (double) my_struct.ff);
         //printf("d = %X\n", my_struct.d);
-        printf("%ld", (uint8_t*)offset - bytes);
+        printf("%ld\n", (uint8_t*)offset - bytes);
     }
+
+
+    memset(my_str, 0, sizeof(my_str));
+    assert(NULL == hgl_binpack(&my_str, NULL, "[BE]^'HEJ :>'^#4848#"));
+    printf("%s\n", my_str);
+    
+    uint8_t buf[4] = {0};
+    uint32_t u32 = 0x12345678;
+    hgl_binpack(buf, &u32, "[BE]DW");
+    printf("{%02X, %02X, %02X, %02X}\n", buf[0], buf[1], buf[2], buf[3]);
+    hgl_binpack(&u32, buf, "[BE]DW^<00>^#AA#+^#BB#");
+    printf("0x%08X\n", u32);
 
 }

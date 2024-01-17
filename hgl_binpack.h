@@ -3,7 +3,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Henrik A. Glass
+ * Copyright (c) 2024 Henrik A. Glass
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,18 +27,18 @@
  *
  * ABOUT:
  *
- * hgl_binparse.h implements a simple to use binary parsing utility.
+ * hgl_binpack.h implements a simple to use binary packing/unpacking utility.
  *
  *
  * USAGE:
  *
- * Include hgl_binparse.h file like this:
+ * Include hgl_binpack.h file like this:
  *
- *     #include "hgl_binparse.h"
+ *     #include "hgl_binpack.h"
  *
- * hgl_binparse.h exports the function:
+ * hgl_binpack.h exports the function:
  *
- *     void *hgl_binparse(void *dst, void *src, const char *fmt);
+ *     void *hgl_binpack(void *dst, void *src, const char *fmt);
  *
  * where
  *  
@@ -54,28 +54,33 @@
  *
  * Fmt -> <epsilon>               |
  *        Atom Fmt                | 
- *        Natural '{' Fmt '}' Fmt       # Repeat the expression inside the braces 'Natural' times.
- *                                      # E.g. "4{B}" is equivalent to "BBBB".
+ *        Natural '{' Fmt '}' Fmt        # Repeat the expression inside the braces 'Natural' times.
+ *                                       # E.g. "4{B}" is equivalent to "BBBB".
  *
- * Atom -> '[' Endian ']'   |           # set endianness for subsequent reads (persistent until
- *                                      # another endianness change is encountered). Defaults to
- *                                      # network order/big endian.
- *         '\'' Ascii+ '\'' |           # expect to read ascii string
- *         '#' HexByte+ '#' |           # expect to read bytes.
- *         '<' HexByte+ '>' |           # move read ptr to offset inside 'src'
- *         '-'              |           # skip byte in 'src' (increment read ptr by 1)
- *         '+'              |           # skip byte in 'dst' (increment write ptr by 1).
- *                                      # Useful if 'dst' points to a struct with padding bytes.
- *         'B'              |           # read "byte" (8 bits)
- *         'W'              |           # read "word" (16 bit word)
- *         'DW'             |           # read "double word" (32 bit word)
- *         'QW'                         # read "quad word" (64 bit word)
+ * Atom -> '[' Endian ']'    |           # set endianness for subsequent copy operations 
+ *                                       # (persistent until another endianness change is 
+ *                                       # encountered). Defaults to network order/big endian.
+ *
+ *         '\'' Ascii+ '\''  |           # expect to read ascii string.
+ *         '#' HexByte+ '#'  |           # expect to read bytes.
+ *         '<' HexByte+ '>'  |           # move read pointer to offset inside 'src'
+ *         '-'               |           # skip byte in 'src' (increment read pointer by 1)
+ *
+ *         '^\'' Ascii+ '\'' |           # write ascii string.
+ *         '^#' HexByte+ '#' |           # write bytes.
+ *         '^<' HexByte+ '>' |           # move write pointer to offset inside 'src'
+ *         '+'               |           # skip byte in 'dst' (increment write pointer by 1).
+ *
+ *         'B'               |           # copy "byte" (8 bits)
+ *         'W'               |           # copy "word" (16 bit word)
+ *         'DW'              |           # copy "double word" (32 bit word)
+ *         'QW'                          # copy "quad word" (64 bit word)
  *
  * Endian -> 'BE' | 'LE'
  *
  * where 'Natural' is a natural number, 'HexByte' is a pair of hexadecimal digits, and 
- * '<epsilon>' denotes the empty string. Each read operation increments both the write and 
- * read pointers by the amount of bytes read.
+ * '<epsilon>' denotes the empty string. Each copy operation increments both the write and 
+ * read pointers by the amount of bytes read. Whitespaces inside the fmt string are ignored.
  *
  *
  * EXAMPLE:
@@ -98,9 +103,9 @@
  *     const char *filepath = "./my_program"
  *     uint8_t *file_data = hgl_open(filepath, "r");
  *     ElfInfo elf_info = {0};
- *     assert(NULL != hgl_binparse(&elf_info, file_data, "#7F#'ELF'BB-BB") && "Not an ELF-file.");
- *     assert(NULL != hgl_binparse(&elf_info.e_type, file_data, 
- *                                 (elf_info.ei_data == 1) ? "[LE]<10>2{W}": "[BE]<10>2{W}"));
+ *     assert(NULL != hgl_binpack(&elf_info, file_data, "#7F#'ELF'BB-BB") && "Not an ELF-file.");
+ *     assert(NULL != hgl_binpack(&elf_info.e_type, file_data, 
+ *                                (elf_info.ei_data == 1) ? "[LE]<10>2{W}": "[BE]<10>2{W}"));
  *
  *     printf("%s: ELF, %s, %s, %s, %s\n", 
  *            argv[1],
@@ -130,7 +135,7 @@
 #define EXPECT(cond) \
     do { \
         if (!(cond)) { \
-            fprintf(stderr, "[hgl_binparse error]: Expected %s <%s:%d>\n", \
+            fprintf(stderr, "[hgl_binpack error]: Expected %s <%s:%d>\n", \
                             #cond, __FILE__, __LINE__); \
             return NULL; \
         } \
@@ -224,7 +229,7 @@ static inline void write_64_(uint8_t **dst, uint64_t value)
     *dst += 8;
 }
 
-static inline void *hgl_binparse(void *dst, void *src, const char *fmt)
+static inline void *hgl_binpack(void *dst, void *src, const char *fmt)
 {
     uint8_t *read_ptr = (uint8_t *) src;
     uint8_t *write_ptr = (uint8_t *) dst;
@@ -283,21 +288,6 @@ static inline void *hgl_binparse(void *dst, void *src, const char *fmt)
                 }
                 fmt++;
             } break;
-            
-            case '<': {
-                fmt++;
-                size_t offset = 0;
-                while (IS_HEX_DIGIT(fmt[0]) && IS_HEX_DIGIT(fmt[1])) {
-                    char high_nibble = *fmt++;
-                    char low_nibble = *fmt++;
-                    offset <<= 8;
-                    offset  |= (nibble_to_int_(high_nibble) << 4) +
-                                nibble_to_int_(low_nibble);
-                }
-                EXPECT(fmt[0] == '>');
-                read_ptr = ((uint8_t *) src) + offset;
-                fmt++;
-            } break;
 
             /* persistent endianness modifier */
             case '[': {
@@ -311,19 +301,88 @@ static inline void *hgl_binparse(void *dst, void *src, const char *fmt)
                 fmt += 4;
             } break;
 
-            /* skip byte */
+            /* increment read pointer */
             case '-': {
                 read_ptr++;
                 fmt++;
             } break;
             
-            /* write padding byte */
+            /* increment write pointer */
             case '+': {
                 write_ptr++;
                 fmt++;
             } break;
-            
-            /* string constant literal */
+
+            /* do something with write pointer */
+            case '^': {
+                fmt++;
+                switch (fmt[0]) {
+                    /* move write pointer */
+                    case '<': {
+                        size_t offset = 0;
+                        fmt++;
+                        while (fmt[0] != '>') {
+                            EXPECT(IS_HEX_DIGIT(fmt[0]));
+                            EXPECT(IS_HEX_DIGIT(fmt[1]));
+                            char high_nibble = *fmt++;
+                            char low_nibble = *fmt++;
+                            offset <<= 8;
+                            offset  |= (nibble_to_int_(high_nibble) << 4) +
+                                        nibble_to_int_(low_nibble);
+                        }
+                        fmt++;
+                        write_ptr = ((uint8_t *) dst) + offset;
+                    } break;
+
+                    /* write string literal */
+                    case '\'': {
+                        fmt++;
+                        while (fmt[0] != '\'') {
+                            write_8_(&write_ptr, *fmt++);  
+                        }
+                        fmt++;
+                    } break;
+
+                    /* write bytes */
+                    case '#': {
+                        uint8_t to_write = 0;
+
+                        fmt++;
+                        while (fmt[0] != '#') {
+                            EXPECT(IS_HEX_DIGIT(fmt[0]));
+                            EXPECT(IS_HEX_DIGIT(fmt[1]));
+                            char high_nibble = *fmt++;
+                            char low_nibble = *fmt++;
+                            to_write = (nibble_to_int_(high_nibble) << 4) +
+                                        nibble_to_int_(low_nibble);
+                            write_8_(&write_ptr, to_write); 
+                        }
+                        fmt++;
+                    } break;
+
+                    default:
+                        EXPECT(0);
+                } 
+            } break;
+
+            /* move read pointer */
+            case '<': {
+                size_t offset = 0;
+                fmt++;
+                while (fmt[0] != '>') {
+                    EXPECT(IS_HEX_DIGIT(fmt[0]));
+                    EXPECT(IS_HEX_DIGIT(fmt[1]));
+                    char high_nibble = *fmt++;
+                    char low_nibble = *fmt++;
+                    offset <<= 8;
+                    offset  |= (nibble_to_int_(high_nibble) << 4) +
+                                nibble_to_int_(low_nibble);
+                }
+                fmt++;
+                read_ptr = ((uint8_t *) src) + offset;
+            } break;
+
+            /* expect string constant literal */
             case '\'': {
                 fmt++;
                 while (*fmt != '\'') {
@@ -334,14 +393,13 @@ static inline void *hgl_binparse(void *dst, void *src, const char *fmt)
                 fmt++;
             } break;
 
-            /* numeric (hex) constant literal */
+            /* expect numeric (hex) constant literal */
             case '#': {
-                int i;
                 uint8_t actual = 0;
                 uint8_t expected = 0;
 
                 fmt++;
-                for (i = 0; *fmt != '#'; i++) {
+                while (*fmt != '#') {
                     EXPECT(IS_HEX_DIGIT(fmt[0]));
                     EXPECT(IS_HEX_DIGIT(fmt[1]));
                     char high_nibble = *fmt++;
@@ -354,7 +412,7 @@ static inline void *hgl_binparse(void *dst, void *src, const char *fmt)
                 fmt++;
             } break;
             
-            /* normal reads/writes */
+            /* copy operations */
             case 'B': 
                 write_8_(&write_ptr, read_8_(&read_ptr)); 
                 fmt++; 
@@ -373,6 +431,10 @@ static inline void *hgl_binparse(void *dst, void *src, const char *fmt)
                 write_64_(&write_ptr, read_64_(&read_ptr, byte_order)); 
                 fmt += 2; 
                 break;
+
+            /* unknown character */
+            default:
+                EXPECT(0);
         }
     }
    
