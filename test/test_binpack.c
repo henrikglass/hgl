@@ -38,7 +38,7 @@ int main(void)
     //void *offset = hgl_binparse((void *) &my_struct, (void *) bytes, "[BE]BBW'hgl''!'#a0#BBB");
     
 
-    void *offset = hgl_binpack((void *) &my_struct, (void *) bytes, "[BE]2{B}W'hgl!'#00#BBB+[LE]DW");
+    void *offset = hgl_binpack((void *) &my_struct, (void *) bytes, "[BE]%{B}W'hgl!'#00#BBB+[LE]DW", 2);
     float my_float;
     void *result = hgl_binpack(&my_float, bytes, "[LE]#00AABBCC#<0C>DW");
     printf("%s\n", (result != NULL) ? "OK": "FAILED");

@@ -38,7 +38,7 @@
  *
  * hgl_binpack.h exports the function:
  *
- *     void *hgl_binpack(void *dst, void *src, const char *fmt);
+ *     void *hgl_binpack(void *dst, void *src, const char *fmt, ...);
  *
  * where
  *  
@@ -54,19 +54,22 @@
  *
  * Fmt -> <epsilon>               |
  *        Atom Fmt                | 
- *        Natural '{' Fmt '}' Fmt        # Repeat the expression inside the braces 'Natural' times.
+ *        Natural '{' Fmt '}' Fmt |      # Repeat the expression inside the braces 'Natural' times.
  *                                       # E.g. "4{B}" is equivalent to "BBBB".
+ *        '%' '{' Fmt '}' Fmt     |      # Repeat the expression inside the braces N times, where N
+ *                                       # is specified by the next argument in the variadic arguments
+ *                                       # list.
  *
  * Atom -> '[' Endian ']'    |           # set endianness for subsequent copy operations 
  *                                       # (persistent until another endianness change is 
  *                                       # encountered). Defaults to network order/big endian.
  *
- *         '\'' Ascii+ '\''  |           # expect to read ascii string.
+ *         ''' Ascii+ '''    |           # expect to read ascii string.
  *         '#' HexByte+ '#'  |           # expect to read bytes.
  *         '<' HexByte+ '>'  |           # move read pointer to offset inside 'src'
  *         '-'               |           # skip byte in 'src' (increment read pointer by 1)
  *
- *         '^\'' Ascii+ '\'' |           # write ascii string.
+ *         '^'' Ascii+ '''   |           # write ascii string.
  *         '^#' HexByte+ '#' |           # write bytes.
  *         '^<' HexByte+ '>' |           # move write pointer to offset inside 'src'
  *         '+'               |           # skip byte in 'dst' (increment write pointer by 1).
@@ -105,7 +108,7 @@
  *     ElfInfo elf_info = {0};
  *     assert(NULL != hgl_binpack(&elf_info, file_data, "#7F#'ELF'BB-BB") && "Not an ELF-file.");
  *     assert(NULL != hgl_binpack(&elf_info.e_type, file_data, 
- *                                (elf_info.ei_data == 1) ? "[LE]<10>2{W}": "[BE]<10>2{W}"));
+ *                                (elf_info.ei_data == 1) ? "[LE]<10>%{W}": "[BE]<10>2{W}", 2));
  *
  *     printf("%s: ELF, %s, %s, %s, %s\n", 
  *            argv[1],
@@ -120,12 +123,13 @@
  */
 
 
-#ifndef HGL_BINPARSE_H
-#define HGL_BINPARSE_H
+#ifndef HGL_BINPACK_H
+#define HGL_BINPACK_H
 
 /*--- Include files ---------------------------------------------------------------------*/
 
 #include <stdint.h>
+#include <stdarg.h>
 #include <byteswap.h>
 #include <arpa/inet.h>
 #include <string.h>
@@ -229,7 +233,7 @@ static inline void write_64_(uint8_t **dst, uint64_t value)
     *dst += 8;
 }
 
-static inline void *hgl_binpack(void *dst, void *src, const char *fmt)
+static inline void *hgl_binpack(void *dst, void *src, const char *fmt, ...)
 {
     uint8_t *read_ptr = (uint8_t *) src;
     uint8_t *write_ptr = (uint8_t *) dst;
@@ -241,27 +245,36 @@ static inline void *hgl_binpack(void *dst, void *src, const char *fmt)
     int jump_stack_top = 0;
     Jump jump_stack[32] = {0};
     
+    va_list args;
+    va_start(args, fmt);
+
     while (*fmt != '\0') {
         
         /* handle repeating block */
-        if (IS_DIGIT(*fmt)) {
+        if ((*fmt == '%') || IS_DIGIT(*fmt)) {
             int n_iter = 0;
 
-            /* read digts */
-            while (IS_DIGIT(*fmt) && digit_stack_idx < 10) {
-                digit_stack[digit_stack_idx] = *fmt;
-                digit_stack_idx++;
-                fmt++;
-            } 
-            EXPECT(*fmt == '{');
+            if (IS_DIGIT(*fmt)) {
+                /* read digts */
+                while (IS_DIGIT(*fmt) && digit_stack_idx < 10) {
+                    digit_stack[digit_stack_idx] = *fmt;
+                    digit_stack_idx++;
+                    fmt++;
+                } 
 
-            /* convert to integer */
-            int coeff = 1;
-            while (digit_stack_idx > 0) {
-                digit_stack_idx--;
-                n_iter += coeff * (digit_stack[digit_stack_idx] - '0');
-                coeff *= 10;
+                /* convert to integer */
+                int coeff = 1;
+                while (digit_stack_idx > 0) {
+                    digit_stack_idx--;
+                    n_iter += coeff * (digit_stack[digit_stack_idx] - '0');
+                    coeff *= 10;
+                }
+            } else {
+                n_iter = va_arg(args, int);
+                fmt++;
             }
+
+            EXPECT(*fmt == '{');
             
             /* add entry to jump stack */
             jump_stack[jump_stack_top].n_iterations = n_iter;
@@ -438,8 +451,10 @@ static inline void *hgl_binpack(void *dst, void *src, const char *fmt)
         }
     }
    
+    va_end(args);
+
     return (void *) read_ptr;
 }
 
-#endif /* HGL_BINPARSE_H */
+#endif /* HGL_BINPACK_H */
 
