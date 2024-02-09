@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define HGL_MEMDGB_IMPLEMENTATION
+#define HGL_MEMDBG_IMPLEMENTATION
 #include "hgl_memdbg.h"
 
 int main(void)

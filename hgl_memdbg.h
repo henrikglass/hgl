@@ -69,7 +69,7 @@
  *
  */
 
-#ifndef HGL_MEMDGB_H
+#ifndef HGL_MEMDBG_H
 
 /*--- Include files ---------------------------------------------------------------------*/
 
@@ -109,9 +109,9 @@ void hgl_memdbg_internal_free_(void *ptr);
  */
 int hgl_memdbg_report(void);
 
-#endif /* HGL_MEMDGB_H */
+#endif /* HGL_MEMDBG_H */
 
-#ifdef HGL_MEMDGB_IMPLEMENTATION
+#ifdef HGL_MEMDBG_IMPLEMENTATION
 
 HglAllocationHeader *hgl_allocation_header_head_ = NULL;
 
@@ -150,20 +150,32 @@ void *hgl_memdbg_internal_realloc_(void *ptr, size_t size, const char *file, int
     HglAllocationHeader *header = (HglAllocationHeader *) (ptr8 - sizeof(HglAllocationHeader));
     HglAllocationHeader *prev = header->prev;
     HglAllocationHeader *next = header->next;
+    bool is_head      = (header == hgl_allocation_header_head_);
+    bool is_only_node = (header == next) && (header == prev);
     header = realloc((void *) header, size + sizeof(HglAllocationHeader));
     if (header == NULL) {
         return NULL;
     }
 
     /* Update neighbours' pointers */
-    next->prev = header;
-    prev->next = header;
+    if (!is_only_node) {
+        next->prev = header;
+        prev->next = header;
+    } else {
+        header->next = header;
+        header->prev = header;
+    }
     
     /* Update header */
     header->size = size;
     header->file = file;
     header->line = line;
     
+    /* update head if this node is the head */
+    if (is_head) {
+        hgl_allocation_header_head_ = header;
+    }
+
     return (void *)(header + 1);
 }
 
@@ -196,6 +208,19 @@ int hgl_memdbg_report()
 {
     size_t total_unfreed = 0;
     HglAllocationHeader *header = hgl_allocation_header_head_;
+    
+#if 0
+    int i = 0;
+    if (header != NULL) {
+        printf("HEAD: ");
+        do {
+            i++; 
+            printf("[%p - %p - %p] ----> ", (void *)header->prev, (void *) header, (void *)header->next);
+            header = header->next;
+        } while (header != hgl_allocation_header_head_ && i < 10);
+        printf("\n");
+    } 
+#endif
 
     printf("====================== [%shgl_memdbg report%s] ======================\n",
            HGL_MAGENTA, HGL_NC);
@@ -216,8 +241,8 @@ int hgl_memdbg_report()
 
 #endif
 
-#ifndef HGL_MEMDGB_H
-#define HGL_MEMDGB_H
+#ifndef HGL_MEMDBG_H
+#define HGL_MEMDBG_H
 
 #define malloc(size)        (hgl_memdbg_internal_malloc_((size), __FILE__, __LINE__))
 #define realloc(ptr, size)  (hgl_memdbg_internal_realloc_((ptr), (size), __FILE__, __LINE__))

@@ -13,7 +13,8 @@ all: test_vec         \
 	 test_neat        \
 	 test_hotload     \
 	 test_binpack     \
-	 test_memdbg
+	 test_memdbg      \
+	 test_string
 
 test_neat:
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_neat.c -o test_neat
@@ -48,6 +49,9 @@ test_binpack:
 
 test_memdbg:
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_memdbg.c -o test_memdbg
+
+test_string:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_string.c -o test_string
 	
 clean:
 	-rm test_neat
@@ -62,3 +66,4 @@ clean:
 	-rm test_binpack
 	-rm test_binpack_elfinfo
 	-rm test_memdbg
+	-rm test_string
