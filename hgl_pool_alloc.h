@@ -35,22 +35,23 @@
  *
  * Include hgl_pool_alloc.h file like this:
  *
- *     #define HGL_POOL_ALLOC_IMPLEMENTATION 
+ *     #define HGL_POOL_ALLOC_IMPLEMENTATION
  *     #include "hgl_pool_alloc.h"
  *
  * This will create the implementation of hgl_pool_alloc in the current compilation unit. To
- * include hgl_pool_alloc.h without creating the implementation, simply ommit the #define 
- * of HGL_POOL_ALLOC_IMPLEMENTATION. 
+ * include hgl_pool_alloc.h without creating the implementation, simply ommit the #define
+ * of HGL_POOL_ALLOC_IMPLEMENTATION.
  *
- * Below is a complet listing of the API:
+ * Below is a complete listing of the API:
  *
- * HglPool hgl_make_pool(size_t n_chunks, size_t chunk_size)
- * void *hgl_pool_alloc(HglPool *pool)
- * void hgl_pool_free(HglPool *pool, void *ptr)
- * void hgl_pool_free_all(HglPool *pool)
- * void hgl_destroy_pool(HglPool *pool)
+ * HglPool hgl_pool_make(size_t n_chunks, size_t chunk_size);
+ * HglPool hgl_pool_make_from_buffer(void *buf, size_t buf_size, size_t chunk_size);
+ * void *hgl_pool_alloc(HglPool *pool);
+ * void hgl_pool_free(HglPool *pool, void *ptr);
+ * void hgl_pool_free_all(HglPool *pool);
+ * void hgl_pool_destroy(HglPool *pool);
  *
- * hgl_pool_alloc allows the user to define the alignment of the pool memory by redefining 
+ * hgl_pool_alloc allows the user to define the alignment of the pool memory by redefining
  * HGL_POOL_ALIGNMENT, as such:
  *
  *     #define HGL_POOL_ALIGNMENT 1024
@@ -74,11 +75,11 @@
 #endif
 
 /*--- Include files ---------------------------------------------------------------------*/
-        
+
 #include <stdlib.h>
 #include <assert.h>
 #include <stdint.h>
-#include <string.h> // memset
+#include <sys/types.h>
 
 /*--- Public type definitions -----------------------------------------------------------*/
 
@@ -94,9 +95,15 @@ typedef struct
 /*--- Public function prototypes  -------------------------------------------------------*/
 
 /**
- * Create an pool of capable of holding `n_chunks` elements of size `chunk_size`.
+ * Create a pool of capable of holding `n_chunks` elements of size `chunk_size`.
  */
-HglPool hgl_make_pool(size_t n_chunks, size_t chunk_size);
+HglPool hgl_pool_make(size_t n_chunks, size_t chunk_size);
+
+/**
+ * Create a pool capable of holding elements of size `chunk_size` from a preallocated
+ * buffer `buf` of size `buf_size` bytes.
+ */
+HglPool hgl_pool_make_from_buffer(void *buf, size_t buf_size, size_t chunk_size);
 
 /**
  * Allocate a chunk from `pool`.
@@ -117,7 +124,7 @@ void hgl_pool_free_all(HglPool *pool);
 /**
  * Destroy the pool (Free the pool itself).
  */
-void hgl_destroy_pool(HglPool *pool);
+void hgl_pool_destroy(HglPool *pool);
 
 #endif /* HGL_POOL_ALLOC_H */
 
@@ -125,11 +132,11 @@ void hgl_destroy_pool(HglPool *pool);
 
 #ifdef HGL_POOL_ALLOC_IMPLEMENTATION
 
-HglPool hgl_make_pool(size_t n_chunks, size_t chunk_size)
+HglPool hgl_pool_make(size_t n_chunks, size_t chunk_size)
 {
     HglPool pool;
-    assert(n_chunks != 0 && "Invalid parameters to hgl_make_pool (n_chunks == 0).\n");
-    assert(chunk_size != 0 && "Invalid parameters to hgl_make_pool (chunk_size == 0).\n");
+    assert(n_chunks != 0 && "Invalid parameters to hgl_pool_make (n_chunks == 0).\n");
+    assert(chunk_size != 0 && "Invalid parameters to hgl_pool_make (chunk_size == 0).\n");
 
     pool.n_chunks        = n_chunks;
     pool.chunk_size      = chunk_size;
@@ -142,6 +149,26 @@ HglPool hgl_make_pool(size_t n_chunks, size_t chunk_size)
         assert(0 && "Malloc failed");
         return pool;
     }
+
+    /* init (reset) free stack */
+    hgl_pool_free_all(&pool);
+
+    return pool;
+}
+
+HglPool hgl_pool_make_from_buffer(void *buf, size_t buf_size, size_t chunk_size)
+{
+    uint8_t *buf8 = (uint8_t *) buf;
+    HglPool pool;
+    assert(buf != NULL && "Invalid parameters to hgl_pool_make_from_buffer (buf == NULL).\n");
+    assert(buf_size != 0 && "Invalid parameters to hgl_pool_make_from_buffer (buf_size == 0).\n");
+    assert(chunk_size != 0 && "Invalid parameters to hgl_pool_make_from_buffer (chunk_size == 0).\n");
+
+    pool.n_chunks        = buf_size / (chunk_size + sizeof(void *));
+    pool.chunk_size      = chunk_size;
+    pool.free_stack_head = pool.n_chunks - 1;
+    pool.free_stack      = (void *) (buf8 + (pool.n_chunks * chunk_size));
+    pool.memory          = buf;
 
     /* init (reset) free stack */
     hgl_pool_free_all(&pool);
@@ -165,7 +192,7 @@ void hgl_pool_free(HglPool *pool, void *ptr)
     uint8_t *ptr8 = (uint8_t *) ptr;
 
     /* Invalid ptr */
-    if ((ptr8 < pool->memory) || 
+    if ((ptr8 < pool->memory) ||
         (ptr8 > pool->memory + (pool->n_chunks - 1) * pool->chunk_size)) {
         assert(0 && "Freeing invalid ptr (not in range of pool addresses).\n");
         return;
@@ -189,13 +216,13 @@ void hgl_pool_free_all(HglPool *pool)
     int idx = 0;
     pool->free_stack_head = pool->n_chunks - 1;
     for (int i = pool->free_stack_head; i >= 0; i--) {
-        pool->free_stack[idx++] = pool->memory + (i * pool->chunk_size);  
+        pool->free_stack[idx++] = pool->memory + (i * pool->chunk_size);
     }
 }
 
-void hgl_destroy_pool(HglPool *pool)
+void hgl_pool_destroy(HglPool *pool)
 {
-    free(pool->memory);
+    (free)(pool->memory);
     free(pool->free_stack);
 }
 
