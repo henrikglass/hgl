@@ -10,6 +10,7 @@ all: test_vec         \
          test_rhashtbl    \
          test_stack_alloc \
          test_arena_alloc \
+         test_pool_alloc  \
          test_hgl         \
          test_hotload     \
          test_binpack     \
@@ -37,6 +38,9 @@ test_stack_alloc:
 test_arena_alloc:
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_arena_alloc.c -o test_arena_alloc
 
+test_pool_alloc:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_pool_alloc.c -o test_pool_alloc
+
 test_hotload: test_hotload_mylib
 	gcc -I. -D_POSIX_C_SOURCE=200809L -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_hotload.c -o test_hotload -ldl
 
@@ -61,6 +65,7 @@ clean:
 	-rm test_rhashtbl
 	-rm test_stack_alloc
 	-rm test_arena_alloc
+	-rm test_pool_alloc
 	-rm test_hotload
 	-rm libmylib.so
 	-rm test_binpack
