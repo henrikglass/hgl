@@ -4,6 +4,8 @@
 #define HGL_STACK_ALLOC_IMPLEMENTATION
 #include "hgl_stack_alloc.h"
 
+static uint8_t memory_chunk[128 * 1024];
+
 static HglArena s_arena;
 
 void *arena_alloc(size_t size)
@@ -23,7 +25,8 @@ void stack_free(void *ptr)
 
 int main()
 {
-    s_arena = hgl_make_arena(256 * 1024);  // 128 KiB
+    //s_arena = hgl_arena_make(256 * 1024);  // 128 KiB
+    s_arena = hgl_arena_make_from_buffer(memory_chunk, sizeof(memory_chunk));
 
     void *arena_alloced_thing = arena_alloc(32);
 
@@ -40,7 +43,7 @@ int main()
     printf("%p\n", b);
     printf("%p\n", c);
     printf("%p\n", d);
-    
+
     printf("%08lX\n", (uint8_t*)arena_alloced_thing - s_arena.memory);
     printf("%08lX\n", (uint8_t*)a - s_arena.memory);
     printf("%08lX\n", (uint8_t*)b - s_arena.memory);
@@ -52,5 +55,5 @@ int main()
     a = stack_alloc(128 * 1024);
     printf("%08lX\n", (uint8_t*)a - s_arena.memory);
 
-    hgl_destroy_arena(&s_arena);
+    //hgl_arena_destroy(&s_arena);
 }
