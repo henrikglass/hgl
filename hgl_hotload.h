@@ -51,9 +51,9 @@
  *
  * hgl_hotload allows the user to use custom allocators by redefining:
  *
- *     #define HGL_HOTLOAD_ALLOCATOR   (malloc)
- *     #define HGL_HOTLOAD_REALLOCATOR (realloc)
- *     #define HGL_HOTLOAD_FREE        (free)
+ *     #define HGL_HOTLOAD_ALLOC       malloc
+ *     #define HGL_HOTLOAD_REALLOCATOR realloc
+ *     #define HGL_HOTLOAD_FREE        free
  *
  *
  * EXAMPLE:
@@ -96,7 +96,6 @@
 /*--- Include files ---------------------------------------------------------------------*/
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
 #include <errno.h>
@@ -112,13 +111,14 @@
 /* construct an in-place array for passing to hgl_hotload_init */
 #define HGL_HOTLOAD_LIBS(...) ((const char *[]){ __VA_ARGS__ , NULL})
 
-/* CONFIGURABLE: HGL_HOTLOAD_ALLOCATOR, HGL_HOTLOAD_FREE */
-#if !defined(HGL_HOTLOAD_ALLOCATOR) && \
+/* CONFIGURABLE: HGL_HOTLOAD_ALLOC, HGL_HOTLOAD_FREE */
+#if !defined(HGL_HOTLOAD_ALLOC) && \
     !defined(HGL_HOTLOAD_REALLOCATOR) && \
     !defined(HGL_HOTLOAD_FREE)
-#define HGL_HOTLOAD_ALLOCATOR (malloc)
-#define HGL_HOTLOAD_REALLOCATOR (realloc)
-#define HGL_HOTLOAD_FREE (free)
+#include <stdlib.h>
+#define HGL_HOTLOAD_ALLOC        malloc
+#define HGL_HOTLOAD_REALLOCATOR  realloc
+#define HGL_HOTLOAD_FREE         free
 #endif
 
 /*--- Public type definitions -----------------------------------------------------------*/
@@ -143,7 +143,7 @@ typedef struct {
 } HglHotloadContext;
 
 /**
- * Like strdup, but uses HGL_HOTLOAD_ALLOCATOR instead of malloc. Intended for internal use.
+ * Like strdup, but uses HGL_HOTLOAD_ALLOC instead of malloc. Intended for internal use.
  */
 char *hgl_hotload_strdup_(const char *str);
 
@@ -205,7 +205,7 @@ HglHotloadContext hgl_hl_global_context;
 char *hgl_hotload_strdup_(const char *str)
 {
     size_t alloc_size = strlen(str) + 1;
-    char *cpy = HGL_HOTLOAD_ALLOCATOR(alloc_size);
+    char *cpy = HGL_HOTLOAD_ALLOC(alloc_size);
     memset(cpy, 0, alloc_size);
     strcpy(cpy, str);
     return cpy;
@@ -250,9 +250,9 @@ int hgl_hotload_init(const char *lib_paths[], int flags)
     }
 
     for (int i = 0; lib_paths[i] != NULL; i++) hgl_hl_global_context.n_libs++;
-    hgl_hl_global_context.libs = HGL_HOTLOAD_ALLOCATOR(hgl_hl_global_context.n_libs * sizeof(HglLibInfo));
+    hgl_hl_global_context.libs = HGL_HOTLOAD_ALLOC(hgl_hl_global_context.n_libs * sizeof(HglLibInfo));
     if(hgl_hl_global_context.libs == NULL) {
-        fprintf(stderr, "Error: HGL_HOTLOAD_ALLOCATOR failed. Buy more RAM. <%s, %d>\n", __FILE__, __LINE__);
+        fprintf(stderr, "Error: HGL_HOTLOAD_ALLOC failed. Buy more RAM. <%s, %d>\n", __FILE__, __LINE__);
         return -1;
     }
 
@@ -292,7 +292,7 @@ int hgl_hotload_add_symbol(void **ptr_to_symbol_handle,
         libinfo->n_symbols++;
         libinfo->symbols = HGL_HOTLOAD_REALLOCATOR(libinfo->symbols, libinfo->n_symbols * sizeof(HglSymbol));
         if(libinfo->symbols == NULL) {
-            fprintf(stderr, "Error: HGL_HOTLOAD_ALLOCATOR failed. Buy more RAM. <%s, %d>\n", __FILE__, __LINE__);
+            fprintf(stderr, "Error: HGL_HOTLOAD_ALLOC failed. Buy more RAM. <%s, %d>\n", __FILE__, __LINE__);
             return -1;
         }
     }

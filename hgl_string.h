@@ -89,7 +89,6 @@
 
 /*--- Include files ---------------------------------------------------------------------*/
 
-#include <stdlib.h>
 #include <stdbool.h>
 #include <stdarg.h>
 #include <string.h>
@@ -294,6 +293,7 @@ void hgl_string_builder_trim(HglStringBuilder *sb);
 #if !defined(HGL_STRING_ALLOC) &&   \
     !defined(HGL_STRING_REALLOC) && \
     !defined(HGL_STRING_FREE)
+#include <stdlib.h>
 #define HGL_STRING_ALLOC malloc
 #define HGL_STRING_REALLOC realloc
 #define HGL_STRING_FREE free

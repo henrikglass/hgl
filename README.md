@@ -7,6 +7,7 @@ A collection of small easy-to-use header only libraries written in C.
 | hgl\_stack\_alloc.h   | Allocator                     | Stack allocator (requires hgl\_arena\_alloc.h).                                               |
 | hgl\_pool\_alloc.h    | Allocator                     | Pool allocator.                                                                               |
 | hgl\_vector.h         | Data Structure                | Typed\* dynamic (resizable) array.                                                            |
+| hgl\_da.h             | Data Structure                | Macro-only generic dynamic array implementation.                                              |
 | hgl\_hash\_table.h    | Data Structure                | Typed\* Robin Hood style hash table/map.                                                      |
 | hgl\_ring\_buffer.h   | Data Structure                | Typed\* circular buffer.                                                                      |
 | hgl\_chan.h           | Data Structure/Thread Utility | Typed\* synchronized message passing utility. Similar to Go's channels.                       |
@@ -15,7 +16,7 @@ A collection of small easy-to-use header only libraries written in C.
 | hgl\_memdbg.h         | Utility                       | Quick and easy leak checking replacement for malloc, realloc, and free.                       |
 | hgl\_hotload.h        | Utility                       | Quick and easy hotloading.                                                                    |
 | hgl\_binpack.h        | Utility                       | Powerful binary parsing and packing/unpacking with a simple regex-like language.              |
-| hgl.h                 | Utility/Misc                  | Misc. typedefs and macros that I use from time to time. Includes a macro-only generic dynamic array implementation. |
+| hgl.h                 | Utility/Misc                  | Misc. typedefs and macros that I use from time to time.                                       |
 
 \* In this context "typed" means that the type of data that is held by the data
    structure can be set at compile time by defining one or two macros before including.

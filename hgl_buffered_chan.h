@@ -68,8 +68,8 @@
  * hgl_buffered_chan allows the default allocator and corresponding free function to be overridden by
  * redefining the following defines before including hgl_buffered_chan.h:
  *
- *     #define HGL_BUFFERED_CHAN_ALLOCATOR                (malloc)
- *     #define HGL_BUFFERED_CHAN_FREE                     (free)
+ *     #define HGL_BUFFERED_CHAN_ALLOC      malloc
+ *     #define HGL_BUFFERED_CHAN_FREE       free
  *
  *
  * AUTHOR: Henrik A. Glass
@@ -99,17 +99,17 @@
 #define HGL_BUFFERED_CHAN_TYPE_ID voidp
 #endif /* HGL_BUFFERED_CHAN_TYPE */
 
-/* CONFIGURABLE: HGL_BUFFERED_CHAN_ALLOCATOR, HGL_BUFFERED_CHAN_REALLOCATOR, HGL_BUFFERED_CHAN_FREE */
-#if !defined(HGL_BUFFERED_CHAN_ALLOCATOR) && !defined(HGL_BUFFERED_CHAN_FREE)
-#define HGL_BUFFERED_CHAN_ALLOCATOR (malloc)
-#define HGL_BUFFERED_CHAN_FREE (free)
+/* CONFIGURABLE: HGL_BUFFERED_CHAN_ALLOC, HGL_BUFFERED_CHAN_FREE */
+#if !defined(HGL_BUFFERED_CHAN_ALLOC) && !defined(HGL_BUFFERED_CHAN_FREE)
+#include <stdlib.h>
+#define HGL_BUFFERED_CHAN_ALLOC  malloc
+#define HGL_BUFFERED_CHAN_FREE   free
 #endif
 
 /*--- Include files ---------------------------------------------------------------------*/
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <assert.h>
 #include <stdarg.h>
 #include <sys/eventfd.h>
@@ -139,7 +139,7 @@ typedef struct
 static inline void HGL_BUFFERED_CHAN_FUNC_INIT(HGL_BUFFERED_CHAN_STRUCT *chan, size_t capacity)
 {
     HGL_ASSERT((capacity & (capacity -1)) == 0, "buffered chan capacity must be a power of 2");
-    chan->buf = HGL_BUFFERED_CHAN_ALLOCATOR(sizeof(HGL_BUFFERED_CHAN_TYPE) * capacity);
+    chan->buf = HGL_BUFFERED_CHAN_ALLOC(sizeof(HGL_BUFFERED_CHAN_TYPE) * capacity);
     chan->read_offset = 0;
     chan->write_offset = 0;
     chan->capacity = capacity;
@@ -211,7 +211,7 @@ static inline HGL_BUFFERED_CHAN_STRUCT *HGL_BUFFERED_CHAN_FUNC_SELECT(int n_args
     va_copy(args2, args1);
 
     /* populate pfds */
-    struct pollfd *pfds = HGL_BUFFERED_CHAN_ALLOCATOR(n_args * sizeof(struct pollfd));
+    struct pollfd *pfds = HGL_BUFFERED_CHAN_ALLOC(n_args * sizeof(struct pollfd));
     if (pfds == NULL) {
         goto out;
     }

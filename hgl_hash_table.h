@@ -78,7 +78,7 @@
  *
  *     HGL_HASH_TABLE_LOAD_FACTOR_THRESHOLD  (default: 0.5)
  *     HGL_HASH_TABLE_HASH_FUNC_SEED         (default: 1337)
- *     HGL_HASH_TABLE_ALLOCATOR              (default: malloc)
+ *     HGL_HASH_TABLE_ALLOC                  (default: malloc)
  *     HGL_HASH_TABLE_FREE                   (default: free)
  *
  * To include multiple implementations of hgl_hash_table, simply redefine the necessary macro defines
@@ -131,11 +131,12 @@
 #define HGL_HASH_TABLE_ID itof
 #endif /* HGL_HASH_TABLE_TYPE */
 
-/* CONFIGURABLE: HGL_HASH_TABLE_ALLOCATOR, HGL_HASH_TABLE_FREE */
-#if !defined(HGL_HASH_TABLE_ALLOCATOR) && \
+/* CONFIGURABLE: HGL_HASH_TABLE_ALLOC, HGL_HASH_TABLE_FREE */
+#if !defined(HGL_HASH_TABLE_ALLOC) && \
     !defined(HGL_HASH_TABLE_FREE)
-#define HGL_HASH_TABLE_ALLOCATOR (malloc)
-#define HGL_HASH_TABLE_FREE (free)
+#include <stdlib.h>
+#define HGL_HASH_TABLE_ALLOC  malloc
+#define HGL_HASH_TABLE_FREE   free
 #endif
 
 /* CONFIGURABLE: HGL_HASH_TABLE_LOAD_FACTOR_THRESHOLD */
@@ -172,7 +173,6 @@
 /*--- Include files ---------------------------------------------------------------------*/
 
 #include <stdint.h>
-#include <stdlib.h>
 #include <stdio.h> // fprintf
 #include <string.h> // strlen
 
@@ -365,7 +365,7 @@ static inline void HGL_HASH_TABLE_FUNC_GROW_AND_REHASH(HGL_HASH_TABLE_STRUCT *ha
     /* construct a new table of double the previous size */
     hash_table->n_buckets <<= 1;
     HGL_HASH_TABLE_BUCKET *old_table = hash_table->tbl;
-    hash_table->tbl = HGL_HASH_TABLE_ALLOCATOR(hash_table->n_buckets * sizeof(HGL_HASH_TABLE_BUCKET));
+    hash_table->tbl = HGL_HASH_TABLE_ALLOC(hash_table->n_buckets * sizeof(HGL_HASH_TABLE_BUCKET));
     hash_table->n_occupied_buckets = 0;
     if (hash_table->tbl == NULL) {
         fprintf(stderr, "Allocation failed. Buy more RAM. <%s, %d>\n", __FILE__, __LINE__);
@@ -437,7 +437,7 @@ static inline void HGL_HASH_TABLE_FUNC_INIT(HGL_HASH_TABLE_STRUCT *hash_table,
 {
     hash_table->n_occupied_buckets = 0;
     hash_table->n_buckets = next_power_of_2(min_n_buckets); 
-    hash_table->tbl = HGL_HASH_TABLE_ALLOCATOR(hash_table->n_buckets * sizeof(HGL_HASH_TABLE_BUCKET)); 
+    hash_table->tbl = HGL_HASH_TABLE_ALLOC(hash_table->n_buckets * sizeof(HGL_HASH_TABLE_BUCKET)); 
     if (hash_table->tbl == NULL) {
         fprintf(stderr, "Allocation failed. Buy more RAM. <%s, %d>\n", __FILE__, __LINE__);
     }

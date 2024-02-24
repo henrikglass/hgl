@@ -70,7 +70,7 @@
  * redefining the following defines before including hgl_chan.h. This is used only for the
  * select function:
  *
- *     #define HGL_CHAN_ALLOCATOR                (malloc)
+ *     #define HGL_CHAN_ALLOC                (malloc)
  *     #define HGL_CHAN_FREE                     (free)
  *
  * AUTHOR: Henrik A. Glass
@@ -90,15 +90,15 @@
 #define HGL_CHAN_TYPE_ID voidp
 #endif /* HGL_CHAN_TYPE */
 
-/* CONFIGURABLE: HGL_CHAN_ALLOCATOR, HGL_CHAN_FREE */
-#if !defined(HGL_CHAN_ALLOCATOR) && !defined(HGL_CHAN_FREE)
-#define HGL_CHAN_ALLOCATOR (malloc)
-#define HGL_CHAN_FREE (free)
+/* CONFIGURABLE: HGL_CHAN_ALLOC, HGL_CHAN_FREE */
+#if !defined(HGL_CHAN_ALLOC) && !defined(HGL_CHAN_FREE)
+#include <stdlib.h>
+#define HGL_CHAN_ALLOC  malloc
+#define HGL_CHAN_FREE   free
 #endif
 
 /*--- Include files ---------------------------------------------------------------------*/
 
-#include <stdlib.h>
 #include <stdbool.h>
 #include <pthread.h>
 #include <stdarg.h>
@@ -190,7 +190,7 @@ static inline HGL_CHAN_STRUCT *HGL_CHAN_FUNC_SELECT(int n_args, ...)
     va_copy(args2, args1);
 
     /* populate pfds */
-    struct pollfd *pfds = HGL_CHAN_ALLOCATOR(n_args * sizeof(struct pollfd));
+    struct pollfd *pfds = HGL_CHAN_ALLOC(n_args * sizeof(struct pollfd));
     if (pfds == NULL) {
         goto out;
     }

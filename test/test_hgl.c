@@ -3,6 +3,7 @@
 #include <fcntl.h>
 
 #include "hgl.h"
+#include "hgl_da.h"
 
 #define HGL_MEMDBG_IMPLEMENTATION
 #include "hgl_memdbg.h"

@@ -70,9 +70,6 @@
 
 /*--- Include files ---------------------------------------------------------------------*/
 
-#include <stdlib.h>
-#include <assert.h>
-#include <stdint.h>
 #include <string.h> // memset
 
 /* This should mostly behave ok */

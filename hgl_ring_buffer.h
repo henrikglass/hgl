@@ -68,8 +68,8 @@
  * hgl_ring_buffer allows the default allocator, reallocator and free function to be overridden by
  * redefining the following defines before including hgl_ring_buffer.h:
  *
- *     #define HGL_RING_BUFFER_ALLOCATOR                (malloc)
- *     #define HGL_RING_BUFFER_REALLOCATOR              (realloc)
+ *     #define HGL_RING_BUFFER_ALLOC                (malloc)
+ *     #define HGL_RING_BUFFER_REALLOC              (realloc)
  *     #define HGL_RING_BUFFER_FREE                     (free)
  *
  *
@@ -90,18 +90,17 @@
 #define HGL_RING_BUFFER_TYPE_ID voidp
 #endif /* HGL_RING_BUFFER_TYPE */
 
-/* CONFIGURABLE: HGL_RING_BUFFER_ALLOCATOR, HGL_RING_BUFFER_REALLOCATOR, HGL_RING_BUFFER_FREE */
-#if !defined(HGL_RING_BUFFER_ALLOCATOR) && \
-        !defined(HGL_RING_BUFFER_REALLOCATOR) && \
+/* CONFIGURABLE: HGL_RING_BUFFER_ALLOC, HGL_RING_BUFFER_REALLOC, HGL_RING_BUFFER_FREE */
+#if !defined(HGL_RING_BUFFER_ALLOC) && \
+        !defined(HGL_RING_BUFFER_REALLOC) && \
         !defined(HGL_RING_BUFFER_FREE)
-#define HGL_RING_BUFFER_ALLOCATOR (malloc)
-#define HGL_RING_BUFFER_REALLOCATOR (realloc)
-#define HGL_RING_BUFFER_FREE (free)
+#include <stdlib.h>
+#define HGL_RING_BUFFER_ALLOC    malloc
+#define HGL_RING_BUFFER_REALLOC  realloc
+#define HGL_RING_BUFFER_FREE     free
 #endif
 
 /*--- Include files ---------------------------------------------------------------------*/
-
-#include <stdlib.h>
 
 /*--- Public type definitions -----------------------------------------------------------*/
 
@@ -128,7 +127,7 @@ static inline void HGL_RING_BUFFER_FUNC_INIT(HGL_RING_BUFFER_STRUCT *rbuf, size_
                                                 "hgl_ring_buffer capacity was not a power of 2\n");
 #endif
     rbuf->capacity = capacity;
-    rbuf->buf = HGL_RING_BUFFER_ALLOCATOR(rbuf->capacity * sizeof(HGL_RING_BUFFER_TYPE));
+    rbuf->buf = HGL_RING_BUFFER_ALLOC(rbuf->capacity * sizeof(HGL_RING_BUFFER_TYPE));
     rbuf->write_idx = 0;
     rbuf->read_idx = 0;
 }
