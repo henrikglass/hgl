@@ -1,25 +1,60 @@
+
+/**
+ * LICENSE:
+ *
+ * MIT License
+ *
+ * Copyright (c) 2023 Henrik A. Glass
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ * MIT License
+ *
+ *
+ * ABOUT:
+ *
+ * hgl_da.h implements a general purpose minimal macro-only dynamic array.
+ *
+ *
+ * USAGE:
+ *
+ * Just create a struct of the correct form by using the HglDynamicArray(T) macro:
+ *
+ *     typedef HglDynamicArray(float) Floats;
+ *     Floats fs = {0};
+ *     hgl_da_append(&fs, 123.456f);
+ *
+ *     or:
+ *
+ *     HglDynamicArray(float) fs = {0};
+ *     hgl_da_append(&fs, 123.456f);
+ *
+ *
+ * AUTHOR: Henrik A. Glass
+ *
+ */
+
 #ifndef HGL_DA_H
 #define HGL_DA_H
 
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-
-/*
- * General purpose minimal macro-only dynamic array. Just create a struct of the 
- * correct form by using the HglDynamicArray(T) macro:
- *
- * typedef HglDynamicArray(float) Floats;
- * Floats fs = {0};
- * hgl_da_append(&fs, 123.456f);
- *
- * or:
- *
- * HglDynamicArray(float) fs = {0};
- * hgl_da_append(&fs, 123.456f);
- *
- */
-
 
 #if !defined(HGL_ALLOC) && \
     !defined(HGL_REALLOC) && \
