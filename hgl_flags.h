@@ -65,19 +65,27 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <assert.h>
 
 #ifndef HGL_FLAG_MAX_N_FLAGS
 #define HGL_FLAG_MAX_N_FLAGS 32
 #endif
-#define HGL_FLAG_OPT_MANDATORY 0x00000001u
+#define HGL_FLAG_OPT_MANDATORY          0x00000001u
+
+#define HGL_FLAG_STATUS_PARSED          0x00000001u
+#define HGL_FLAG_STATUS_RANGE_OVERFLOW  0x00000002u
+#define HGL_FLAG_STATUS_RANGE_UNDERFLOW 0x00000004u
+
+static_assert(sizeof(long) == 8);
+static_assert(sizeof(unsigned long) == 8);
+static_assert(sizeof(double) == 8);
 
 typedef enum
 {
     HGL_FLAG_KIND_BOOL,
-    HGL_FLAG_KIND_INT,
-    HGL_FLAG_KIND_LONG,
-    HGL_FLAG_KIND_ULONG,
-    HGL_FLAG_KIND_FLOAT,
+    HGL_FLAG_KIND_I64,
+    HGL_FLAG_KIND_U64,
+    HGL_FLAG_KIND_F64,
     HGL_FLAG_KIND_STR
 } HglFlagKind;
 
@@ -90,6 +98,8 @@ typedef struct
     const char *desc;
     uint32_t opts;
     uint32_t status;
+    uintptr_t range_min;
+    uintptr_t range_max;
 } HglFlag;
 
 /**
@@ -98,24 +108,42 @@ typedef struct
 bool *hgl_flags_add_bool(const char *names, const char *desc, bool default_value, uint32_t opts);
 
 /**
- * Add a flag of type `int`.
+ * Add a flag of type `int`, i.e. and `int64_t` with a valid value range of = [INT_MIN, INT_MAX].
  */
 int *hgl_flags_add_int(const char *names, const char *desc, int default_value, uint32_t opts);
 
 /**
- * Add a flag of type `long`.
+ * Add a flag of type `int64_t`.
  */
-long *hgl_flags_add_long(const char *names, const char *desc, long default_value, uint32_t opts);
+int64_t *hgl_flags_add_i64(const char *names, const char *desc, int64_t default_value, uint32_t opts);
 
 /**
- * Add a flag of type `unsigned long`.
+ * Add a flag of type `int64_t` with specified range of valid values.
  */
-unsigned long *hgl_flags_add_ulong(const char *names, const char *desc, unsigned long default_value, uint32_t opts);
+int64_t *hgl_flags_add_i64_range(const char *names, const char *desc, int64_t default_value, 
+                                 uint32_t opts, int64_t range_min, int64_t range_max);
 
 /**
- * Add a flag of type `float`.
+ * Add a flag of type `uint64_t`.
  */
-float *hgl_flags_add_float(const char *names, const char *desc, float default_value, uint32_t opts);
+uint64_t *hgl_flags_add_u64(const char *names, const char *desc, uint64_t default_value, uint32_t opts);
+
+/**
+ * Add a flag of type `uint64_t` with specified range of valid values.
+ */
+uint64_t *hgl_flags_add_u64_range(const char *names, const char *desc, uint64_t default_value, 
+                                  uint32_t opts, uint64_t range_min, uint64_t range_max);
+
+/**
+ * Add a flag of type `double`.
+ */
+double *hgl_flags_add_f64(const char *names, const char *desc, double default_value, uint32_t opts);
+
+/**
+ * Add a flag of type `double` with specified range of valid values.
+ */
+double *hgl_flags_add_f64_range(const char *names, const char *desc, double default_value, 
+                                uint32_t opts, double range_min, double range_max);
 
 /**
  * Add a flag of type `const char *`.
@@ -139,20 +167,23 @@ void hgl_flags_print();
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <float.h>
+#include <math.h>
 
 #define max(a, b) ((a) > (b)) ? (a) : (b)
 #define min(a, b) ((a) < (b)) ? (a) : (b)
 #define transmute(T, var) (*(T *) &(var))
-#define HGL_FLAG_STATUS_PARSED 0x00000001u
 
 static HglFlag hgl_flags_[HGL_FLAG_MAX_N_FLAGS] = {0};
 static size_t hgl_n_flags_ = 0;
 
 HglFlag *hgl_flag_create_(HglFlagKind kind, const char *names, const char *desc, 
-                         uintptr_t default_value, uint32_t opts);
+                         uintptr_t default_value, uint32_t opts, 
+                         uintptr_t range_min, uintptr_t range_max);
 
 HglFlag *hgl_flag_create_(HglFlagKind kind, const char *names, const char *desc, 
-                          uintptr_t default_value, uint32_t opts)
+                         uintptr_t default_value, uint32_t opts, 
+                         uintptr_t range_min, uintptr_t range_max)
 {
     hgl_flags_[hgl_n_flags_++] = (HglFlag) {
         .kind          = kind,
@@ -162,38 +193,72 @@ HglFlag *hgl_flag_create_(HglFlagKind kind, const char *names, const char *desc,
         .opts          = opts,
         .desc          = desc,
         .status        = 0,
+        .range_min     = range_min,
+        .range_max     = range_max,
     }; 
     return &hgl_flags_[hgl_n_flags_ - 1];
 }
 
 bool *hgl_flags_add_bool(const char *names, const char *desc, bool default_value, uint32_t opts)
 {
-    return (bool *) &hgl_flag_create_(HGL_FLAG_KIND_BOOL, names, desc, transmute(uintptr_t, default_value), opts)->value;
+    return (bool *) &hgl_flag_create_(HGL_FLAG_KIND_BOOL, names, desc, transmute(uintptr_t, default_value), 
+                                      opts, 0, 0)->value;
 } 
 
 int *hgl_flags_add_int(const char *names, const char *desc, int default_value, uint32_t opts)
 {
-    return (int *) &hgl_flag_create_(HGL_FLAG_KIND_INT, names, desc, transmute(uintptr_t, default_value), opts)->value;
+    int64_t default_value64 = (int64_t) default_value;
+    return (int *) &hgl_flag_create_(HGL_FLAG_KIND_I64, names, desc, transmute(uintptr_t, default_value64), 
+                                     opts, INT_MIN, INT_MAX)->value;
+}
+
+int64_t *hgl_flags_add_i64(const char *names, const char *desc, int64_t default_value, uint32_t opts)
+{
+    return (int64_t *) &hgl_flag_create_(HGL_FLAG_KIND_I64, names, desc, transmute(uintptr_t, default_value), 
+                                         opts, LONG_MIN, LONG_MAX)->value;
+}
+
+int64_t *hgl_flags_add_i64_range(const char *names, const char *desc, int64_t default_value, 
+                                 uint32_t opts, int64_t range_min, int64_t range_max)
+{
+    assert((range_min <= range_max) && (default_value >= range_min) && (default_value <= range_max));
+    return (int64_t *) &hgl_flag_create_(HGL_FLAG_KIND_I64, names, desc, transmute(uintptr_t, default_value), 
+                                         opts, transmute(uintptr_t, range_min), transmute(uintptr_t, range_max))->value;
+}
+
+uint64_t *hgl_flags_add_u64(const char *names, const char *desc, uint64_t default_value, uint32_t opts)
+{
+    return (uint64_t *) &hgl_flag_create_(HGL_FLAG_KIND_U64, names, desc, transmute(uintptr_t, default_value), 
+                                          opts, 0, ULONG_MAX)->value;
+}
+
+uint64_t *hgl_flags_add_u64_range(const char *names, const char *desc, uint64_t default_value, 
+                                  uint32_t opts, uint64_t range_min, uint64_t range_max)
+{
+    assert((range_min <= range_max) && (default_value >= range_min) && (default_value <= range_max));
+    return (uint64_t *) &hgl_flag_create_(HGL_FLAG_KIND_U64, names, desc, transmute(uintptr_t, default_value), 
+                                          opts, transmute(uintptr_t, range_min), transmute(uintptr_t, range_max))->value;
+}
+
+double *hgl_flags_add_f64(const char *names, const char *desc, double default_value, uint32_t opts)
+{
+    double f64_max =  DBL_MAX;
+    double f64_min = -DBL_MAX;
+    return (double *) &hgl_flag_create_(HGL_FLAG_KIND_F64, names, desc, transmute(uintptr_t, default_value), 
+                                        opts, transmute(uintptr_t, f64_min), transmute(uintptr_t, f64_max))->value;
 } 
 
-long *hgl_flags_add_long(const char *names, const char *desc, long default_value, uint32_t opts)
+double *hgl_flags_add_f64_range(const char *names, const char *desc, double default_value, 
+                                uint32_t opts, double range_min, double range_max)
 {
-    return (long *) &hgl_flag_create_(HGL_FLAG_KIND_LONG, names, desc, transmute(uintptr_t, default_value), opts)->value;
-} 
-
-unsigned long *hgl_flags_add_ulong(const char *names, const char *desc, unsigned long default_value, uint32_t opts)
-{
-    return (unsigned long *) &hgl_flag_create_(HGL_FLAG_KIND_ULONG, names, desc, transmute(uintptr_t, default_value), opts)->value;
-} 
-
-float *hgl_flags_add_float(const char *names, const char *desc, float default_value, uint32_t opts)
-{
-    return (float *) &hgl_flag_create_(HGL_FLAG_KIND_FLOAT, names, desc, transmute(uintptr_t, default_value), opts)->value;
-} 
+    assert((range_min <= range_max) && (default_value >= range_min) && (default_value <= range_max));
+    return (double *) &hgl_flag_create_(HGL_FLAG_KIND_F64, names, desc, transmute(uintptr_t, default_value), 
+                                        opts, transmute(uintptr_t, range_min), transmute(uintptr_t, range_max))->value;
+}
 
 const char **hgl_flags_add_str(const char *names, const char *desc, const char *default_value, uint32_t opts)
 {
-    return (const char **) &hgl_flag_create_(HGL_FLAG_KIND_STR, names, desc, transmute(uintptr_t, default_value), opts)->value;
+    return (const char **) &hgl_flag_create_(HGL_FLAG_KIND_STR, names, desc, transmute(uintptr_t, default_value), opts, 0, 0)->value;
 } 
  
 static inline bool is_delimiting_char_(char c)
@@ -248,9 +313,8 @@ int hgl_flags_parse(int argc, char *argv[])
             char *next_arg;
             char *end;
             HglFlagKind kind = hgl_flags_[j].kind;
-            if ((kind == HGL_FLAG_KIND_INT) || (kind == HGL_FLAG_KIND_LONG) ||
-                (kind == HGL_FLAG_KIND_FLOAT) || (kind == HGL_FLAG_KIND_STR) ||
-                (kind == HGL_FLAG_KIND_ULONG)) {
+            if ((kind == HGL_FLAG_KIND_I64) || (kind == HGL_FLAG_KIND_U64) ||
+                (kind == HGL_FLAG_KIND_F64) || (kind == HGL_FLAG_KIND_STR)) {
                 if (i + 1 >= argc) {
                     fprintf(stderr, "Error parsing option: Option `%s` takes "
                             "an argument. User provided nothing.\n", names);
@@ -265,13 +329,13 @@ int hgl_flags_parse(int argc, char *argv[])
 
                 /* parse simple boolean option flag */
                 case HGL_FLAG_KIND_BOOL: {
-                    hgl_flags_[j].value = (uintptr_t) true;     
+                    bool truev = true;
+                    hgl_flags_[j].value = transmute(uintptr_t, truev);
                 } break;
 
-                /* parse int flag */
-                case HGL_FLAG_KIND_INT:
-                case HGL_FLAG_KIND_LONG: {
-                    long value = strtol(next_arg, &end, 0);
+                /* parse i64 flag */
+                case HGL_FLAG_KIND_I64: {
+                    int64_t value = strtol(next_arg, &end, 0);
 
                     /* Check if strtol failed */
                     if((end == next_arg) || (*end != '\0')) {
@@ -280,16 +344,19 @@ int hgl_flags_parse(int argc, char *argv[])
                         return -1;
                     }
 
-                    /* int: clamp to range [INT_MIN, INT_MAX] */
-                    if (kind == HGL_FLAG_KIND_INT) {
-                        value = min(max(value, INT_MIN), INT_MAX);
-                    }
+                    /* clamp to range */
+                    int64_t range_min = transmute(int64_t, hgl_flags_[j].range_min); 
+                    int64_t range_max = transmute(int64_t, hgl_flags_[j].range_max); 
+                    int64_t old_value = value;
+                    value = min(max(old_value, range_min), range_max);
 
+                    hgl_flags_[j].status |= (value > old_value) ? HGL_FLAG_STATUS_RANGE_UNDERFLOW : 0;
+                    hgl_flags_[j].status |= (value < old_value) ? HGL_FLAG_STATUS_RANGE_OVERFLOW : 0;
                     hgl_flags_[j].value = transmute(uintptr_t, value);
                 } break;
                 
-                case HGL_FLAG_KIND_ULONG: {
-                    long value = strtoul(next_arg, &end, 0);
+                case HGL_FLAG_KIND_U64: {
+                    uint64_t value = strtoul(next_arg, &end, 0);
 
                     /* Check if strtol failed */
                     if((end == next_arg) || (*end != '\0')) {
@@ -298,12 +365,20 @@ int hgl_flags_parse(int argc, char *argv[])
                         return -1;
                     }
 
+                    /* clamp to range */
+                    uint64_t range_min = transmute(uint64_t, hgl_flags_[j].range_min); 
+                    uint64_t range_max = transmute(uint64_t, hgl_flags_[j].range_max); 
+                    uint64_t old_value = value;
+                    value = min(max(old_value, range_min), range_max);
+
+                    hgl_flags_[j].status |= (value > old_value) ? HGL_FLAG_STATUS_RANGE_UNDERFLOW : 0;
+                    hgl_flags_[j].status |= (value < old_value) ? HGL_FLAG_STATUS_RANGE_OVERFLOW : 0;
                     hgl_flags_[j].value = transmute(uintptr_t, value);
                 } break;
 
-                /* parse float flag */
-                case HGL_FLAG_KIND_FLOAT: {
-                    float value = strtof(next_arg, &end);
+                /* parse float64 flag */
+                case HGL_FLAG_KIND_F64: {
+                    double value = strtod(next_arg, &end);
                     
                     /* Check if strtof failed */
                     if((end == next_arg) || (*end != '\0')) {
@@ -312,6 +387,14 @@ int hgl_flags_parse(int argc, char *argv[])
                         return -1;
                     }
                     
+                    /* clamp to range */
+                    double range_min = transmute(double, hgl_flags_[j].range_min); 
+                    double range_max = transmute(double, hgl_flags_[j].range_max); 
+                    double old_value = value;
+                    value = fmin(fmax(old_value, range_min), range_max);
+
+                    hgl_flags_[j].status |= (value > old_value) ? HGL_FLAG_STATUS_RANGE_UNDERFLOW : 0;
+                    hgl_flags_[j].status |= (value < old_value) ? HGL_FLAG_STATUS_RANGE_OVERFLOW : 0;
                     hgl_flags_[j].value = transmute(uintptr_t, value);
                 } break;
                 
@@ -335,10 +418,30 @@ int hgl_flags_parse(int argc, char *argv[])
 
     /* assert that mandatory flags have been parsed */
     for (size_t i = 0; i < hgl_n_flags_; i++) {
-        if (((hgl_flags_[i].opts & HGL_FLAG_OPT_MANDATORY) != 0) &&
-            ((hgl_flags_[i].status & HGL_FLAG_STATUS_PARSED) == 0)) {
-            fprintf(stderr, "Option marked as mandatory not provided: `%s`\n", hgl_flags_[i].names);
+        HglFlag flag = hgl_flags_[i];
+        if (((flag.opts & HGL_FLAG_OPT_MANDATORY) != 0) &&
+            ((flag.status & HGL_FLAG_STATUS_PARSED) == 0)) {
+            fprintf(stderr, "Error: Option marked as mandatory not provided: `%s`\n", flag.names);
             err = 1;
+        }
+        if (flag.status & (HGL_FLAG_STATUS_RANGE_OVERFLOW | HGL_FLAG_STATUS_RANGE_UNDERFLOW)) {
+            fprintf(stderr, "Warning: Option `%s` was provided with an out-of-range value. "
+                    "Value has been clamped to: ", flag.names);
+            switch (flag.kind) {
+                case HGL_FLAG_KIND_I64: {
+                    fprintf(stderr, "%ld. Valid range = [%ld, %ld]\n", transmute(int64_t, flag.value), 
+                            transmute(int64_t, flag.range_min), transmute(int64_t, flag.range_max));
+                } break;
+                case HGL_FLAG_KIND_U64: {
+                    fprintf(stderr, "%lu. Valid range = [%lu, %lu]\n", transmute(uint64_t, flag.value), 
+                            transmute(uint64_t, flag.range_min), transmute(uint64_t, flag.range_max));
+                } break;
+                case HGL_FLAG_KIND_F64: {
+                    fprintf(stderr, "%.9g. Valid range = [%.9g, %.9g]\n", (double) transmute(double, flag.value), 
+                            (double) transmute(double, flag.range_min), (double) transmute(double, flag.range_max));
+                } break;
+                default: assert(0 && "Unreachable"); break;
+            }
         }
     }
 
@@ -353,13 +456,23 @@ void hgl_flags_print()
         const char *names       = hgl_flags_[i].names;
         const char *desc        = hgl_flags_[i].desc;
         uintptr_t default_value = hgl_flags_[i].default_value;
+        uintptr_t range_min     = hgl_flags_[i].range_min;
+        uintptr_t range_max     = hgl_flags_[i].range_max;
         switch (kind) {
-            case HGL_FLAG_KIND_BOOL:  printf("  %-24s %s (default = %d)\n", names, desc, *(bool*) &default_value); break;
-            case HGL_FLAG_KIND_INT:   printf("  %-24s %s (default = %d)\n", names, desc, *(int*) &default_value); break;
-            case HGL_FLAG_KIND_LONG:  printf("  %-24s %s (default = %ld)\n", names, desc, *(long*) &default_value); break;
-            case HGL_FLAG_KIND_ULONG: printf("  %-24s %s (default = %lu)\n", names, desc, *(unsigned long*) &default_value); break;
-            case HGL_FLAG_KIND_FLOAT: printf("  %-24s %s (default = %f)\n", names, desc, *(float*) &default_value); break;
-            case HGL_FLAG_KIND_STR:   printf("  %-24s %s (default = %s)\n", names, desc, *(char**) &default_value); break;
+            case HGL_FLAG_KIND_BOOL:        printf("  %-24s %s (default = %d)\n", names, desc, transmute(bool, default_value)); break;
+            case HGL_FLAG_KIND_I64: {
+                printf("  %-24s %s (default = %ld, valid range = [%ld, %ld])\n", names, desc, 
+                       transmute(int64_t, default_value), transmute(int64_t, range_min), transmute(int64_t, range_max));
+            } break;
+            case HGL_FLAG_KIND_U64: {
+                printf("  %-24s %s (default = %lu, valid range = [%lu, %lu])\n", names, desc, 
+                       transmute(uint64_t, default_value), transmute(uint64_t, range_min), transmute(uint64_t, range_max));
+            } break;
+            case HGL_FLAG_KIND_F64: { //       printf("  %-24s %s (default = %f)\n", names, desc, transmute(float, default_value)); break;
+                printf("  %-24s %s (default = %.9g, valid range = [%.9g, %.9g])\n", names, desc, 
+                       transmute(double, default_value), transmute(double, range_min), transmute(double, range_max));
+            } break;
+            case HGL_FLAG_KIND_STR:         printf("  %-24s %s (default = %s)\n", names, desc, transmute(char *, default_value)); break;
         }
     }
 }

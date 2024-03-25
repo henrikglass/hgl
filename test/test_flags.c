@@ -7,11 +7,11 @@ int main(int argc, char *argv[])
 {
 
     bool *a          = hgl_flags_add_bool("-a", "option a", false, 0);
-    bool *b          = hgl_flags_add_bool("-b,--bee", "option b", false, 0);
-    int *c           = hgl_flags_add_int("-c", "int c", 123456, HGL_FLAG_OPT_MANDATORY);
-    long *d          = hgl_flags_add_long("-d", "looong d", 0xFF, 0);
-    unsigned long *u = hgl_flags_add_ulong("-u", "uulooong d", 0xFFFFF0FFFFFFFFFF, 0);
-    float *f         = hgl_flags_add_float("-f,--float", "float f hello", 3.1415926535f, 0);
+    bool *b          = hgl_flags_add_bool("-b,--bee", "option b", false, HGL_FLAG_OPT_MANDATORY);
+    int *c           = hgl_flags_add_int("-c", "int c", 123456, 0);
+    int64_t *d       = hgl_flags_add_i64("-d", "looong d", 0xFF, 0);
+    uint64_t *u      = hgl_flags_add_u64("-u", "uulooong d", 0xFFFFF0FFFFFFFFFF, 0);
+    double *f        = hgl_flags_add_f64_range("-f,--float", "float f hello", 103.1415926535f, 0, 10.0, DBL_MAX);
     const char **o   = hgl_flags_add_str("-o,--output", "output file path", "a.out", 0);
 
     int err = hgl_flags_parse(argc, argv);
@@ -21,6 +21,6 @@ int main(int argc, char *argv[])
         return 1;
     }
     
-    printf("a = %d, b = %d, c = %d, d = %ld, u = %lu, f = %f, o = %s\n", *a, *b, *c, *d, *u, (double) *f, *o);
+    printf("a = %d, b = %d, c = %d, d = %ld, u = %lu, f = %f, o = %s\n", *a, *b, *c, *d, *u, *f, *o);
 
 }
