@@ -44,7 +44,7 @@
  * Code example:
  *
  *     bool *a = hgl_flags_add_bool("-a,--alternative-name", "Simple option for turning something on or off", false, 0);
- *     int *i = hgl_flags_add_int("-i", "Simple mandatory integer option", 123456, HGL_FLAG_OPT_MANDATORY);
+ *     int64_t *i = hgl_flags_add_i64_range("-i", "Simple mandatory int option", 0, HGL_FLAG_OPT_MANDATORY, INT_MIN, INT_MAX);
  *     const char **outfile = hgl_flags_add_str("-o,--output", "Output file path", "a.out", 0);
  *
  *     int err = hgl_flags_parse(argc, argv);
@@ -54,7 +54,7 @@
  *         return 1;
  *     }
  *
- *     printf("User provided i = %d\n");
+ *     printf("User provided i = %d\n", (int) *i);
  *
  * AUTHOR: Henrik A. Glass
  *
