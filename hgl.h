@@ -41,6 +41,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
+#include <stdio.h>
 
 /*--- Public macros ---------------------------------------------------------------------*/
 
