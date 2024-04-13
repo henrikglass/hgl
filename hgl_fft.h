@@ -63,7 +63,7 @@
  *         // Generate some signal
  *         for (int i = 0; i < N; i++) {
  *             float t = 1.0f * (float)i/N;
- *             signal[i] = sinf(1*2*M_PI*t) + sinf(2*2*M_PI*t) + cosf(3*2*M_PI*t);
+ *             signal[i] = sinf(1*2*PI*t) + sinf(2*2*PI*t) + cosf(3*2*PI*t);
  *         }
  *
  *         // Normalize (not necessary)
@@ -111,6 +111,8 @@ void ifft(float complex in[], float complex out[], int n);
 #   include <immintrin.h>
 #endif
 
+#define PI 3.14159265358979
+
 void fft_(float in[], float complex out[], int n, int stride);
 void ifft_(float complex in[], float complex out[], int n, int stride);
 
@@ -126,7 +128,7 @@ void fft_(float in[], float complex out[], int n, int stride)
 
 #ifndef HGL_FFT_USE_SIMD
     for(int k = 0; k < n/2; k++) {
-        float w = -2*M_PI*((float)k/n);
+        float w = -2*PI*((float)k/n);
         float complex v = out[k + n/2] * (cosf(w) + I*sinf(w));
         out[k + n/2]    = out[k] - v;
         out[k]          = out[k] + v;
@@ -134,9 +136,9 @@ void fft_(float in[], float complex out[], int n, int stride)
 #else
     if (n/2 < 4) {
         for(int k = 0; k < n/2; k++) {
-            float w = -2*M_PI*((float)k/n);
+            float w = -2*PI*((float)k/n);
             float complex v = out[k + n/2] * (cosf(w) + I*sinf(w));
-            //float complex v = out[k + n/2] * cexpf(-2*M_PI*((float)k/n)*I);
+            //float complex v = out[k + n/2] * cexpf(-2*PI*((float)k/n)*I);
             out[k + n/2]    = out[k] - v;
             out[k]          = out[k] + v;
         }
@@ -145,11 +147,11 @@ void fft_(float in[], float complex out[], int n, int stride)
             float ws[3]  __attribute__((aligned(16)));
             __m128 vec_ks      = _mm_set_ps1((float)(k));          // (k, k, k, k)
             __m128 vec_rns     = _mm_set_ps1(1.0f/n);              // (1/n, 1/n, 1/n, 1/n)
-            __m128 vec_2pi     = _mm_set_ps1(-2*M_PI);             // (2*M_PI, 2*M_PI, 2*M_PI, 2*M_PI)
+            __m128 vec_2pi     = _mm_set_ps1(-2*PI);             // (2*PI, 2*PI, 2*PI, 2*PI)
             __m128 vec_offsets = _mm_set_ps(3, 2, 1, 0);           // (0, 1, 2, 3)
             __m128 vec_indices = _mm_add_ps(vec_ks, vec_offsets);  // (k, k+1, k+2, k+3)
             __m128 vec_ts      = _mm_mul_ps(vec_indices, vec_rns); // (k/n, (k+1)/n, (k+2)/n, (k+3)/n)
-            __m128 vec_ws      = _mm_mul_ps(vec_ts, vec_2pi);      // (2*M_PI*(k/n), 2*M_PI*((k+1)/n), 2*M_PI*((k+2)/n), 2*M_PI*((k+3)/n))
+            __m128 vec_ws      = _mm_mul_ps(vec_ts, vec_2pi);      // (2*PI*(k/n), 2*PI*((k+1)/n), 2*PI*((k+2)/n), 2*PI*((k+3)/n))
             _mm_store_ps(ws, vec_ws);
             float complex v0 = out[k + n/2] * (cosf(ws[0]) + I*sinf(ws[0]));
             float complex v1 = out[k + n/2 + 1] * (cosf(ws[1]) + I*sinf(ws[1]));
@@ -181,7 +183,7 @@ void ifft_(float complex in[], float complex out[], int n, int stride)
 
 #ifndef HGL_FFT_USE_SIMD
     for(int k = 0; k < n/2; k++) {
-        float w = 2*M_PI*((float)k/n);
+        float w = 2*PI*((float)k/n);
         float complex v = out[k + n/2] * (cosf(w) + I*sinf(w));
         out[k + n/2]    = out[k] - v;
         out[k]          = out[k] + v;
@@ -189,7 +191,7 @@ void ifft_(float complex in[], float complex out[], int n, int stride)
 #else
     if (n/2 < 4) {
         for(int k = 0; k < n/2; k++) {
-            float w = 2*M_PI*((float)k/n);
+            float w = 2*PI*((float)k/n);
             float complex v = out[k + n/2] * (cosf(w) + I*sinf(w));
             out[k + n/2]    = out[k] - v;
             out[k]          = out[k] + v;
@@ -199,11 +201,11 @@ void ifft_(float complex in[], float complex out[], int n, int stride)
             float ws[3]  __attribute__((aligned(16)));
             __m128 vec_ks      = _mm_set_ps1((float)(k));          // (k, k, k, k)
             __m128 vec_rns     = _mm_set_ps1(1.0f/n);              // (1/n, 1/n, 1/n, 1/n)
-            __m128 vec_2pi     = _mm_set_ps1(2*M_PI);              // (2*M_PI, 2*M_PI, 2*M_PI, 2*M_PI)
+            __m128 vec_2pi     = _mm_set_ps1(2*PI);              // (2*PI, 2*PI, 2*PI, 2*PI)
             __m128 vec_offsets = _mm_set_ps(3, 2, 1, 0);           // (0, 1, 2, 3)
             __m128 vec_indices = _mm_add_ps(vec_ks, vec_offsets);  // (k, k+1, k+2, k+3)
             __m128 vec_ts      = _mm_mul_ps(vec_indices, vec_rns); // (k/n, (k+1)/n, (k+2)/n, (k+3)/n)
-            __m128 vec_ws      = _mm_mul_ps(vec_ts, vec_2pi);      // (2*M_PI*(k/n), 2*M_PI*((k+1)/n), 2*M_PI*((k+2)/n), 2*M_PI*((k+3)/n))
+            __m128 vec_ws      = _mm_mul_ps(vec_ts, vec_2pi);      // (2*PI*(k/n), 2*PI*((k+1)/n), 2*PI*((k+2)/n), 2*PI*((k+3)/n))
             _mm_store_ps(ws, vec_ws);
             float complex v0 = out[k + n/2] * (cosf(ws[0]) + I*sinf(ws[0]));
             float complex v1 = out[k + n/2 + 1] * (cosf(ws[1]) + I*sinf(ws[1]));

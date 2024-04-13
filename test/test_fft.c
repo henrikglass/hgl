@@ -44,7 +44,7 @@ int main()
     for (int i = 0; i < N; i++) {
         float t = 1.0f * (float)i/N;
         float t2 = 1.0f * (float)(i+7)/N;
-        signal[i] = sinf(1*2*M_PI*t) + sinf(2*2*M_PI*t2) + cosf(3*2*M_PI*t);
+        signal[i] = sinf(1*2*PI*t) + sinf(2*2*PI*t2) + cosf(3*2*PI*t);
     }
 
     // normalize
@@ -62,8 +62,8 @@ int main()
 
     fft(signal, signal_frequencies, N);
 
-    signal_frequencies[2] = 0;
-    signal_frequencies[N-2] = 0;
+    //signal_frequencies[2] = 0;
+    //signal_frequencies[N-2] = 0;
 
     ifft(signal_frequencies, reconstructed_signal, N);
 
