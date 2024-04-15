@@ -34,34 +34,42 @@
  *
  * Include hgl_memdbg.h file like this:
  *
- *     #define HGL_MEMDGB_IMPLEMENTATION
+ *     #define HGL_MEMDBG_IMPLEMENTATION
  *     #include "hgl_memdbg.h"
  *
- * HGL_MEMDGB_IMPLEMENTATION must only be defined once, in a single compilation unit. 
- * hgl_memdbg redefines 'malloc', 'realloc', and 'free' as macros to internal functions 
- * that keep track of which allocations are made where in the code. To use hgl_memdbg, 
+ * HGL_MEMDBG_IMPLEMENTATION must only be defined once, in a single compilation unit.
+ * hgl_memdbg redefines 'malloc', 'realloc', and 'free' as macros to internal functions
+ * that keep track of which allocations are made where in the code. To use hgl_memdbg,
  * simply include the header, as shown above, and call 'hgl_memdbg_report' on exit.
  *
+ * Optionally, you can define:
+ *
+ *     #define HGL_MEMDBG_ENABLE_STACKTRACES
+ *
+ * HGL_MEMDBG_ENABLE_STACKTRACES will store generate a stack trace for each call to
+ * malloc and realloc that will be printed in case of a memory leak. Note that this
+ * will cause some overhead for calls to malloc, realloc, and free.
  *
  * EXAMPLE:
  *
  * This program will report that there was a leak of 512 bytes on line 8 and return
  * with exit code 1:
  *
- *     #define HGL_MEMDGB_IMPLEMENTATION
+ *     #define HGL_MEMDBG_ENABLE_STACKTRACES
+ *     #define HGL_MEMDBG_IMPLEMENTATION
  *     #include "hgl_memdbg.h"
- *     
+ *
  *     int main(void)
  *     {
- *     
- *         double *d = malloc(sizeof(double)); 
+ *
+ *         double *d = malloc(sizeof(double));
  *         double *arr = malloc(64 * sizeof(double)); // line 8
  *         free(d);
  *
  *         // Oops, we forgot to free 'arr'!
- *     
- *         int has_leak = hgl_memdbg_report();
- *         return (has_leak) ? 1 : 0;
+ *
+ *         int err = hgl_memdbg_report();
+ *         return (err != 0) ? 1 : 0;
  *     }
  *
  *
@@ -90,6 +98,10 @@ typedef struct HglAllocationHeader {
     const char *file;
     int line;
     size_t size;
+#ifdef HGL_MEMDBG_ENABLE_STACKTRACES
+    char **stack_trace;
+    int stack_trace_depth;
+#endif
     struct HglAllocationHeader *prev;
     struct HglAllocationHeader *next;
 } HglAllocationHeader;
@@ -113,18 +125,25 @@ int hgl_memdbg_report(void);
 
 #ifdef HGL_MEMDBG_IMPLEMENTATION
 
+#include <stddef.h>
+
+/* Size of header + required padding to keep the alignment constraints of malloc */
+#define HGL_MEMDBG_PADDED_HEADER_SIZE (sizeof(HglAllocationHeader) + (_Alignof(max_align_t) - \
+                                      (sizeof(HglAllocationHeader) & (_Alignof(max_align_t) - 1))))
+
+
 HglAllocationHeader *hgl_allocation_header_head_ = NULL;
 
 void *hgl_memdbg_internal_malloc_(size_t size, const char *file, int line)
 {
-    HglAllocationHeader *header = malloc(sizeof(HglAllocationHeader) + size);
+    HglAllocationHeader *header = malloc(HGL_MEMDBG_PADDED_HEADER_SIZE + size);
 
     /* Return NULL if malloc failed. */
     if (header == NULL) {
         return NULL;
     }
 
-    /* Construct header and insert into circular linked list */
+    /* Construct header and insert into circular doubly-linked list */
     header->file = file;
     header->line = line;
     header->size = size;
@@ -140,19 +159,26 @@ void *hgl_memdbg_internal_malloc_(size_t size, const char *file, int line)
         header->prev = hgl_allocation_header_head_;
     }
 
+#ifdef HGL_MEMDBG_ENABLE_STACKTRACES
+    /* Generate stack trace. */
+    void *tmp[32];
+    header->stack_trace_depth = backtrace(tmp, 32);
+    header->stack_trace = backtrace_symbols(tmp, header->stack_trace_depth);
+#endif
+
     /* Return memory after header */
-    return (void *)(header + 1);
+    return (void *)((uint8_t *)(header) + HGL_MEMDBG_PADDED_HEADER_SIZE);
 }
 
 void *hgl_memdbg_internal_realloc_(void *ptr, size_t size, const char *file, int line)
 {
     uint8_t *ptr8 = (uint8_t *) ptr;
-    HglAllocationHeader *header = (HglAllocationHeader *) (ptr8 - sizeof(HglAllocationHeader));
+    HglAllocationHeader *header = (HglAllocationHeader *) (ptr8 - HGL_MEMDBG_PADDED_HEADER_SIZE);
     HglAllocationHeader *prev = header->prev;
     HglAllocationHeader *next = header->next;
     bool is_head      = (header == hgl_allocation_header_head_);
     bool is_only_node = (header == next) && (header == prev);
-    header = realloc((void *) header, size + sizeof(HglAllocationHeader));
+    header = realloc((void *) header, size + HGL_MEMDBG_PADDED_HEADER_SIZE);
     if (header == NULL) {
         return NULL;
     }
@@ -165,18 +191,26 @@ void *hgl_memdbg_internal_realloc_(void *ptr, size_t size, const char *file, int
         header->next = header;
         header->prev = header;
     }
-    
+
     /* Update header */
     header->size = size;
     header->file = file;
     header->line = line;
-    
+
+#ifdef HGL_MEMDBG_ENABLE_STACKTRACES
+    /* Re-generate stack trace. */
+    free(header->stack_trace);
+    void *tmp[32];
+    header->stack_trace_depth = backtrace(tmp, 32);
+    header->stack_trace = backtrace_symbols(tmp, header->stack_trace_depth);
+#endif
+
     /* update head if this node is the head */
     if (is_head) {
         hgl_allocation_header_head_ = header;
     }
 
-    return (void *)(header + 1);
+    return (void *)((uint8_t *)(header) + HGL_MEMDBG_PADDED_HEADER_SIZE);
 }
 
 void hgl_memdbg_internal_free_(void *ptr)
@@ -184,10 +218,13 @@ void hgl_memdbg_internal_free_(void *ptr)
     uint8_t *ptr8 = (uint8_t *) ptr;
 
     /* Remove allocation from linked list and free it. */
-    HglAllocationHeader *header = (HglAllocationHeader *) (ptr8 - sizeof(HglAllocationHeader));
+    HglAllocationHeader *header = (HglAllocationHeader *) (ptr8 - HGL_MEMDBG_PADDED_HEADER_SIZE);
     header->prev->next = header->next;
     header->next->prev = header->prev;
     HglAllocationHeader *next = header->next;
+#ifdef HGL_MEMDBG_ENABLE_STACKTRACES
+    free(header->stack_trace);
+#endif
     free((void *) header);
 
     /* If this header was the head of the linked list, make the next one head. */
@@ -195,7 +232,7 @@ void hgl_memdbg_internal_free_(void *ptr)
         hgl_allocation_header_head_ = next;
     }
 
-    /* 
+    /*
      * If the next one is also the head, then there was only one allocation in the list.
      * Make head == NULL.
      */
@@ -208,18 +245,18 @@ int hgl_memdbg_report()
 {
     size_t total_unfreed = 0;
     HglAllocationHeader *header = hgl_allocation_header_head_;
-    
+
 #if 0
     int i = 0;
     if (header != NULL) {
         printf("HEAD: ");
         do {
-            i++; 
+            i++;
             printf("[%p - %p - %p] ----> ", (void *)header->prev, (void *) header, (void *)header->next);
             header = header->next;
         } while (header != hgl_allocation_header_head_ && i < 10);
         printf("\n");
-    } 
+    }
 #endif
 
     printf("====================== [%shgl_memdbg report%s] ======================\n",
@@ -227,8 +264,16 @@ int hgl_memdbg_report()
     if (header != NULL) {
         printf("\n");
         do {
-            printf("<%s:%d>: %sLEAKED%s %zu bytes of memory.\n", 
+            printf("<%s:%d>: %sLEAKED%s %zu bytes of memory.\n",
                    header->file, header->line, HGL_RED, HGL_NC, header->size);
+#ifdef HGL_MEMDBG_ENABLE_STACKTRACES
+            if (header->stack_trace != NULL) {
+                printf ("Stack trace at allocation (compile with -rdynamic to enable symbols): \n");
+                for (int i = 0; i < header->stack_trace_depth; i++) {
+                    printf ("  [%d] %s\n", i, header->stack_trace[i]);
+                }
+            }
+#endif
             total_unfreed += header->size;
             header = header->next;
         } while (header != hgl_allocation_header_head_);
@@ -250,7 +295,4 @@ int hgl_memdbg_report()
 
 #endif
 
-
-    
-    
 
