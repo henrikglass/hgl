@@ -73,7 +73,7 @@ test_hamming:
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_hamming_decode.c -o test_hamming_decode
 
 test_cmd:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_cmd.c -o test_cmd
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(SRCDIR)/test_cmd.c -o test_cmd
 
 clean:
 	-rm test_hgl
