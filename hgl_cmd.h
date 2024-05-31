@@ -226,6 +226,7 @@ bool hgl_cmd_has_sub_tree(const HglCommand *cmd);
 #include <termios.h>
 #include <stdarg.h>
 #include <string.h>
+#include <sys/types.h>
 
 const HglCommand *hgl_cmd_input(const HglCommand *command_tree, const char *prompt,
                                 char *buf, size_t buf_size, size_t *lpos)
