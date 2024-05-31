@@ -16,6 +16,7 @@ A collection of small easy-to-use header only libraries written in C.
 | hgl\_memdbg.h         | Utility                       | Quick and easy leak checking replacement for malloc, realloc, and free.                       |
 | hgl\_hotload.h        | Utility                       | Quick and easy hotloading.                                                                    |
 | hgl\_binpack.h        | Utility                       | Powerful binary parsing and packing/unpacking with a simple regex-like language.              |
+| hgl\_cmd.h            | Utility                       | Simple command prompt user interface with tab completion.                                     |
 | hgl\_flags.h          | Utility                       | Simple utility for parsing command-line arguments.                                            |
 | hgl\_io.h             | Utility                       | Simple file I/O.                                                                              |
 | hgl\_fft.h            | Algorithm                     | An implementation of the Fast Fourier Transform (FFT) using SIMD.                             |
