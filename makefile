@@ -17,6 +17,7 @@ all: test_vec         \
          test_memdbg      \
          test_flags       \
          test_string      \
+         test_hamming     \
          test_fft
 
 test_hgl:
@@ -65,6 +66,11 @@ test_string:
 test_fft:
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -march=native -ffast-math $(SRCDIR)/test_fft.c -o test_fft -lm
 
+test_hamming:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_hamming.c -o test_hamming
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_hamming_encode.c -o test_hamming_encode
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_hamming_decode.c -o test_hamming_decode
+
 clean:
 	-rm test_hgl
 	-rm test_vec
@@ -82,3 +88,6 @@ clean:
 	-rm test_flags
 	-rm test_string
 	-rm test_fft
+	-rm test_hamming
+	-rm test_hamming_encode
+	-rm test_hamming_decode
