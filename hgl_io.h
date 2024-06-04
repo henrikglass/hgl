@@ -45,27 +45,27 @@
  *
  * Normal read & write example:
  *
- *     HglFile file = hgl_io_read_file("myfile.txt");
+ *     HglFile file = hgl_io_file_read("myfile.txt");
  *     if (file.data == NULL) {
  *         printf("Error reading file\n");
  *         return 1;
  *     }
  *     file.data[0] = '\0'; // write null terminator to first byte, for some reason.
- *     int err = hgl_io_write_file(&file);
+ *     int err = hgl_io_file_write(&file);
  *     if (err != 0) {
  *         printf("Error writing file\n");
  *     }
- *     hgl_io_free_file(&file);
+ *     hgl_io_file_free(&file);
  *
  * Memory mapped file example:
  *
- *     HglFile file = hgl_io_mmap_file("myfile.txt");
+ *     HglFile file = hgl_io_file_mmap("myfile.txt");
  *     if (file.data == NULL) {
  *         printf("Error mmap:ing file\n");
  *         return 1;
  *     }
  *     file.data[0] = '\0'; // write null terminator to first byte, for some reason.
- *     hgl_io_munmap_file(&file);
+ *     hgl_io_file_munmap(&file);
  *
  *
  * AUTHOR: Henrik A. Glass
@@ -90,41 +90,66 @@ typedef struct
     HglFileMode mode;
     uint8_t *data;
     size_t size;
+    size_t it;
 } HglFile;
+
+/**
+ * Creates a file at `filepath` with the size `size`.
+ */
+void hgl_io_file_create(const char *filepath, size_t size);
 
 /**
  * Reads the file at `filepath` in binary mode. On error, the HglFile object is
  * returned with `data` set to NULL.
  */
-HglFile hgl_io_read_file(const char *filepath);
+HglFile hgl_io_file_read(const char *filepath);
 
 /**
  * Memory maps (mmap) file at `filepath`. On error, the HglFile object is
  * returned with `data` set to NULL.
  */
-HglFile hgl_io_mmap_file(const char *filepath);
+HglFile hgl_io_file_mmap(const char *filepath);
 
 /**
  * Writes the data associated with `file` to the underlying file. Returns -1
  * on error, 0 otherwise.
  */
-int hgl_io_write_file(HglFile *file);
+int hgl_io_file_write(HglFile *file);
 
 /**
  * Writes `size` bytes from `data` to the file at `filepath` in binary mode.
  * Returns -1 on error, 0 otherwise.
  */
-int hgl_io_write_to_filepath(const char *filepath, uint8_t *data, size_t size);
+int hgl_io_file_write_to(const char *filepath, uint8_t *data, size_t size);
+
+/**
+ * Appends `size` bytes from `data` to the file at `filepath` in binary mode.
+ * Returns -1 on error, 0 otherwise.
+ */
+int hgl_io_file_append_to(const char *filepath, uint8_t *data, size_t size);
+
+/**
+ * Gets the next line in the file `file`. Returns the size of the line in bytes and
+ * sets `line` to point to the first character in the line.
+ */
+int hgl_io_file_get_next_line(HglFile *file, const char **line);
+
+/**
+ * Resets the internal iterator of `file`. The next call to, for instance,
+ * hgl_io_file_get_next_line after a call to hgl_io_file_reset_iterator will return
+ * the first line in the file.
+ */
+void hgl_io_file_reset_iterator(HglFile *file);
 
 /**
  * Frees the data held by `file`.
  */
-void hgl_io_free_file(HglFile *file);
+void hgl_io_file_free(HglFile *file);
 
 /**
  * Unmaps the memory held by the memory mapped file `file`.
  */
-void hgl_io_munmap_file(HglFile *file);
+void hgl_io_file_munmap(HglFile *file);
 
 #endif /* HGL_IO_H */
 
@@ -147,19 +172,28 @@ void hgl_io_munmap_file(HglFile *file);
 #  define HGL_IO_FREE     free
 #endif
 
-HglFile hgl_io_read_file(const char *filepath)
+void hgl_io_file_create(const char *filepath, size_t size)
+{
+    FILE *fp = fopen(filepath, "w");
+    fseek(fp, size - 1, SEEK_SET);
+    fputc('\0', fp);
+    fclose(fp);
+}
+
+HglFile hgl_io_file_read(const char *filepath)
 {
     HglFile file = {
         .path = filepath,
         .mode = HGL_FILE_MODE_NORMAL,
         .data = NULL,
-        .size = 0
+        .size = 0,
+        .it   = 0
     };
 
     /* open file in read binary mode */
     FILE *fp = fopen(filepath, "rb");
     if (fp == NULL) {
-        fprintf(stderr, "[hgl_io_read_file] Error: errno=%s\n", strerror(errno));
+        fprintf(stderr, "[hgl_io_file_read] Error: errno=%s\n", strerror(errno));
         goto out;
     }
 
@@ -168,21 +202,21 @@ HglFile hgl_io_read_file(const char *filepath)
     ssize_t file_size = ftell(fp);
     rewind(fp);
     if (file_size < 0) {
-        fprintf(stderr, "[hgl_io_read_file] Error: errno=%s\n", strerror(errno));
+        fprintf(stderr, "[hgl_io_file_read] Error: errno=%s\n", strerror(errno));
         goto out_close;
     }
 
     /* allocate memory for data */
     uint8_t *data = HGL_IO_ALLOC(file_size);
     if (data == NULL) {
-        fprintf(stderr, "[hgl_io_read_file] Error: Allocation of %zu bytes failed.\n", file_size);
+        fprintf(stderr, "[hgl_io_file_read] Error: Allocation of %zu bytes failed.\n", file_size);
         goto out_close;
     }
 
     /* read file */
     ssize_t n_read_bytes = fread(data, 1, file_size, fp);
     if (n_read_bytes != file_size) {
-        fprintf(stderr, "[hgl_io_read_file] Error: Failed reading file %s\n", filepath);
+        fprintf(stderr, "[hgl_io_file_read] Error: Failed reading file %s\n", filepath);
         HGL_IO_FREE(data);
         goto out_close;
     }
@@ -198,19 +232,20 @@ out:
 
 }
 
-HglFile hgl_io_mmap_file(const char *filepath)
+HglFile hgl_io_file_mmap(const char *filepath)
 {
     HglFile file = {
         .path = filepath,
         .mode = HGL_FILE_MODE_MEMORY_MAPPED,
         .data = NULL,
-        .size = 0
+        .size = 0,
+        .it   = 0
     };
 
     /* open file in read binary mode */
     int fd = open(filepath, O_RDWR);
     if (fd == -1) {
-        fprintf(stderr, "[hgl_io_mmap_file] Error: errno=%s\n", strerror(errno));
+        fprintf(stderr, "[hgl_io_file_mmap] Error: errno=%s\n", strerror(errno));
         goto out;
     }
 
@@ -218,7 +253,7 @@ HglFile hgl_io_mmap_file(const char *filepath)
     struct stat sb;
     fstat(fd, &sb);
     if (fd == -1) {
-        fprintf(stderr, "[hgl_io_mmap_file] Error: errno=%s\n", strerror(errno));
+        fprintf(stderr, "[hgl_io_file_mmap] Error: errno=%s\n", strerror(errno));
         goto out_close;
     }
 
@@ -230,7 +265,7 @@ HglFile hgl_io_mmap_file(const char *filepath)
                          fd,                     /* File descriptor of file to map */
                          0);                     /* Begin map at offset 0 into file */
     if (data == MAP_FAILED) {
-        fprintf(stderr, "[hgl_io_mmap_file] Error: mmap failed with errno=%s\n",
+        fprintf(stderr, "[hgl_io_file_mmap] Error: mmap failed with errno=%s\n",
                 strerror(errno));
         goto out_close;
     }
@@ -244,39 +279,39 @@ out:
     return file;
 }
 
-int hgl_io_write_file(HglFile *file)
+int hgl_io_file_write(HglFile *file)
 {
     if (file->mode == HGL_FILE_MODE_MEMORY_MAPPED) {
-        fprintf(stderr, "[hgl_io_write_file] Error: HglFile is memory mapped.");
+        fprintf(stderr, "[hgl_io_file_write] Error: HglFile is memory mapped.");
         return -1;
     }
 
     if (file->path == NULL || strlen(file->path) == 0) {
-        fprintf(stderr, "[hgl_io_write_file] Error: HglFile has no path or empty path.");
+        fprintf(stderr, "[hgl_io_file_write] Error: HglFile has no path or empty path.");
         return -1;
     }
 
     if (file->data == NULL) {
-        fprintf(stderr, "[hgl_io_write_file] Error: HglFile has no associated data.");
+        fprintf(stderr, "[hgl_io_file_write] Error: HglFile has no associated data.");
         return -1;
     }
 
-    return hgl_io_write_to_filepath(file->path, file->data, file->size);
+    return hgl_io_file_write_to(file->path, file->data, file->size);
 }
 
-int hgl_io_write_to_filepath(const char *filepath, uint8_t *data, size_t size)
+int hgl_io_file_write_to(const char *filepath, uint8_t *data, size_t size)
 {
     /* open file in write binary mode */
     FILE *fp = fopen(filepath, "wb");
     if (fp == NULL) {
-        fprintf(stderr, "[hgl_io_write_to_filepath] Error: errno=%s\n", strerror(errno));
+        fprintf(stderr, "[hgl_io_file_write_to] Error: errno=%s\n", strerror(errno));
         return -1;
     }
 
     /* write file data */
     size_t n_written_bytes = fwrite(data, 1, size, fp);
     if (n_written_bytes != size) {
-        fprintf(stderr, "[hgl_io_write_to_filepath] Error: Failed writing to file %s\n", filepath);
+        fprintf(stderr, "[hgl_io_file_write_to] Error: Failed writing to file %s\n", filepath);
         fclose(fp);
         return -1;
     }
@@ -285,7 +320,53 @@ int hgl_io_write_to_filepath(const char *filepath, uint8_t *data, size_t size)
     return 0;
 }
 
-void hgl_io_free_file(HglFile *file)
+int hgl_io_file_append_to(const char *filepath, uint8_t *data, size_t size)
+{
+    /* open file in write binary mode */
+    FILE *fp = fopen(filepath, "ab");
+    if (fp == NULL) {
+        fprintf(stderr, "[hgl_io_file_write_to] Error: errno=%s\n", strerror(errno));
+        return -1;
+    }
+
+    /* write file data */
+    size_t n_written_bytes = fwrite(data, 1, size, fp);
+    if (n_written_bytes != size) {
+        fprintf(stderr, "[hgl_io_file_write_to] Error: Failed writing to file %s\n", filepath);
+        fclose(fp);
+        return -1;
+    }
+
+    fclose(fp);
+    return 0;
+}
+
+int hgl_io_file_get_next_line(HglFile *file, const char **line)
+{
+    if (file->it >= file->size) {
+        *line = NULL;
+        return 0;
+    }
+
+    size_t line_start = file->it;
+    while ((file->it < file->size) &&
+           (file->data[file->it] != '\n')) {
+        file->it++;
+    }
+    int n_read_bytes = file->it - line_start;
+    file->it++;
+
+    *line = (char *) &file->data[line_start];
+    return n_read_bytes;
+
+}
+
+void hgl_io_file_reset_iterator(HglFile *file)
+{
+    file->it = 0;
+}
+
+void hgl_io_file_free(HglFile *file)
 {
     assert(file->mode == HGL_FILE_MODE_NORMAL);
     HGL_IO_FREE(file->data);
@@ -293,7 +374,7 @@ void hgl_io_free_file(HglFile *file)
     file->size = 0;
 }
 
-void hgl_io_munmap_file(HglFile *file)
+void hgl_io_file_munmap(HglFile *file)
 {
     assert(file->mode == HGL_FILE_MODE_MEMORY_MAPPED);
     munmap(file->data, file->size);
