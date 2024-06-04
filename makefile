@@ -19,6 +19,7 @@ all: test_vec         \
          test_string      \
          test_hamming     \
          test_cmd         \
+         test_io          \
          test_fft
 
 test_hgl:
@@ -72,6 +73,9 @@ test_hamming:
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_hamming_encode.c -o test_hamming_encode
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_hamming_decode.c -o test_hamming_decode
 
+test_io:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(SRCDIR)/test_io.c -o test_io
+
 test_cmd:
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(SRCDIR)/test_cmd.c -o test_cmd
 
@@ -95,4 +99,5 @@ clean:
 	-rm test_hamming
 	-rm test_hamming_encode
 	-rm test_hamming_decode
+	-rm test_io
 	-rm test_cmd
