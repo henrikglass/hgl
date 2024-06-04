@@ -12,13 +12,13 @@ int main(int argc, char *argv[])
     const char *infile_path = argv[1];
     const char *outfile_path = "encoded.hm";
 
-    HglFile file = hgl_io_read_file(infile_path);
+    HglFile file = hgl_io_file_read(infile_path);
 
     /* prepare input buffer */
     size_t data_size = HGL_HAMMING_ROUND_UP(file.size, 11);
     uint8_t *data = calloc(1, data_size);
     memcpy(data, file.data, file.size);
-    hgl_io_free_file(&file);
+    hgl_io_file_free(&file);
 
     /* prepare output buffer */
     size_t encoded_size = HGL_HAMMING_16_11_ENDCODED_SIZE(data_size);
@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
      *
      * Yes, I know this has different behavior depending on endianness. I don't care.
      */
-    hgl_io_write_to_filepath(outfile_path, (uint8_t *) encoded, encoded_size);
+    hgl_io_file_write_to(outfile_path, (uint8_t *) encoded, encoded_size);
 
     /* cleanup */
     free(encoded);
