@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 
     const char *infile_path = argv[1];
 
-    HglFile file = hgl_io_read_file(infile_path);
+    HglFile file = hgl_io_file_read(infile_path);
     assert(file.size % 16 == 0);
     assert(file.data != NULL);
 
