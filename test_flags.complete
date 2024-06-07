@@ -1,1 +1,0 @@
-complete -f -d -W "-a -b --bee -c -d -u -f --float -o --output -c --gen-cmpl-cmd " ./test_flags
