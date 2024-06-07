@@ -55,26 +55,33 @@
  *
  *     HGL_CMD_PRIVATE_DATA_T
  *
+ * You may provide a custom allocator hgl_cmd.h by redefining the following:
+ *
+ *     HGL_CMD_ALLOC
+ *     HGL_CMD_REALLOC
+ *     HGL_CMD_FREE
+ *
  * User input example:
  *
- *     #define BUF_SIZE 64
- *     char buf[BUF_SIZE];
- *     const HglCommand *cmd_hi  = hgl_cmd_tree_at(cmd_tree, "say", "hello");
- *     const HglCommand *cmd_bye = hgl_cmd_tree_at(cmd_tree, "say", "goodbye");
- *     const HglCommand *cmd     = hgl_cmd_input(cmd_tree, "$ ", buf, BUF_SIZE, NULL);
- *     if (cmd == cmd_hi) {
+ *     #define HGL_CMD_BUFFER_SIZE 64 // optional
+ *     #define HGL_CMD_IMPLEMENTATION
+ *     #include "hgl_cmd.h"
+ *
+ *     const HglCommand *cmd = hgl_cmd_input(cmd_tree, ">>> ", NULL);
+ *     if (cmd == hgl_cmd_tree_at(cmd_tree, "say", "hello")) {
  *         printf("Hello World!\n");
- *     } else if (cmd == cmd_bye) {
+ *     } else if (cmd == hgl_cmd_tree_at(cmd_tree, "say", "goodbye")) {
  *         printf("Goodbye folks!\n");
  *     }
  *
  * The caller or `hgl_cmd_input` may parse additional data in the supplied input
- * buffer (`buf` in this case) by providing a pointer to size_t as the last argument
- * (lpos). Upon returning, `hgl_cmd_input` will set lpos to point to the first byte
- * inside `buf` which is not part of the string corresponding with a certain path
- * in the command tree (`hgl_cmd_input` returns a pointer to this command).
+ * buffer (`buf` in this case) by providing a pointer to `char *` as the last
+ * argument (args). Upon returning, `hgl_cmd_input` will set args to point to
+ * the first byte inside `buf` which is not part of the string corresponding
+ * with a certain path in the command tree (`hgl_cmd_input` returns a pointer to
+ * this command).
  *
- * See the test/-directory for a more complete example.
+ * See the test/ directory for a more complete example.
  *
  *
  * AUTHOR: Henrik A. Glass
@@ -93,6 +100,10 @@
 
 #ifndef HGL_CMD_PRIVATE_DATA_T
 #define HGL_CMD_PRIVATE_DATA_T void *
+#endif
+
+#ifndef HGL_CMD_BUFFER_SIZE
+#define HGL_CMD_BUFFER_SIZE 256
 #endif
 
 /*--- Public type definitions -----------------------------------------------------------*/
@@ -126,24 +137,29 @@ struct HglCommand
  *
  * @param       command_tree    A command tree.
  * @param       prompt          An optional prompt prefix, e.g. ">>> " or "$ ".
- * @param       buf             A buffer to store the input in. Must be zeroed.
- * @param       buf_size        The size of `buf`.
- * @param[out]  lpos            The last position in `buf` that was recognized as part of
- *                              the command string. E.g. if command_tree contains a single
- *                              leaf with name = "mycmd" and user inputted "mycmd 69",
- *                              then lpos will point to the '6' character in buf.
+ * @param[out]  args            A pointer to the first byte of the input string that was
+ *                              not recognized as part of a command. E.g. if command_tree
+ *                              contains a single leaf with name = "mycmd" and user
+ *                              inputted "mycmd 69", then args will point to the '6'
+ *                              character.
  *
  * @return      A pointer to the HglCommand in `command_tree` that corresponds to the
  *              user input.
  */
-const HglCommand *hgl_cmd_input(const HglCommand *command_tree, const char *prompt,
-                                char *buf, size_t buf_size, size_t *lpos);
+const HglCommand *hgl_cmd_input(const HglCommand *command_tree,
+                                const char *prompt,
+                                char **args);
+
+/**
+ * Clears (and frees) history.
+ */
+void hgl_cmd_clear_history();
 
 /**
  * Pretty-prints the command tree `command_tree`. `indent` is the initial indentation
  * used when printing the tree.
  */
-void hgl_cmd_tree_print(const HglCommand *command_tree, int indent);
+void hgl_cmd_tree_print(const HglCommand *command_tree, int indent, int desc_margin);
 
 /**
  * Returns a pointer to the HglCommand at the specified path in the tree.
@@ -152,31 +168,19 @@ void hgl_cmd_tree_print(const HglCommand *command_tree, int indent);
  */
 HglCommand *hgl_cmd_tree_at(HglCommand *command_tree, ...);
 
-/**
- * Returns true if `cmd` is not NULL, is of kind HGL_CMD_LEAF
- * and the private_data member is not NULL.
- */
-//bool hgl_cmd_has_private_data(const HglCommand *cmd);
-
-/**
- * Returns true if `cmd` is not NULL, is of kind HGL_CMD_NODE
- * and the sub_tree member is not NULL.
- */
-bool hgl_cmd_has_sub_tree(const HglCommand *cmd);
-
 #endif /* HGL_CMD_H */
 
 #ifdef HGL_CMD_IMPLEMENTATION
 
 /*============= subset of dynamic array implementation from hgl_da.h ============*/
 #include <assert.h>
-#if !defined(HGL_ALLOC) && \
-    !defined(HGL_REALLOC) && \
-    !defined(HGL_FREE)
+#if !defined(HGL_CMD_ALLOC) && \
+    !defined(HGL_CMD_REALLOC) && \
+    !defined(HGL_CMD_FREE)
 #include <stdlib.h>
-#define HGL_ALLOC malloc
-#define HGL_REALLOC realloc
-#define HGL_FREE free
+#define HGL_CMD_ALLOC malloc
+#define HGL_CMD_REALLOC realloc
+#define HGL_CMD_FREE free
 #endif
 
 #define HglDynamicArray_(T) \
@@ -194,29 +198,29 @@ bool hgl_cmd_has_sub_tree(const HglCommand *cmd);
 #define HGL_DA_GROWTH_RATE_ 1.5
 #endif
 
-#define hgl_da_push_(da, item)                                                       \
-    do {                                                                             \
-        if ((da)->arr == NULL) {                                                     \
-            (da)->length = 0;                                                        \
-            (da)->capacity = HGL_DA_INITIAL_CAPACITY_;                               \
-            (da)->arr = HGL_ALLOC((da)->capacity * sizeof(*(da)->arr));              \
-        }                                                                            \
-        if ((da)->capacity < ((da)->length + 1)) {                                   \
-            (da)->capacity *= HGL_DA_GROWTH_RATE_;                                   \
-            (da)->arr = HGL_REALLOC((da)->arr, (da)->capacity * sizeof(*(da)->arr)); \
-        }                                                                            \
-        assert(((da)->arr != NULL) && "[hgl] Error: (re)alloc failed");              \
-        (da)->arr[(da)->length++] = (item);                                          \
+#define hgl_da_push_(da, item)                                                           \
+    do {                                                                                 \
+        if ((da)->arr == NULL) {                                                         \
+            (da)->length = 0;                                                            \
+            (da)->capacity = HGL_DA_INITIAL_CAPACITY_;                                   \
+            (da)->arr = HGL_CMD_ALLOC((da)->capacity * sizeof(*(da)->arr));              \
+        }                                                                                \
+        if ((da)->capacity < ((da)->length + 1)) {                                       \
+            (da)->capacity *= HGL_DA_GROWTH_RATE_;                                       \
+            (da)->arr = HGL_CMD_REALLOC((da)->arr, (da)->capacity * sizeof(*(da)->arr)); \
+        }                                                                                \
+        assert(((da)->arr != NULL) && "[hgl] Error: (re)alloc failed");                  \
+        (da)->arr[(da)->length++] = (item);                                              \
     } while (0)
 
 #define hgl_da_pop_(da) ((da)->arr[--(da)->length])
 
-#define hgl_da_at_(da, i) ((da)->arr[((i % (ssize_t)(da)->length) +                  \
+#define hgl_da_at_(da, i) ((da)->arr[((i % (ssize_t)(da)->length) +                      \
                           (da)->length) % (da)->length])
 
-#define hgl_da_free_(da)                                                             \
-    do {                                                                             \
-        HGL_FREE((da)->arr);                                                         \
+#define hgl_da_free_(da)                                                                 \
+    do {                                                                                 \
+        HGL_CMD_FREE((da)->arr);                                                         \
     } while (0)
 
 
@@ -228,12 +232,21 @@ bool hgl_cmd_has_sub_tree(const HglCommand *cmd);
 #include <string.h>
 #include <sys/types.h>
 
-const HglCommand *hgl_cmd_input(const HglCommand *command_tree, const char *prompt,
-                                char *buf, size_t buf_size, size_t *lpos)
+static HglDynamicArray_(char *) hgl_cmd_history_ = {0};
+char hgl_temp_buf_[HGL_CMD_BUFFER_SIZE];
+
+const HglCommand *hgl_cmd_input(const HglCommand *command_tree,
+                                const char *prompt,
+                                char **args)
 {
+    /* allocate new buffer for this command*/
+    char *buf = HGL_CMD_ALLOC(HGL_CMD_BUFFER_SIZE);
+    memset(buf, 0, HGL_CMD_BUFFER_SIZE);
+    size_t history_idx = hgl_cmd_history_.length;
+
+    assert(buf != NULL);
     assert(command_tree != NULL);
     assert(prompt != NULL);
-    assert(buf != NULL);
 
     int c = 0;
     size_t buf_idx = 0;
@@ -242,45 +255,13 @@ const HglCommand *hgl_cmd_input(const HglCommand *command_tree, const char *prom
     HglDynamicArray_(size_t) cmd_indices = {0};
     hgl_da_push_(&cmd_indices, 0);
 
+    /* set the terminal to raw mode */
     struct termios orig_term_attr;
     struct termios new_term_attr;
-
-    /* set the terminal to raw mode */
     tcgetattr(fileno(stdin), &orig_term_attr);
     memcpy(&new_term_attr, &orig_term_attr, sizeof(struct termios));
     new_term_attr.c_lflag &= ~(ECHO|ICANON);
     tcsetattr(fileno(stdin), TCSANOW, &new_term_attr);
-
-    for (buf_idx = 0; buf_idx < buf_size; buf_idx++) {
-        c = buf[buf_idx];
-        if (c == '\0') {
-            break;
-        }
-
-        if (c == ' ') {
-            size_t word_start = hgl_da_at_(&cmd_indices, -1);
-            printf("word_start = %zu\n", word_start);
-            size_t i = 0;
-            while (true) {
-                const HglCommand *cmd = (HglCommand *) &current_subtree[i++];
-                if (cmd->kind == HGL_CMD_NONE) {
-                    break;
-                }
-                if (strlen(cmd->name) != ((buf_idx - 1) - word_start)) {
-                    continue;
-                }
-                if (0 != strncmp(cmd->name, &buf[word_start], (buf_idx - 1) - word_start)) {
-                    continue;
-                }
-
-                printf("push %s\n", cmd->name);
-                hgl_da_push_(&cmd_sequence, cmd);
-                hgl_da_push_(&cmd_indices, (buf_idx - 1));
-                current_subtree = (cmd->kind == HGL_CMD_NODE) ? cmd->sub_tree : NULL;
-                break;
-            }
-        }
-    }
 
     bool running = true;
 
@@ -307,6 +288,76 @@ const HglCommand *hgl_cmd_input(const HglCommand *command_tree, const char *prom
                     }
                 }
             } continue; /* skip match finding step */
+
+            case '\33': {
+
+                char c1 = fgetc(stdin);
+                char c2 = fgetc(stdin);
+
+                if (hgl_cmd_history_.length == 0) {
+                    break;
+                }
+
+                if (history_idx == hgl_cmd_history_.length) {
+                    memcpy(hgl_temp_buf_, buf, HGL_CMD_BUFFER_SIZE);
+                }
+
+                if (c1 == '[' && c2 == 'A') {
+                    history_idx = (history_idx > 0) ? history_idx - 1 : 0;
+                } else if (c1 == '[' && c2 == 'B') {
+                    history_idx = (history_idx < hgl_cmd_history_.length) ?
+                                  history_idx + 1 :
+                                  hgl_cmd_history_.length;
+                } else {
+                    break;
+                }
+
+                if (history_idx == hgl_cmd_history_.length) {
+                    memcpy(buf, hgl_temp_buf_, HGL_CMD_BUFFER_SIZE);
+                } else {
+                    memcpy(buf, hgl_cmd_history_.arr[history_idx], HGL_CMD_BUFFER_SIZE);
+                }
+
+                /* re-parse buffer */
+                current_subtree = command_tree;
+                cmd_sequence.length = 0;
+                cmd_indices.length = 0;
+                hgl_da_push_(&cmd_indices, 0);
+
+                size_t word_start = 0;
+                for (buf_idx = 0; buf_idx < HGL_CMD_BUFFER_SIZE; buf_idx++) {
+                    char c = buf[buf_idx];
+                    if (c == '\0') {
+                        break;
+                    }
+
+                    if (c == ' ' && current_subtree != NULL) {
+                        size_t i = 0;
+                        while (true) {
+                            const HglCommand *cmd = (HglCommand *) &current_subtree[i++];
+                            if (cmd->kind == HGL_CMD_NONE) {
+                                break;
+                            }
+                            if (strlen(cmd->name) != (buf_idx - word_start)) {
+                                continue;
+                            }
+                            if (0 != strncmp(cmd->name, &buf[word_start], buf_idx - word_start)) {
+                                continue;
+                            }
+
+                            hgl_da_push_(&cmd_sequence, cmd);
+                            current_subtree = (cmd->kind == HGL_CMD_NODE) ? cmd->sub_tree : NULL;
+                            while(buf[buf_idx] == ' ') {
+                                buf_idx++;
+                            }
+                            word_start = buf_idx;
+                            hgl_da_push_(&cmd_indices, word_start);
+                            buf_idx--;
+                            break;
+                        }
+                    }
+                }
+            } break;
 
             case '\n': case '\r': {
                 running = false;
@@ -359,20 +410,31 @@ const HglCommand *hgl_cmd_input(const HglCommand *command_tree, const char *prom
                     memcpy(&buf[word_start], current_subtree[matches.arr[0]].name, lcp);
                     buf_idx = word_start + lcp;
                 } else if ((matches.length > 1) && double_tab) {
-                    /* get matches match */
+
+                    /* find length of longest matching string */
+                    int longest_match_len = 0;
+                    for (size_t i = 0; i < matches.length; i++) {
+                        const char *name = current_subtree[matches.arr[i]].name;
+                        int length = (int) strlen(name);
+                        longest_match_len = (length > longest_match_len) ? length : longest_match_len;
+                    }
+
+                    /* display matching cmds */
                     printf("\n");
-                    int cols = 5;
+                    int cols = 80 / longest_match_len;
                     int rows = matches.length / cols;
                     int rem  = matches.length % cols;
                     for (int i = 0; i < rows; i++) {
                         for (int j = 0; j < cols; j++) {
-                            printf("  %-5s", current_subtree[matches.arr[cols*i + j]].name);
+                            printf("  %*s", -longest_match_len,
+                                   current_subtree[matches.arr[cols*i + j]].name);
                         }
                         printf("\n");
                     }
                     if (rem != 0) {
                         for (int i = 0; i < rem; i++) {
-                            printf("  %-5s ", current_subtree[matches.arr[cols*rows + i]].name);
+                            printf("  %*s", -longest_match_len,
+                                   current_subtree[matches.arr[cols*rows + i]].name);
                         }
                         printf("\n");
                     }
@@ -382,7 +444,7 @@ const HglCommand *hgl_cmd_input(const HglCommand *command_tree, const char *prom
 
                 if (match != NULL) {
                     size_t len = strlen(match->name);
-                    assert((word_start + len) < buf_size);
+                    assert((word_start + len) < HGL_CMD_BUFFER_SIZE);
                     memcpy(&buf[word_start], match->name, len);
                     buf_idx = word_start + len;
                     hgl_da_push_(&cmd_sequence, match);
@@ -398,7 +460,7 @@ const HglCommand *hgl_cmd_input(const HglCommand *command_tree, const char *prom
                     break;
                 }
 
-                if (buf_idx < buf_size) {
+                if (buf_idx < HGL_CMD_BUFFER_SIZE) {
                     buf[buf_idx++] = c;
                 }
             } break;
@@ -432,18 +494,36 @@ const HglCommand *hgl_cmd_input(const HglCommand *command_tree, const char *prom
 
     /* restore the original terminal attributes */
     tcsetattr(fileno(stdin), TCSANOW, &orig_term_attr);
-    if (lpos != NULL && cmd_indices.length > 0) {
-        *lpos = hgl_da_at_(&cmd_indices, -1);
-    }
     printf("\n");
 
     /* Return the command corresponding to the command sequence */
     const HglCommand *cmd = (cmd_sequence.length > 0) ?
                              hgl_da_at_(&cmd_sequence, -1) :
                              NULL;
+
+    if (cmd == NULL) {
+        hgl_da_free_(&cmd_sequence);
+        hgl_da_free_(&cmd_indices);
+        HGL_CMD_FREE(buf);
+        return NULL;
+    }
+
+    hgl_da_push_(&hgl_cmd_history_, buf);
+    if (args != NULL && cmd_indices.length > 0) {
+        *args = buf + hgl_da_at_(&cmd_indices, -1);
+    }
     hgl_da_free_(&cmd_sequence);
     hgl_da_free_(&cmd_indices);
+
     return cmd;
+}
+
+void hgl_cmd_clear_history()
+{
+    for (size_t i = 0; i < hgl_cmd_history_.length; i++) {
+        HGL_CMD_FREE(hgl_cmd_history_.arr[i]);
+    }
+    hgl_cmd_history_.length = 0;
 }
 
 HglCommand *hgl_cmd_tree_at(HglCommand *command_tree, ...)
@@ -479,31 +559,20 @@ HglCommand *hgl_cmd_tree_at(HglCommand *command_tree, ...)
     return cmd;
 }
 
-void hgl_cmd_tree_print(const HglCommand *command_tree, int indent)
+void hgl_cmd_tree_print(const HglCommand *command_tree, int indent, int desc_margin)
 {
+    if (desc_margin == 0) {
+        desc_margin = 48;
+    }
     int i = 0;
     HglCommand cmd = command_tree[i++];
     while (cmd.kind != HGL_CMD_NONE) {
-        printf("%*s%*s %s\n", indent, "", -48 + indent, cmd.name, cmd.desc);
+        printf("%*s%*s %s\n", indent, "", -desc_margin + indent, cmd.name, cmd.desc);
         if (cmd.kind == HGL_CMD_NODE) {
-            hgl_cmd_tree_print(cmd.sub_tree, indent + 4);
+            hgl_cmd_tree_print(cmd.sub_tree, indent + 4, desc_margin);
         }
         cmd = command_tree[i++];
     }
-}
-
-//bool hgl_cmd_has_private_data(const HglCommand *cmd)
-//{
-//    return (cmd != NULL) &&
-//           (cmd->kind == HGL_CMD_LEAF) &&
-//           (cmd->private_data != NULL);
-//}
-
-bool hgl_cmd_has_sub_tree(const HglCommand *cmd)
-{
-    return (cmd != NULL) &&
-           (cmd->kind == HGL_CMD_NODE) &&
-           (cmd->sub_tree != NULL);
 }
 
 #endif /* HGL_CMD_IMPLEMENTATION */
