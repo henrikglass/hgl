@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
     }
 
     if (*gen_cmpl_cmd) {
-        hgl_flags_generate_completion_command(stdout, argv[0]);
+        hgl_flags_generate_completion_cmd(stdout, argv[0]);
         return 0;
     }
     
