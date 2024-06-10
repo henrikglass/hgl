@@ -540,19 +540,23 @@ void hgl_flags_print()
     }
 }
 
+
 void hgl_flags_generate_completion_cmd(FILE *stream, const char *program_name)
 {
     fprintf(stream, "complete -f -d -W \"");
     for (size_t i = 0; i < hgl_n_flags_; i++) {
-        size_t names_len = strlen(hgl_flags_[i].names);
-        char *names = malloc(names_len);
-        memcpy(names, hgl_flags_[i].names, names_len);
-        char *name = strtok(names, ",");
-        while(name != NULL) {
-            fprintf(stream, "%s " , name);
-            name = strtok(NULL, ",");
+        const char *names = hgl_flags_[i].names;
+        size_t offset = 0;
+        for (size_t i = 0;; i++) {
+            if (names[i] == ',') {
+                fprintf(stream, "%.*s ", (int)(i - offset), names + offset);
+                offset = ++i;
+            }
+            if (names[i] == '\0') {
+                fprintf(stream, "%.*s ", (int)(i - offset), names + offset);
+                break;
+            }
         }
-        free(names);
     }
     fprintf(stream, "\" %s", program_name);
     fprintf(stream, "\n");
