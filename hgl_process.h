@@ -27,37 +27,142 @@ typedef struct
 
 
 #ifndef HGL_PROCESS_ISOC
-#define hgl_process_run_async(...)                              \
-    ({                                                          \
-        HglProcess p_ = hgl_process_prepare(__VA_ARGS__, NULL); \
-        hgl_process_spawn(&p_);                                 \
-        p_;                                                     \
+
+#define hgl_process_run_async(...)                            \
+    ({                                                        \
+        HglProcess p_ = hgl_process_make_(__VA_ARGS__, NULL); \
+        hgl_process_redir_stdin_to_input(&p_);                \
+        hgl_process_redir_output_to_stdout(&p_);              \
+        hgl_process_spawn(&p_);                               \
+        p_;                                                   \
     })
 
-#define hgl_process_run_sync(...)                               \
-    ({                                                          \
-        HglProcess p_ = hgl_process_prepare(__VA_ARGS__, NULL); \
-        hgl_process_spawn(&p_);                                 \
-        int status_ = hgl_process_wait(&p_);                    \
-        hgl_process_destroy(&p_);                               \
-        status_;                                                \
+#define hgl_process_run_async_silent(...)                     \
+    ({                                                        \
+        HglProcess p_ = hgl_process_make_(__VA_ARGS__, NULL); \
+        hgl_process_spawn(&p_);                               \
+        p_;                                                   \
+    })
+
+#define hgl_process_run_sync(...)                             \
+    ({                                                        \
+        HglProcess p_ = hgl_process_make_(__VA_ARGS__, NULL); \
+        hgl_process_redir_stdin_to_input(&p_);                \
+        hgl_process_redir_output_to_stdout(&p_);              \
+        hgl_process_spawn(&p_);                               \
+        int status_ = hgl_process_wait(&p_);                  \
+        hgl_process_destroy(&p_);                             \
+        status_;                                              \
+    })
+
+#define hgl_process_run_sync_silent(...)                      \
+    ({                                                        \
+        HglProcess p_ = hgl_process_make_(__VA_ARGS__, NULL); \
+        hgl_process_spawn(&p_);                               \
+        int status_ = hgl_process_wait(&p_);                  \
+        hgl_process_destroy(&p_);                             \
+        status_;                                              \
     })
 #endif
 
-#define hgl_process_prepare(...) (hgl_process_prepare_(__VA_ARGS__, NULL))
-HglProcess hgl_process_prepare_(const char *exe, ...);
+/**
+ * hgl_process_make_: 
+ *     Creates a new process object where `exe` is the name of the executable and 
+ *     `...` is a NULL-terminated variadic argument list of the arguments to `exe`.
+ *
+ * hgl_process_make:
+ *     Wrapper around hgl_process_make_ that automatically inserts the NULL 
+ *     terminator at the end of the variadic argument list.
+ *
+ * E.g.: hgl_process_make("git", "pull")
+ */
+#define hgl_process_make(...) (hgl_process_make_(__VA_ARGS__, NULL))
+HglProcess hgl_process_make_(const char *exe, ...);
 
+/**
+ * hgl_process_append_args_: 
+ *     Appends the arguments in `...` to the end of the argument list of `p`.
+ *     `...` must be terminated by a NULL pointer.
+ *
+ * hgl_process_append_args:
+ *     Wrapper around hgl_process_append_args_ that automatically inserts the 
+ *     NULL terminator at the end of the variadic argument list.
+ */
+#define hgl_process_append_args(p, ...) (hgl_process_append_args_((p), __VA_ARGS__, NULL))
+void hgl_process_append_args_(HglProcess *p, ...);
+
+/**
+ * Redirects the stdin of the parent process to child's stdin.
+ */
+void hgl_process_redir_stdin_to_input(HglProcess *p);
+
+/**
+ * Redirects the child's stdout to the stdout of the parent process.
+ */
+void hgl_process_redir_output_to_stdout(HglProcess *p);
+
+/**
+ * Chains together the inputs and outputs of `n` processes in `ps`.
+ */
 void hgl_process_chain(HglProcess *ps, size_t n);
 
+/**
+ * hgl_process_run:
+ *     Spawns a process and waits until its execution has finished. Returns the 
+ *     exit code of the process.
+ *
+ * hgl_process_run_n:
+ *     Spawns n processes and waits until they've all finished executing. Returns
+ *     the bitwise OR:ed exit codes of all processes.
+ */
+int hgl_process_run(HglProcess *p);
+int hgl_process_run_n(HglProcess *ps, size_t n);
+
+/**
+ * Asynchronous versions of hgl_process_run and hgl_process_run_n. Caller must
+ * manually call `hgl_process_wait` or `hgl_process_wait_n`.
+ */
 void hgl_process_spawn(HglProcess *p);
 void hgl_process_spawn_n(HglProcess *ps, size_t n);
 
+/**
+ * hgl_process_wait:
+ *     Waits for a process to terminate. Returns the exit code of the process.
+ *
+ * hgl_process_wait_n:
+ *     Waits for n processes to terminate. Returns the bitwise OR:ed exit codes 
+ *     of all processes.
+ */
 int hgl_process_wait(HglProcess *p);
 int hgl_process_wait_n(HglProcess *ps, size_t n);
 
+/**
+ * hgl_process_repipe:
+ *     Closes and replaces `p`'s old pipes with new ones.
+ 
+ * hgl_process_repipe_n:
+ *     Closes and replaces `p`'s old pipes with new ones.
+ */
+int hgl_process_repipe(HglProcess *p);
+int hgl_process_repipe_n(HglProcess *ps, size_t n);
+
+/**
+ * hgl_process_signal:
+ *     Sends signal `signal` to process `p`.
+ *
+ * hgl_process_signal_n:
+ *     Sends signal `signal` to all processes in `p`.
+ */
 void hgl_process_signal(HglProcess *p, int signal);
 void hgl_process_signal_n(HglProcess *ps, size_t n, int signal);
 
+/**
+ * hgl_process_wait:
+ *     Sends signal `signal` to process `p`.
+ *
+ * hgl_process_wait_n:
+ *     Sends signal `signal` to all processes in `p`.
+ */
 void hgl_process_destroy(HglProcess *p);
 void hgl_process_destroy_n(HglProcess *ps, size_t n);
 
@@ -75,46 +180,68 @@ void hgl_process_destroy_n(HglProcess *ps, size_t n);
 #include <signal.h>
 #include <sys/wait.h>
 
-HglProcess hgl_process_prepare_(const char *exe, ...)
+HglProcess hgl_process_make_(const char *exe, ...)
 {
     int err = 0;
 
-    HglProcess process = {
+    HglProcess p = {
         .pid   = -1,
         .pipes = {{-1, -1}, {-1,-1}},
         .argv  = {NULL},
     };
 
-    err = pipe(process.pipes[HGL_PROCESS_PIPE_IN]);
+    err = hgl_process_repipe(&p);
     if (err != 0) {
-        fprintf(stderr, "[hgl_process] Error: Failed to create input pipe. errno=%s\n",
-                strerror(errno));
-        return process;
-    }
-
-    err = pipe(process.pipes[HGL_PROCESS_PIPE_OUT]);
-    if (err != 0) {
-        fprintf(stderr, "[hgl_process] Error: Failed to create output pipe. errno=%s\n",
-                strerror(errno));
-        close(process.pipes[HGL_PROCESS_PIPE_IN][HGL_PROCESS_PIPE_READ_END]);
-        close(process.pipes[HGL_PROCESS_PIPE_IN][HGL_PROCESS_PIPE_WRITE_END]);
-        return process;
+        return p;
     }
 
     /* populate arguments */
     va_list args;
     va_start(args, exe);
     char *next_arg;
-    size_t idx = 1;
-    process.argv[0] = (char *) exe;
+    size_t i = 1;
+    p.argv[0] = (char *) exe;
     while (((next_arg = va_arg(args, char *)) != NULL) &&
-           (idx < HGL_PROCESS_MAX_N_ARGS)) {
-        process.argv[idx++] = next_arg;
+           (i < HGL_PROCESS_MAX_N_ARGS)) {
+        p.argv[i++] = next_arg;
     }
-    process.argv[idx] = NULL;
+    p.argv[i] = NULL;
     va_end(args);
 
-    return process;
+    return p;
+}
+
+void hgl_process_append_args_(HglProcess *p, ...)
+{
+    /* walk argv until first NULL arg */
+    size_t i;
+    for (i = 1; i < HGL_PROCESS_MAX_N_ARGS; i++) {
+        if (p->argv[i] == NULL) {
+            break;
+        }
+    }
+
+    /* insert extra arguments */
+    va_list args;
+    va_start(args, p);
+    char *next_arg;
+    while (((next_arg = va_arg(args, char *)) != NULL) &&
+           (i < HGL_PROCESS_MAX_N_ARGS)) {
+        p->argv[i++] = next_arg;
+    }
+    p->argv[i] = NULL;
+    va_end(args);
+    
+}
+
+void hgl_process_redir_stdin_to_input(HglProcess *p)
+{
+    dup2(STDIN_FILENO, p->input_read_end);
+}
+
+void hgl_process_redir_output_to_stdout(HglProcess *p)
+{
+    dup2(STDOUT_FILENO, p->output_write_end);
 }
 
 void hgl_process_chain(HglProcess *ps, size_t n)
@@ -136,6 +263,18 @@ void hgl_process_chain(HglProcess *ps, size_t n)
         ps[i].output_write_end = new_pipe[1];
         ps[i + 1].input_read_end = new_pipe[0];
     }
+}
+
+int hgl_process_run(HglProcess *p)
+{
+    hgl_process_spawn(p); 
+    return hgl_process_wait(p); 
+}
+
+int hgl_process_run_n(HglProcess *ps, size_t n)
+{
+    hgl_process_spawn_n(ps, n);
+    return hgl_process_wait_n(ps, n);
 }
 
 void hgl_process_spawn(HglProcess *p)
@@ -171,8 +310,8 @@ void hgl_process_spawn(HglProcess *p)
     /* close unused ends of pipes */
     close(p->pipes[HGL_PROCESS_PIPE_IN][HGL_PROCESS_PIPE_READ_END]);
     close(p->pipes[HGL_PROCESS_PIPE_OUT][HGL_PROCESS_PIPE_WRITE_END]);
-    p->pipes[HGL_PROCESS_PIPE_IN][HGL_PROCESS_PIPE_READ_END] = -1;
-    p->pipes[HGL_PROCESS_PIPE_OUT][HGL_PROCESS_PIPE_WRITE_END] = -1;
+    //p->pipes[HGL_PROCESS_PIPE_IN][HGL_PROCESS_PIPE_READ_END] = -1;
+    //p->pipes[HGL_PROCESS_PIPE_OUT][HGL_PROCESS_PIPE_WRITE_END] = -1;
 }
 
 void hgl_process_spawn_n(HglProcess *ps, size_t n)
@@ -209,6 +348,47 @@ int hgl_process_wait_n(HglProcess *ps, size_t n)
         exit_status |= hgl_process_wait(&ps[i]);
     }
     return exit_status;
+}
+
+int hgl_process_repipe(HglProcess *p)
+{
+    int err = 0;
+
+    close(p->pipes[0][0]);
+    close(p->pipes[0][1]);
+    close(p->pipes[1][0]);
+    close(p->pipes[1][1]);
+    p->pipes[0][0] = -1;
+    p->pipes[0][1] = -1;
+    p->pipes[1][0] = -1;
+    p->pipes[1][1] = -1;
+
+    err = pipe(p->pipes[HGL_PROCESS_PIPE_IN]);
+    if (err != 0) {
+        fprintf(stderr, "[hgl_process] Error: Failed to create input pipe. errno=%s\n",
+                strerror(errno));
+        return -1;
+    }
+
+    err = pipe(p->pipes[HGL_PROCESS_PIPE_OUT]);
+    if (err != 0) {
+        fprintf(stderr, "[hgl_process] Error: Failed to create output pipe. errno=%s\n",
+                strerror(errno));
+        close(p->pipes[HGL_PROCESS_PIPE_IN][HGL_PROCESS_PIPE_READ_END]);
+        close(p->pipes[HGL_PROCESS_PIPE_IN][HGL_PROCESS_PIPE_WRITE_END]);
+        return -1;
+    }
+
+    return 0;
+}
+
+int hgl_process_repipe_n(HglProcess *ps, size_t n)
+{
+    int err = 0;
+    for (size_t i = 0; i < n; i++) {
+        err |= hgl_process_repipe(&ps[i]);
+    }
+    return err;
 }
 
 void hgl_process_signal(HglProcess *p, int signal)
