@@ -56,22 +56,19 @@ static HglCommand command_tree[] =
 };
 #pragma GCC diagnostic pop
 
-char buf[64];
-
 int main()
 {
     hgl_cmd_tree_at(command_tree, "operate", "vehicle", "bike")->private_data = operate_bike;
 
     while (true) {
-        size_t lpos;
-        const HglCommand *cmd = hgl_cmd_input(command_tree, ">>> ", buf, 64, &lpos);
-        if (hgl_cmd_has_private_data(cmd)) {
+        char *args;
+        const HglCommand *cmd = hgl_cmd_input(command_tree, ">>> ", &args);
+        if (cmd->private_data != NULL) {
             proc_t f = cmd->private_data;
             f();
         }
         if (cmd == hgl_cmd_tree_at(command_tree, "help")) {
-            hgl_cmd_tree_print(command_tree, 2);
+            hgl_cmd_tree_print(command_tree, 2, 42);
         }
-        memset(buf, 0, 64);
     }
 }
