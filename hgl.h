@@ -109,8 +109,9 @@ static inline void hgl_show_build_info(void)
     printf("-------------------------------------------------- \n");
 }
 
+#define hgl_stack_trace() (hgl_stack_trace_(__FILE__, __LINE__))
 __attribute__((always_inline))
-static inline void hgl_stack_trace()
+static inline void hgl_stack_trace_(const char *file, int line)
 {
     void *array[32];
     char **strings;
@@ -119,14 +120,15 @@ static inline void hgl_stack_trace()
     strings = backtrace_symbols(array, size);
     //backtrace_symbols_fd(array, size, STDERR_FILENO);
     if (strings != NULL) {
-        printf ("Stack trace (compile with -rdynamic to enable symbols): \n");
+        printf ("  [STACK TRACE %s:%d] (compile with -rdynamic to enable symbols):\n", file, line);
         for (int i = 0; i < size; i++) {
-            printf ("  [%d] %s\n", i, strings[i]);
+            printf ("    [%d] %s\n", i, strings[i]);
         }
     }
 
     free(strings);
 }
+
 
 #endif /* HGL_H */
 
