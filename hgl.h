@@ -28,7 +28,9 @@
  *
  * ABOUT:
  *
- * hgl.h contains a bunch of misc. typedefs and macros that I use from time to time.
+ * hgl.h contains a bunch of misc. typedefs, macros, and useful functions that I 
+ * use from time to time.
+ *
  *
  * AUTHOR: Henrik A. Glass
  *
@@ -42,6 +44,8 @@
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <execinfo.h>
 
 /*--- Public macros ---------------------------------------------------------------------*/
 
@@ -103,6 +107,25 @@ static inline void hgl_show_build_info(void)
     printf("-------------------------------------------------- \n");
     printf("Executable: %s\nBuilt on: %s %s\n", __progname, __DATE__, __TIME__);
     printf("-------------------------------------------------- \n");
+}
+
+__attribute__((always_inline))
+static inline void hgl_stack_trace()
+{
+    void *array[32];
+    char **strings;
+
+    int size = backtrace(array, 32);
+    strings = backtrace_symbols(array, size);
+    //backtrace_symbols_fd(array, size, STDERR_FILENO);
+    if (strings != NULL) {
+        printf ("Stack trace (compile with -rdynamic to enable symbols): \n");
+        for (int i = 0; i < size; i++) {
+            printf ("  [%d] %s\n", i, strings[i]);
+        }
+    }
+
+    free(strings);
 }
 
 #endif /* HGL_H */
