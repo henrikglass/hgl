@@ -166,7 +166,14 @@ void hgl_cmd_tree_print(const HglCommand *command_tree, int indent, int desc_mar
  *
  * Example usage: hgl_cmd_tree_at(&cmd_tree, "open", "door");
  */
-HglCommand *hgl_cmd_tree_at(HglCommand *command_tree, ...);
+#define hgl_cmd_tree_at(command_tree, ...) (hgl_cmd_tree_at_((command_tree), __VA_ARGS__, NULL))
+HglCommand *hgl_cmd_tree_at_(HglCommand *command_tree, ...);
+
+/**
+ * Returns true if `command_tree` is an ancestor of `cmd`. Essentially performs DFS
+ * startning at `command_tree`.
+ */
+bool hgl_cmd_is_descendant(const HglCommand *command_tree, const HglCommand *cmd);
 
 #endif /* HGL_CMD_H */
 
@@ -526,7 +533,7 @@ void hgl_cmd_clear_history()
     hgl_cmd_history_.length = 0;
 }
 
-HglCommand *hgl_cmd_tree_at(HglCommand *command_tree, ...)
+HglCommand *hgl_cmd_tree_at_(HglCommand *command_tree, ...)
 {
     HglCommand *cmd = NULL;
     va_list path;
@@ -538,7 +545,6 @@ HglCommand *hgl_cmd_tree_at(HglCommand *command_tree, ...)
             break;
         }
 
-        fflush(stdout);
         size_t i = 0;
         while(true) {
             cmd = &command_tree[i++];
@@ -549,7 +555,7 @@ HglCommand *hgl_cmd_tree_at(HglCommand *command_tree, ...)
                 command_tree = (HglCommand *) cmd->sub_tree;
                 break;
             }
-            if ((cmd->kind == HGL_CMD_LEAF) && (0 == strcmp(arg, cmd->name))) {
+            if (0 == strcmp(arg, cmd->name)) {
                 return cmd;
             }
         }
@@ -557,6 +563,41 @@ HglCommand *hgl_cmd_tree_at(HglCommand *command_tree, ...)
     va_end(path);
 
     return cmd;
+}
+
+bool hgl_cmd_is_descendant(const HglCommand *command_tree, const HglCommand *cmd)
+{
+
+    /* None-kind nodes and leaves have no descendents */
+    if (command_tree->kind != HGL_CMD_NODE) {
+        return false;
+    }
+
+    /* Say `cmd` is an ancestor of itself. Why not. */
+    if (cmd == command_tree) {
+        return true;
+    }
+
+    size_t i = 0;
+    while (true) {
+        const HglCommand *next_ancestor = &command_tree->sub_tree[i++];
+
+        /* If we reach the end of the subtree, no match has been found */
+        if (next_ancestor->kind == HGL_CMD_NONE) {
+            return false;
+        }
+
+        /* found descendent */
+        if (cmd == next_ancestor) {
+            return true;
+        }
+
+        /* Check subtree */
+        if ((next_ancestor->kind == HGL_CMD_NODE) &&
+            (hgl_cmd_is_descendant(next_ancestor, cmd))) {
+            return true;
+        }
+    }
 }
 
 void hgl_cmd_tree_print(const HglCommand *command_tree, int indent, int desc_margin)
