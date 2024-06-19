@@ -40,30 +40,6 @@ typedef struct
     float z;
 } vec3;
 
-//typedef struct
-//{
-//    union {
-//        struct {
-//            union {
-//                struct {
-//                    union {
-//                        struct {
-//                            float x;
-//                            float y;
-//                        };
-//                        vec2 xy;
-//                    };
-//                    float z;
-//                };
-//                vec3 xyz;
-//            };
-//            float w;
-//        };
-//        __m128 v;
-//    };
-//} vec4;
-
-
 typedef union __attribute__ ((aligned(16)))
 {
     struct {
@@ -290,10 +266,8 @@ static HGL_INLINE vec4 vec4_sub(vec4 a, vec4 b)
 static HGL_INLINE float vec4_distance(vec4 a, vec4 b)
 {
 #ifdef HGL_MATH_USE_SIMD
-    printf("simd!\n");
     __m128 d = _mm_sub_ps(b.v, a.v);
     d = _mm_mul_ps(d, d);
-    /* SSE3 */
     d = _mm_hadd_ps(d,d);
     d = _mm_hadd_ps(d,d);
     return sqrtf(_mm_cvtss_f32(d));
@@ -328,8 +302,9 @@ static HGL_INLINE float vec4_len(vec4 v)
 static HGL_INLINE vec4 vec4_normalize(vec4 v)
 {
 #ifdef HGL_MATH_USE_SIMD
-    __m128 rlen = _mm_set1_ps(1.0f / vec4_len(v));
-    return (vec4) {.v = _mm_mul_ps(v.v, rlen)};
+    float rlen = 1.0f / vec4_len(v);
+    __m128 vrlen = _mm_broadcast_ss(&rlen);
+    return (vec4) {.v = _mm_mul_ps(v.v, vrlen)};
 #else
     float len = vec4_len(v);
     return (vec4) {.x = v.x / len, .y = v.y / len, .z = v.z / len, .w = v.w / len};
@@ -360,7 +335,7 @@ static HGL_INLINE vec4 vec4_hadamard(vec4 a, vec4 b)
 static HGL_INLINE vec4 vec4_mul_scalar(vec4 v, float s)
 {
 #ifdef HGL_MATH_USE_SIMD
-    return (vec4) {.v = _mm_mul_ps(v.v, _mm_set1_ps(s))};
+    return (vec4) {.v = _mm_mul_ps(v.v, _mm_broadcast_ss(&s))};
 #else
     return (vec4) {.x = s * v.x, .y = s * v.y, .z = s * v.z, .w = s * v.w};
 #endif
@@ -383,12 +358,17 @@ static HGL_INLINE mat4 mat4_make(vec4 c0, vec4 c1, vec4 c2, vec4 c3)
     return (mat4){.c0 = c0, .c1 = c1, .c2 = c2, .c3 = c3};
 }
 
+static HGL_INLINE mat4 mat4_make_zero()
+{
+    return (mat4){0};
+}
+
 static HGL_INLINE mat4 mat4_make_identity(void)
 {
     return MAT4_IDENTITY;
 }
 
-//__attribute__ ((const, unused))
+__attribute__ ((const, unused))
 static HGL_INLINE mat4 mat4_make_scale(vec3 v)
 {
     mat4 s = MAT4_IDENTITY;
@@ -398,7 +378,7 @@ static HGL_INLINE mat4 mat4_make_scale(vec3 v)
     return s;
 }
 
-//__attribute__ ((const, unused))
+__attribute__ ((const, unused))
 static inline mat4 mat4_make_rotation(float angle, vec3 axis)
 {
     float O = angle;
@@ -422,7 +402,7 @@ static inline mat4 mat4_make_rotation(float angle, vec3 axis)
     };
 }
 
-//__attribute__ ((pure, unused))
+__attribute__ ((pure, unused))
 static HGL_INLINE mat4 mat4_make_translation(vec3 v)
 {
     mat4 t = MAT4_IDENTITY;
@@ -432,7 +412,7 @@ static HGL_INLINE mat4 mat4_make_translation(vec3 v)
     return t;
 }
 
-//__attribute__ ((const, unused))
+__attribute__ ((const, unused))
 static HGL_INLINE mat4 mat4_make_ortho(float left, float right, float bottom,
                                        float top,  float near,  float far)
 {
@@ -446,7 +426,7 @@ static HGL_INLINE mat4 mat4_make_ortho(float left, float right, float bottom,
     return m;
 }
 
-//__attribute__ ((const, unused))
+__attribute__ ((const, unused))
 static HGL_INLINE mat4 mat4_make_perspective(float fov, float aspect, float znear, float zfar)
 {
     float a = 1.0f / aspect;
@@ -461,11 +441,21 @@ static HGL_INLINE mat4 mat4_make_perspective(float fov, float aspect, float znea
     };
 }
 
-//__attribute__ ((pure, unused))
+static HGL_INLINE mat4 mat4_transpose(mat4 m)
+{
+    return (mat4) {
+        .c0 = {.x = m.c0.x, .y = m.c1.x, .z = m.c2.x, .w = m.c3.x},
+        .c1 = {.x = m.c0.y, .y = m.c1.y, .z = m.c2.y, .w = m.c3.y},
+        .c2 = {.x = m.c0.z, .y = m.c1.z, .z = m.c2.z, .w = m.c3.z},
+        .c3 = {.x = m.c0.w, .y = m.c1.w, .z = m.c2.w, .w = m.c3.w},
+    };
+}
+
+__attribute__ ((pure, unused))
 static HGL_INLINE mat4 mat4_mul_scalar(mat4 m, float s)
 {
 #ifdef HGL_MATH_USE_SIMD
-    __m128 vec_s = _mm_set1_ps(s);
+    __m128 vec_s = _mm_broadcast_ss(&s);
     return (mat4) {
         .c0 = {.v = _mm_mul_ps(vec_s, m.c0.v)},
         .c1 = {.v = _mm_mul_ps(vec_s, m.c1.v)},
@@ -482,7 +472,7 @@ static HGL_INLINE mat4 mat4_mul_scalar(mat4 m, float s)
 #endif
 }
 
-//__attribute__ ((pure, unused))
+__attribute__ ((pure, unused))
 static HGL_INLINE vec4 mat4_mul_vec4(mat4 m, vec4 v)
 {
 #ifdef HGL_MATH_USE_SIMD
@@ -492,17 +482,21 @@ static HGL_INLINE vec4 mat4_mul_vec4(mat4 m, vec4 v)
 
     //__m128 vec_s = _mm_set_ps1(s);
     vec4 res;
-    __m128 vec_vx = _mm_set1_ps(v.x);
-    __m128 vec_vy = _mm_set1_ps(v.y);
-    __m128 vec_vz = _mm_set1_ps(v.z);
-    __m128 vec_vw = _mm_set1_ps(v.w);
-    __m128 t0 = _mm_mul_ps(vec_vx, m.c0.v);
-    __m128 t1 = _mm_mul_ps(vec_vy, m.c1.v);
-    __m128 t2 = _mm_mul_ps(vec_vz, m.c2.v);
-    __m128 t3 = _mm_mul_ps(vec_vw, m.c3.v);
+    __m128 t0 = _mm_mul_ps(_mm_broadcast_ss(&v.x), m.c0.v);
+    __m128 t1 = _mm_mul_ps(_mm_broadcast_ss(&v.y), m.c1.v);
+    __m128 t2 = _mm_mul_ps(_mm_broadcast_ss(&v.z), m.c2.v);
+    __m128 t3 = _mm_mul_ps(_mm_broadcast_ss(&v.w), m.c3.v);
     res.v = _mm_add_ps(_mm_add_ps(t0, t1),
                        _mm_add_ps(t2, t3));
     return res;
+
+    // hmmmm 
+    //__m128 r = _mm_mul_ps(_mm_broadcast_ss(&v.x), m.c0.v);
+    //r = _mm_fmadd_ps(_mm_broadcast_ss(&v.y), m.c1.v, r);
+    //r = _mm_fmadd_ps(_mm_broadcast_ss(&v.z), m.c2.v, r);
+    //r = _mm_fmadd_ps(_mm_broadcast_ss(&v.w), m.c3.v, r);
+    //return (vec4) {.v = r};
+
 #else
     return (vec4) {
         .x = m.c0.x * v.x + m.c1.x * v.y + m.c2.x * v.z + m.c3.x * v.w,
@@ -513,7 +507,7 @@ static HGL_INLINE vec4 mat4_mul_vec4(mat4 m, vec4 v)
 #endif
 }
 
-//__attribute__ ((pure, unused))
+__attribute__ ((pure, unused))
 static HGL_INLINE mat4 mat4_matmul4(mat4 a, mat4 b)
 {
 #ifdef HGL_MATH_USE_SIMD
@@ -531,60 +525,87 @@ static HGL_INLINE mat4 mat4_matmul4(mat4 a, mat4 b)
     //_mm_store_ps((float *)&res.c2.v, sum[2]);
     //_mm_store_ps((float *)&res.c3.v, sum[3]);
     //return res;
-    __m128 bcx, bcy, bcz, bcw;
+    
+
+    //mat4 m;
+    //__m256 t0, t1, t2;
+
+    //__m256 c01 = _mm256_load_ps((float *)&a.c0);
+    //__m256 c23 = _mm256_load_ps((float *)&a.c2);
+
+    //t0     = _mm256_mul_ps(c01, _mm256_set_m128(_mm_broadcast_ss(&b.c0.y), _mm_broadcast_ss(&b.c0.x)));
+    //t1     = _mm256_mul_ps(c23, _mm256_set_m128(_mm_broadcast_ss(&b.c0.w), _mm_broadcast_ss(&b.c0.z)));
+    //t2     = _mm256_add_ps(t0, t1);
+    //m.c0.v = _mm_add_ps(_mm256_castps256_ps128(t2), _mm256_extractf128_ps(t2, 1));
+
+    //t0     = _mm256_mul_ps(c01, _mm256_set_m128(_mm_broadcast_ss(&b.c1.y), _mm_broadcast_ss(&b.c1.x)));
+    //t1     = _mm256_mul_ps(c23, _mm256_set_m128(_mm_broadcast_ss(&b.c1.w), _mm_broadcast_ss(&b.c1.z)));
+    //t2     = _mm256_add_ps(t0, t1);
+    //m.c1.v = _mm_add_ps(_mm256_castps256_ps128(t2), _mm256_extractf128_ps(t2, 1));
+
+    //t0     = _mm256_mul_ps(c01, _mm256_set_m128(_mm_broadcast_ss(&b.c2.y), _mm_broadcast_ss(&b.c2.x)));
+    //t1     = _mm256_mul_ps(c23, _mm256_set_m128(_mm_broadcast_ss(&b.c2.w), _mm_broadcast_ss(&b.c2.z)));
+    //t2     = _mm256_add_ps(t0, t1);
+    //m.c2.v = _mm_add_ps(_mm256_castps256_ps128(t2), _mm256_extractf128_ps(t2, 1));
+    
+    //t0     = _mm256_mul_ps(c01, _mm256_set_m128(_mm_broadcast_ss(&b.c3.y), _mm_broadcast_ss(&b.c3.x)));
+    //t1     = _mm256_mul_ps(c23, _mm256_set_m128(_mm_broadcast_ss(&b.c3.w), _mm_broadcast_ss(&b.c3.z)));
+    //t2     = _mm256_add_ps(t0, t1);
+    //m.c3.v = _mm_add_ps(_mm256_castps256_ps128(t2), _mm256_extractf128_ps(t2, 1));
+
+    //return m;
+    
+    //mat4 m;
+    //__m256 t0, t1, t2;
+
+    //__m256 c01 = _mm256_load_ps((float *)&a.c0);
+    //__m256 c23 = _mm256_load_ps((float *)&a.c2);
+
+    //__m256 n01;
+    //n01 = _mm256_mul_ps();
+
+    //return m;
+
+    mat4 m;
+
     __m128 t0, t1, t2, t3;
     __m128 c0, c1, c2, c3;
 
-    /* c0 */
-    bcx = _mm_set1_ps(b.c0.x);
-    bcy = _mm_set1_ps(b.c0.y);
-    bcz = _mm_set1_ps(b.c0.z);
-    bcw = _mm_set1_ps(b.c0.w);
-    t0 = _mm_mul_ps(a.c0.v, bcx);
-    t1 = _mm_mul_ps(a.c1.v, bcy);
-    t2 = _mm_mul_ps(a.c2.v, bcz);
-    t3 = _mm_mul_ps(a.c3.v, bcw);
+    ///* c0 */
+    t0 = _mm_mul_ps(a.c0.v, _mm_broadcast_ss(&b.c0.x));
+    t1 = _mm_mul_ps(a.c1.v, _mm_broadcast_ss(&b.c0.y));
+    t2 = _mm_mul_ps(a.c2.v, _mm_broadcast_ss(&b.c0.z));
+    t3 = _mm_mul_ps(a.c3.v, _mm_broadcast_ss(&b.c0.w));
     c0 = _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3));
 
     /* c1 */
-    bcx = _mm_set1_ps(b.c1.x);
-    bcy = _mm_set1_ps(b.c1.y);
-    bcz = _mm_set1_ps(b.c1.z);
-    bcw = _mm_set1_ps(b.c1.w);
-    t0 = _mm_mul_ps(a.c0.v, bcx);
-    t1 = _mm_mul_ps(a.c1.v, bcy);
-    t2 = _mm_mul_ps(a.c2.v, bcz);
-    t3 = _mm_mul_ps(a.c3.v, bcw);
+    t0 = _mm_mul_ps(a.c0.v, _mm_broadcast_ss(&b.c1.x));
+    t1 = _mm_mul_ps(a.c1.v, _mm_broadcast_ss(&b.c1.y));
+    t2 = _mm_mul_ps(a.c2.v, _mm_broadcast_ss(&b.c1.z));
+    t3 = _mm_mul_ps(a.c3.v, _mm_broadcast_ss(&b.c1.w));
     c1 = _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3));
 
     /* c2 */
-    bcx = _mm_set1_ps(b.c2.x);
-    bcy = _mm_set1_ps(b.c2.y);
-    bcz = _mm_set1_ps(b.c2.z);
-    bcw = _mm_set1_ps(b.c2.w);
-    t0 = _mm_mul_ps(a.c0.v, bcx);
-    t1 = _mm_mul_ps(a.c1.v, bcy);
-    t2 = _mm_mul_ps(a.c2.v, bcz);
-    t3 = _mm_mul_ps(a.c3.v, bcw);
+    t0 = _mm_mul_ps(a.c0.v, _mm_broadcast_ss(&b.c2.x));
+    t1 = _mm_mul_ps(a.c1.v, _mm_broadcast_ss(&b.c2.y));
+    t2 = _mm_mul_ps(a.c2.v, _mm_broadcast_ss(&b.c2.z));
+    t3 = _mm_mul_ps(a.c3.v, _mm_broadcast_ss(&b.c2.w));
     c2 = _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3));
 
     /* c3 */
-    bcx = _mm_set1_ps(b.c3.x);
-    bcy = _mm_set1_ps(b.c3.y);
-    bcz = _mm_set1_ps(b.c3.z);
-    bcw = _mm_set1_ps(b.c3.w);
-    t0 = _mm_mul_ps(a.c0.v, bcx);
-    t1 = _mm_mul_ps(a.c1.v, bcy);
-    t2 = _mm_mul_ps(a.c2.v, bcz);
-    t3 = _mm_mul_ps(a.c3.v, bcw);
+    t0 = _mm_mul_ps(a.c0.v, _mm_broadcast_ss(&b.c3.x));
+    t1 = _mm_mul_ps(a.c1.v, _mm_broadcast_ss(&b.c3.y));
+    t2 = _mm_mul_ps(a.c2.v, _mm_broadcast_ss(&b.c3.z));
+    t3 = _mm_mul_ps(a.c3.v, _mm_broadcast_ss(&b.c3.w));
     c3 = _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3));
 
-    return (mat4) {
-        .c0.v = c0,
-        .c1.v = c1,
-        .c2.v = c2,
-        .c3.v = c3
-    };
+    _mm_store_ps((float *)&m.c0, c0);
+    _mm_store_ps((float *)&m.c1, c1);
+    _mm_store_ps((float *)&m.c2, c2);
+    _mm_store_ps((float *)&m.c3, c3);
+
+    return m;
+
 #else
     return (mat4) {
         /* c0 */
@@ -611,25 +632,25 @@ static HGL_INLINE mat4 mat4_matmul4(mat4 a, mat4 b)
 #endif
 }
 
-//__attribute__ ((const, unused))
+__attribute__ ((const, unused))
 static HGL_INLINE mat4 mat4_scale(mat4 m, vec3 v)
 {
     return mat4_matmul4(m, mat4_make_scale(v));
 }
 
-//__attribute__ ((const, unused))
+__attribute__ ((const, unused))
 static inline mat4 mat4_rotate(mat4 m, float angle, vec3 axis)
 {
     return mat4_matmul4(m, mat4_make_rotation(angle, axis));
 }
 
-//__attribute__ ((pure, unused))
+__attribute__ ((pure, unused))
 static HGL_INLINE mat4 mat4_translate(mat4 m, vec3 v)
 {
     return mat4_matmul4(m, mat4_make_translation(v));
 }
 
-//__attribute__ ((const, unused))
+__attribute__ ((const, unused))
 static HGL_INLINE vec4 mat4_perspective_project(mat4 proj, vec4 v)
 {
     vec4 u = mat4_mul_vec4(proj, v);

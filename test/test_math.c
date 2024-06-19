@@ -85,22 +85,53 @@ int main()
     //vec4_print(vec4_mul_scalar(vec4_make(1,0,-1,0), 3));
 
 
-    ////vec4 vn = vec4_make(1,0,0,0);
-    ////vec4_print(vn);
-    ////mat4 r2 = mat4_make_rotation(0.1, vec3_make(0,0,1));
-    ////for (size_t i = 0; i < 3142*100000llu; i++) {
-    ////    vn = mat4_mul_vec4(r2, vn);
-    ////}
-    ////vec4_print(vn);
-
-
-
-    mat4 id = mat4_make_identity();
-    id.c2.z = 0.0001;
+    vec4 vn = vec4_make(1,0,0,0);
+    vec4_print(vn);
+    mat4 r2 = mat4_make_rotation(0.1, vec3_make(0,0,1));
     for (size_t i = 0; i < 1000000000llu; i++) {
-        id = mat4_matmul4(id, id);
+        vn = mat4_mul_vec4(r2, vn);
     }
-    mat4_print(id);
+    vec4_print(vn);
+
+
+    //mat4 mm = mat4_make_zero();
+    //mm.m00 =  1.0f;
+    //mm.m10 =  2.0f;
+    //mm.m20 =  3.0f;
+    //mm.m30 =  4.0f;
+    //mm.m01 =  5.0f;
+    //mm.m11 =  6.0f;
+    //mm.m21 =  7.0f;
+    //mm.m31 =  8.0f;
+    //mm.m02 =  9.0f;
+    //mm.m12 = 10.0f;
+    //mm.m22 = 11.0f;
+    //mm.m32 = 12.0f;
+    //mm.m03 = 13.0f;
+    //mm.m13 = 14.0f;
+    //mm.m23 = 15.0f;
+    //mm.m33 = 16.0f;
+    //mat4_print(mm);
+    //mm = mat4_transpose(mm);
+    //mat4_print(mm);
+    //mm = mat4_transpose(mm);
+    //mat4_print(mm);
+    //mm = mat4_transpose(mm);
+    
+    //mm = mat4_transpose(mm);
+    //printf("pre-mult:\n");
+    //mat4_print(mm);
+
+    //printf("mult:\n");
+    //mm = mat4_matmul4(MAT4_IDENTITY, mm);
+    //mat4_print(mm);
+
+    //mat4 id = mat4_make_identity();
+    //id.c2.z = 0.0001;
+    //for (size_t i = 0; i < 1000000000llu; i++) {
+    //    id = mat4_matmul4(id, id);
+    //}
+    //mat4_print(id);
 
     //mat4 r = mat4_make_rotation(0.1, vec3_make(0,0,1));
     //r = mat4_matmul4(r, r);
