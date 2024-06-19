@@ -481,6 +481,9 @@ static HGL_INLINE vec4 mat4_mul_vec4(mat4 m, vec4 v)
     //return vec4_make(0,0,0,0);
 
     //__m128 vec_s = _mm_set_ps1(s);
+
+
+
     vec4 res;
     __m128 t0 = _mm_mul_ps(_mm_broadcast_ss(&v.x), m.c0.v);
     __m128 t1 = _mm_mul_ps(_mm_broadcast_ss(&v.y), m.c1.v);
@@ -491,10 +494,10 @@ static HGL_INLINE vec4 mat4_mul_vec4(mat4 m, vec4 v)
     return res;
 
     // hmmmm 
-    //__m128 r = _mm_mul_ps(_mm_broadcast_ss(&v.x), m.c0.v);
-    //r = _mm_fmadd_ps(_mm_broadcast_ss(&v.y), m.c1.v, r);
-    //r = _mm_fmadd_ps(_mm_broadcast_ss(&v.z), m.c2.v, r);
-    //r = _mm_fmadd_ps(_mm_broadcast_ss(&v.w), m.c3.v, r);
+    //__m128 r = _mm_mul_ps(_mm_set1_ps(v.x), m.c0.v);
+    //r = _mm_fmadd_ps(_mm_set1_ps(v.y), m.c1.v, r);
+    //r = _mm_fmadd_ps(_mm_set1_ps(v.z), m.c2.v, r);
+    //r = _mm_fmadd_ps(_mm_set1_ps(v.w), m.c3.v, r);
     //return (vec4) {.v = r};
 
 #else
@@ -571,7 +574,7 @@ static HGL_INLINE mat4 mat4_matmul4(mat4 a, mat4 b)
     __m128 t0, t1, t2, t3;
     __m128 c0, c1, c2, c3;
 
-    ///* c0 */
+    /* c0 */
     t0 = _mm_mul_ps(a.c0.v, _mm_broadcast_ss(&b.c0.x));
     t1 = _mm_mul_ps(a.c1.v, _mm_broadcast_ss(&b.c0.y));
     t2 = _mm_mul_ps(a.c2.v, _mm_broadcast_ss(&b.c0.z));
@@ -598,6 +601,26 @@ static HGL_INLINE mat4 mat4_matmul4(mat4 a, mat4 b)
     t2 = _mm_mul_ps(a.c2.v, _mm_broadcast_ss(&b.c3.z));
     t3 = _mm_mul_ps(a.c3.v, _mm_broadcast_ss(&b.c3.w));
     c3 = _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3));
+    
+    //c0 = _mm_mul_ps(a.c0.v, _mm_broadcast_ss(&b.c0.x));
+    //c0 = _mm_fmadd_ps(a.c1.v, _mm_broadcast_ss(&b.c0.y), c0);
+    //c0 = _mm_fmadd_ps(a.c2.v, _mm_broadcast_ss(&b.c0.z), c0);
+    //c0 = _mm_fmadd_ps(a.c3.v, _mm_broadcast_ss(&b.c0.w), c0);
+    
+    //c1 = _mm_mul_ps(a.c0.v, _mm_broadcast_ss(&b.c1.x));
+    //c1 = _mm_fmadd_ps(a.c1.v, _mm_broadcast_ss(&b.c1.y), c1);
+    //c1 = _mm_fmadd_ps(a.c2.v, _mm_broadcast_ss(&b.c1.z), c1);
+    //c1 = _mm_fmadd_ps(a.c3.v, _mm_broadcast_ss(&b.c1.w), c1);
+    
+    //c2 = _mm_mul_ps(a.c0.v, _mm_broadcast_ss(&b.c2.x));
+    //c2 = _mm_fmadd_ps(a.c1.v, _mm_broadcast_ss(&b.c2.y), c2);
+    //c2 = _mm_fmadd_ps(a.c2.v, _mm_broadcast_ss(&b.c2.z), c2);
+    //c2 = _mm_fmadd_ps(a.c3.v, _mm_broadcast_ss(&b.c2.w), c2);
+    
+    //c3 = _mm_mul_ps(a.c0.v, _mm_broadcast_ss(&b.c3.x));
+    //c3 = _mm_fmadd_ps(a.c1.v, _mm_broadcast_ss(&b.c3.y), c3);
+    //c3 = _mm_fmadd_ps(a.c2.v, _mm_broadcast_ss(&b.c3.z), c3);
+    //c3 = _mm_fmadd_ps(a.c3.v, _mm_broadcast_ss(&b.c3.w), c3);
 
     _mm_store_ps((float *)&m.c0, c0);
     _mm_store_ps((float *)&m.c1, c1);
