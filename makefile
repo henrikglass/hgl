@@ -22,6 +22,7 @@ all: test_vec         \
          test_io          \
          test_process     \
          test_profile     \
+         test_math     	  \
          test_fft
 
 test_hgl:
@@ -87,6 +88,10 @@ test_cmd:
 test_profile:
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(SRCDIR)/test_profile.c -o test_profile
 
+test_math:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -ggdb3 $(SRCDIR)/test_math.c -o test_math
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -DHGL_MATH_USE_SIMD -ggdb3 $(SRCDIR)/test_math.c -o test_math_simd
+
 clean:
 	-rm test_hgl
 	-rm test_vec
@@ -111,3 +116,5 @@ clean:
 	-rm test_cmd
 	-rm test_process
 	-rm test_profile
+	-rm test_math
+	-rm test_math_simd
