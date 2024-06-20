@@ -443,12 +443,17 @@ static HGL_INLINE mat4 mat4_make_perspective(float fov, float aspect, float znea
 
 static HGL_INLINE mat4 mat4_transpose(mat4 m)
 {
+#ifdef HGL_MATH_USE_SIMD
+    _MM_TRANSPOSE4_PS(m.c0.v, m.c1.v, m.c2.v, m.c3.v);
+    return m;
+#else
     return (mat4) {
         .c0 = {.x = m.c0.x, .y = m.c1.x, .z = m.c2.x, .w = m.c3.x},
         .c1 = {.x = m.c0.y, .y = m.c1.y, .z = m.c2.y, .w = m.c3.y},
         .c2 = {.x = m.c0.z, .y = m.c1.z, .z = m.c2.z, .w = m.c3.z},
         .c3 = {.x = m.c0.w, .y = m.c1.w, .z = m.c2.w, .w = m.c3.w},
     };
+#endif
 }
 
 __attribute__ ((pure, unused))
