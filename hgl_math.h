@@ -12,6 +12,9 @@
 #define PI 3.14159265358979
 #endif
 
+#define DEG_TO_RAD(deg) ((deg)*(PI/180.0f))
+#define RAD_TO_DEG(rad) ((rad)*(180.0f/PI))
+
 #ifdef HGL_MATH_USE_SIMD
 #   include <smmintrin.h>
 #   include <immintrin.h>
@@ -229,6 +232,15 @@ static HGL_INLINE vec3 vec3_lerp(vec3 a, vec3 b, float amount)
     return vec3_add(
         vec3_mul_scalar(a, 1.0f - amount),
         vec3_mul_scalar(b, amount)
+    );
+}
+
+static HGL_INLINE vec3 vec3_slerp(vec3 a, vec3 b, float t)
+{
+    float Ω = acosf(vec3_dot(a, b));
+    return vec3_add(
+        vec3_mul_scalar(a, sinf((1.0f - t)*Ω)/sinf(Ω)),
+        vec3_mul_scalar(b, sinf(t*Ω)/sinf(Ω))
     );
 }
 
