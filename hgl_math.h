@@ -688,7 +688,7 @@ static HGL_INLINE mat4 mat4_add(mat4 a, mat4 b)
         .c1 = vec4_add(a.c1, b.c1),
         .c2 = vec4_add(a.c2, b.c2),
         .c3 = vec4_add(a.c3, b.c3)
-    }
+    };
 #endif
 }
 
@@ -708,7 +708,7 @@ static HGL_INLINE mat4 mat4_sub(mat4 a, mat4 b)
         .c1 = vec4_sub(a.c1, b.c1),
         .c2 = vec4_sub(a.c2, b.c2),
         .c3 = vec4_sub(a.c3, b.c3)
-    }
+    };
 #endif
 }
 
