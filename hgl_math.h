@@ -661,6 +661,46 @@ static HGL_INLINE mat4 mat4_matmul4(mat4 a, mat4 b)
 }
 
 __attribute__ ((const, unused))
+static HGL_INLINE mat4 mat4_add(mat4 a, mat4 b)
+{
+#ifdef HGL_MATH_USE_SIMD
+    mat4 m;
+    m.c0.v = _mm_add_ps(a.c0.v, b.c0.v);
+    m.c1.v = _mm_add_ps(a.c1.v, b.c1.v);
+    m.c2.v = _mm_add_ps(a.c2.v, b.c2.v);
+    m.c3.v = _mm_add_ps(a.c3.v, b.c3.v);
+    return m;
+#else
+    return (mat4) {
+        .c0 = vec4_add(a.c0, b.c0),
+        .c1 = vec4_add(a.c1, b.c1),
+        .c2 = vec4_add(a.c2, b.c2),
+        .c3 = vec4_add(a.c3, b.c3)
+    }
+#endif
+}
+
+__attribute__ ((const, unused))
+static HGL_INLINE mat4 mat4_sub(mat4 a, mat4 b)
+{
+#ifdef HGL_MATH_USE_SIMD
+    mat4 m;
+    m.c0.v = _mm_sub_ps(a.c0.v, b.c0.v);
+    m.c1.v = _mm_sub_ps(a.c1.v, b.c1.v);
+    m.c2.v = _mm_sub_ps(a.c2.v, b.c2.v);
+    m.c3.v = _mm_sub_ps(a.c3.v, b.c3.v);
+    return m;
+#else
+    return (mat4) {
+        .c0 = vec4_sub(a.c0, b.c0),
+        .c1 = vec4_sub(a.c1, b.c1),
+        .c2 = vec4_sub(a.c2, b.c2),
+        .c3 = vec4_sub(a.c3, b.c3)
+    }
+#endif
+}
+
+__attribute__ ((const, unused))
 static HGL_INLINE mat4 mat4_scale(mat4 m, vec3 v)
 {
     return mat4_matmul4(m, mat4_make_scale(v));
