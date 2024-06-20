@@ -296,7 +296,7 @@ const HglCommand *hgl_cmd_input(const HglCommand *command_tree,
                 }
             } continue; /* skip match finding step */
 
-            case '\33': {
+            case '\33': /* arrow keys */ {
 
                 char c1 = fgetc(stdin);
                 char c2 = fgetc(stdin);
@@ -468,6 +468,10 @@ const HglCommand *hgl_cmd_input(const HglCommand *command_tree,
                 }
 
                 if (buf_idx < HGL_CMD_BUFFER_SIZE) {
+                    // Temporary fix for pasting
+                    if ((buf_idx > 0) && (buf[buf_idx - 1] == ' ') && (c == ' ')) {
+                        break;
+                    }
                     buf[buf_idx++] = c;
                 }
             } break;
