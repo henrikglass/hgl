@@ -23,6 +23,8 @@ A collection of small easy-to-use header only libraries written in C.
 | hgl\_io.h             | Utility                       | Simple file I/O.                                                                                        |
 | hgl\_fft.h            | Algorithm                     | An implementation of the Fast Fourier Transform (FFT) using SIMD.                                       |
 | hgl\_hamming.h        | Algorithm                     | Hamming(16,11) encoding and decoding system.                                                            |
+| hglm.h                | Math                          | Vector math library with some SIMD support.                                                             |
+| hglm\_aliases.h       | Math                          | Aliases for hglm.h without `hglm_` and `Hglm` prefixes, to make things less wordy.                      |
 | hgl.h                 | Utility/Misc.                 | Misc. typedefs and macros that I use from time to time.                                                 |
 
 \* In this context "typed" means that the type of data that is held by the data

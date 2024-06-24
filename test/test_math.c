@@ -1,11 +1,12 @@
 #include <stdio.h>
 
-#include "hgl_math.h"
+#include "hglm.h"
+#include "hglm_aliases.h"
 
 
 int main()
 {
-#ifdef HGL_MATH_USE_SIMD
+#ifdef HGLM_USE_SIMD
     printf("Using simd.\n");
 #else
     printf("Not using simd.\n");
@@ -126,10 +127,12 @@ int main()
     //mm = mat4_matmul4(MAT4_IDENTITY, mm);
     //mat4_print(mm);
 
-    mat4 id = mat4_make_identity();
+    printf("Pi = %f\n", PI);
+
+    Mat4 id = MAT4_IDENTITY;
     id.c2.z = 0.0001;
     for (size_t i = 0; i < 1000000000llu; i++) {
-        id = mat4_matmul4(id, id);
+        id = mat4_mul_mat4(id, id);
     }
     mat4_print(id);
 

@@ -1,0 +1,93 @@
+#ifndef HGLM_ALIASES_H
+#define HGLM_ALIASES_H
+
+#ifndef PI
+#define PI HGLM_PI
+#endif
+
+#ifndef DEG_TO_RAD
+#define DEG_TO_RAD HGLM_DEG_TO_RAD
+#endif
+#ifndef RAD_TO_DEG
+#define RAD_TO_DEG HGLM_RAD_TO_DEG
+#endif
+
+#ifndef MAT4_IDENTITY
+#define MAT4_IDENTITY HGLM_MAT4_IDENTITY
+#endif
+
+typedef HglmVec2 Vec2;
+typedef HglmVec3 Vec3;
+typedef HglmVec4 Vec4;
+typedef HglmMat4 Mat4;
+
+#define vec2_make                hglm_vec2_make
+#define vec2_add                 hglm_vec2_add
+#define vec2_sub                 hglm_vec2_sub
+#define vec2_distance            hglm_vec2_distance
+#define vec2_len                 hglm_vec2_len
+#define vec2_normalize           hglm_vec2_normalize
+#define vec2_dot                 hglm_vec2_dot
+#define vec2_hadamard            hglm_vec2_hadamard
+#define vec2_mul_scalar          hglm_vec2_mul_scalar
+#define vec2_reflect             hglm_vec2_reflect
+#define vec2_lerp                hglm_vec2_lerp
+#define vec2_print               hglm_vec2_print
+
+#define vec3_make                hglm_vec3_make
+#define vec3_add                 hglm_vec3_add
+#define vec3_sub                 hglm_vec3_sub
+#define vec3_distance            hglm_vec3_distance
+#define vec3_len                 hglm_vec3_len
+#define vec3_normalize           hglm_vec3_normalize
+#define vec3_dot                 hglm_vec3_dot
+#define vec3_cross               hglm_vec3_cross
+#define vec3_hadamard            hglm_vec3_hadamard
+#define vec3_mul_scalar          hglm_vec3_mul_scalar
+#define vec3_reflect             hglm_vec3_reflect
+#define vec3_lerp                hglm_vec3_lerp
+#define vec3_slerp               hglm_vec3_slerp
+#define vec3_print               hglm_vec3_print
+
+#define vec4_make                hglm_vec4_make
+#define vec4_add                 hglm_vec4_add
+#define vec4_sub                 hglm_vec4_sub
+#define vec4_distance            hglm_vec4_distance
+#define vec4_len                 hglm_vec4_len
+#define vec4_normalize           hglm_vec4_normalize
+#define vec4_dot                 hglm_vec4_dot
+#define vec4_hadamard            hglm_vec4_hadamard
+#define vec4_mul_scalar          hglm_vec4_mul_scalar
+#define vec4_lerp                hglm_vec4_lerp
+#define vec4_print               hglm_vec4_print
+
+#define mat4_make                hglm_mat4_make
+#define mat4_make_zero           hglm_mat4_make_zero
+#define mat4_make_identity       hglm_mat4_make_identity
+#define mat4_make_scale          hglm_mat4_make_scale
+#define mat4_make_rotation       hglm_mat4_make_rotation
+#define mat4_make_translation    hglm_mat4_make_translation
+#define mat4_make_ortho          hglm_mat4_make_ortho
+#define mat4_make_perspective    hglm_mat4_make_perspective
+#define mat4_add                 hglm_mat4_add
+#define mat4_sub                 hglm_mat4_sub
+#define mat4_transpose           hglm_mat4_transpose
+#define mat4_mul_scalar          hglm_mat4_mul_scalar
+#define mat4_mul_vec4            hglm_mat4_mul_vec4
+#define mat4_mul_mat4            hglm_mat4_mul_mat4
+#define mat4_scale               hglm_mat4_scale
+#define mat4_rotate              hglm_mat4_rotate
+#define mat4_translate           hglm_mat4_translate
+#define mat4_perspective_project hglm_mat4_perspective_project
+#define mat4_print               hglm_mat4_print
+
+#define lerp                     hglm_lerp
+#define ilerp                    hglm_ilerp
+#define clamp                    hglm_clamp
+#define remap                    hglm_remap
+#define smoothstep               hglm_smoothstep
+#define sinstep                  hglm_sinstep
+#define lerpsmoot                hglm_lerpsmoot
+
+#endif /* HGLM_ALIASES_H */
+

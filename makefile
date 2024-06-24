@@ -90,7 +90,7 @@ test_profile:
 
 test_math:
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -ggdb3 $(SRCDIR)/test_math.c -o test_math -lm
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -DHGL_MATH_USE_SIMD -mavx -ggdb3 $(SRCDIR)/test_math.c -o test_math_simd -lm
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -DHGLM_USE_SIMD -mavx -ggdb3 $(SRCDIR)/test_math.c -o test_math_simd -lm
 
 clean:
 	-rm test_hgl

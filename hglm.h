@@ -1,35 +1,33 @@
-#ifndef HGL_MATH_H
-#define HGL_MATH_H
+#ifndef HGLM_H
+#define HGLM_H
 
 #include <math.h>
 
 #include <assert.h> // DEBUG
-#include <stdbool.h> // DEBUG
 
 #define HGL_INLINE inline __attribute__((always_inline))
 
-#ifndef PI
-#define PI 3.14159265358979
-#endif
+#define HGLM_PI 3.14159265358979
 
-#define DEG_TO_RAD(deg) ((deg)*(PI/180.0f))
-#define RAD_TO_DEG(rad) ((rad)*(180.0f/PI))
+#define HGLM_DEG_TO_RAD(deg) ((deg)*(HGLM_PI/180.0f))
+#define HGLM_RAD_TO_DEG(rad) ((rad)*(180.0f/HGLM_PI))
 
-#ifdef HGL_MATH_USE_SIMD
+#ifdef HGLM_USE_SIMD
 #   include <smmintrin.h>
 #   include <immintrin.h>
 #endif
 
-#define MAT4_IDENTITY ((mat4) { .m00 = 1.0f, .m01 = 0.0f, .m02 = 0.0f, .m03 = 0.0f, \
-                                .m10 = 0.0f, .m11 = 1.0f, .m12 = 0.0f, .m13 = 0.0f, \
-                                .m20 = 0.0f, .m21 = 0.0f, .m22 = 1.0f, .m23 = 0.0f, \
-                                .m30 = 0.0f, .m31 = 0.0f, .m32 = 0.0f, .m33 = 1.0f,})
+#define HGLM_MAT4_IDENTITY ((HglmMat4) {                \
+    .m00 = 1.0f, .m01 = 0.0f, .m02 = 0.0f, .m03 = 0.0f, \
+    .m10 = 0.0f, .m11 = 1.0f, .m12 = 0.0f, .m13 = 0.0f, \
+    .m20 = 0.0f, .m21 = 0.0f, .m22 = 1.0f, .m23 = 0.0f, \
+    .m30 = 0.0f, .m31 = 0.0f, .m32 = 0.0f, .m33 = 1.0f,})
 
 typedef struct
 {
     float x;
     float y;
-} vec2;
+} HglmVec2;
 
 typedef struct
 {
@@ -38,10 +36,10 @@ typedef struct
             float x;
             float y;
         };
-        vec2 xy;
+        HglmVec2 xy;
     };
     float z;
-} vec3;
+} HglmVec3;
 
 typedef union __attribute__ ((aligned(16)))
 {
@@ -53,27 +51,27 @@ typedef union __attribute__ ((aligned(16)))
                         float x;
                         float y;
                     };
-                    vec2 xy;
+                    HglmVec2 xy;
                 };
                 float z;
             };
-            vec3 xyz;
+            HglmVec3 xyz;
         };
         float w;
     };
-#ifdef HGL_MATH_USE_SIMD
+#ifdef HGLM_USE_SIMD
     __m128 v;
 #endif
-} vec4;
+} HglmVec4;
 
 typedef struct __attribute__ ((aligned(16)))
 {
     union {
         struct {
-            vec4 c0;
-            vec4 c1;
-            vec4 c2;
-            vec4 c3;
+            HglmVec4 c0;
+            HglmVec4 c1;
+            HglmVec4 c2;
+            HglmVec4 c3;
         };
         struct {
             float m00;
@@ -95,91 +93,91 @@ typedef struct __attribute__ ((aligned(16)))
         };
         float f[16];
     };
-} mat4;
+} HglmMat4;
 
-/* ========== vec2 ===========================================================*/
+/* ========== HglmVec2 =======================================================*/
 
-static HGL_INLINE vec2 vec2_make(float x, float y)
+static HGL_INLINE HglmVec2 hglm_vec2_make(float x, float y)
 {
-    return (vec2){.x = x, .y = y};
+    return (HglmVec2){.x = x, .y = y};
 }
 
-static HGL_INLINE vec2 vec2_add(vec2 a, vec2 b)
+static HGL_INLINE HglmVec2 hglm_vec2_add(HglmVec2 a, HglmVec2 b)
 {
-    return (vec2){.x = a.x + b.x, .y = a.y + b.y};
+    return (HglmVec2){.x = a.x + b.x, .y = a.y + b.y};
 }
 
-static HGL_INLINE vec2 vec2_sub(vec2 a, vec2 b)
+static HGL_INLINE HglmVec2 hglm_vec2_sub(HglmVec2 a, HglmVec2 b)
 {
-    return (vec2){.x = a.x - b.x, .y = a.y - b.y};
+    return (HglmVec2){.x = a.x - b.x, .y = a.y - b.y};
 }
 
-static HGL_INLINE float vec2_distance(vec2 a, vec2 b)
+static HGL_INLINE float hglm_vec2_distance(HglmVec2 a, HglmVec2 b)
 {
     float dx = b.x - a.x;
     float dy = b.y - a.y;
     return sqrtf(dx*dx + dy*dy);
 }
 
-static HGL_INLINE float vec2_len(vec2 v)
+static HGL_INLINE float hglm_vec2_len(HglmVec2 v)
 {
     return sqrtf(v.x * v.x + v.y * v.y);
 }
 
-static HGL_INLINE vec2 vec2_normalize(vec2 v)
+static HGL_INLINE HglmVec2 hglm_vec2_normalize(HglmVec2 v)
 {
-    float ilen = 1.0f / vec2_len(v);
-    return (vec2) {.x = v.x * ilen, .y = v.y * ilen};
+    float ilen = 1.0f / hglm_vec2_len(v);
+    return (HglmVec2) {.x = v.x * ilen, .y = v.y * ilen};
 }
 
-static HGL_INLINE float vec2_dot(vec2 a, vec2 b)
+static HGL_INLINE float hglm_vec2_dot(HglmVec2 a, HglmVec2 b)
 {
     return a.x * b.x + a.y *b.y;
 }
 
-static HGL_INLINE vec2 vec2_hadamard(vec2 a, vec2 b)
+static HGL_INLINE HglmVec2 hglm_vec2_hadamard(HglmVec2 a, HglmVec2 b)
 {
-    return (vec2) {.x = a.x * b.x, .y = a.y * b.y};
+    return (HglmVec2) {.x = a.x * b.x, .y = a.y * b.y};
 }
 
-static HGL_INLINE vec2 vec2_mul_scalar(vec2 v, float s)
+static HGL_INLINE HglmVec2 hglm_vec2_mul_scalar(HglmVec2 v, float s)
 {
-    return (vec2) {.x = s * v.x, .y = s * v.y};
+    return (HglmVec2) {.x = s * v.x, .y = s * v.y};
 }
 
-static HGL_INLINE vec2 vec2_reflect(vec2 v, vec2 normal)
+static HGL_INLINE HglmVec2 hglm_vec2_reflect(HglmVec2 v, HglmVec2 normal)
 {
-    return vec2_sub(v, vec2_mul_scalar(normal, 2*vec2_dot(v, normal)));
+    return hglm_vec2_sub(v, hglm_vec2_mul_scalar(normal, 2*hglm_vec2_dot(v, normal)));
 }
 
-static HGL_INLINE vec2 vec2_lerp(vec2 a, vec2 b, float amount)
+static HGL_INLINE HglmVec2 hglm_vec2_lerp(HglmVec2 a, HglmVec2 b, float amount)
 {
-    return vec2_add(
-        vec2_mul_scalar(a, 1.0f - amount),
-        vec2_mul_scalar(b, amount)
+    return hglm_vec2_add(
+        hglm_vec2_mul_scalar(a, 1.0f - amount),
+        hglm_vec2_mul_scalar(b, amount)
     );
 }
 
-#define vec2_print(v) (printf("%s = {%f, %f}\n", #v , (v).x, (v).y))
+#define hglm_vec2_print(v) (printf("%s = {%f, %f}\n", #v , (v).x, (v).y))
 
-/* ========== vec3 ===========================================================*/
+/* ========== HglmVec3 =======================================================*/
 
-static HGL_INLINE vec3 vec3_make(float x, float y, float z)
+static HGL_INLINE HglmVec3 hglm_vec3_make(float x, float y, float z)
 {
-    return (vec3){.x = x, .y = y, .z = z};
+    return (HglmVec3){.x = x, .y = y, .z = z};
 }
 
-static HGL_INLINE vec3 vec3_add(vec3 a, vec3 b)
+static HGL_INLINE HglmVec3 hglm_vec3_add(HglmVec3 a, HglmVec3 b)
 {
-    return (vec3){.x = a.x + b.x, .y = a.y + b.y, .z = a.z + b.z};
+    return (HglmVec3){.x = a.x + b.x, .y = a.y + b.y, .z = a.z + b.z};
 }
 
-static HGL_INLINE vec3 vec3_sub(vec3 a, vec3 b)
+static HGL_INLINE HglmVec3 hglm_vec3_sub(HglmVec3 a, HglmVec3 b)
 {
-    return (vec3){.x = a.x - b.x, .y = a.y - b.y, .z = a.z - b.z};
+    return (HglmVec3){.x = a.x - b.x, .y = a.y - b.y, .z = a.z - b.z};
 }
 
-static HGL_INLINE float vec3_distance(vec3 a, vec3 b)
+static HGL_INLINE float hglm_vec3_distance(HglmVec3 a, HglmVec3 b)
 {
     float dx = b.x - a.x;
     float dy = b.y - a.y;
@@ -187,97 +185,97 @@ static HGL_INLINE float vec3_distance(vec3 a, vec3 b)
     return sqrtf(dx*dx + dy*dy + dz*dz);
 }
 
-static HGL_INLINE float vec3_len(vec3 v)
+static HGL_INLINE float hglm_vec3_len(HglmVec3 v)
 {
     return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
-static HGL_INLINE vec3 vec3_normalize(vec3 v)
+static HGL_INLINE HglmVec3 hglm_vec3_normalize(HglmVec3 v)
 {
-    float ilen = 1.0f / vec3_len(v);
-    return (vec3) {.x = v.x * ilen, .y = v.y * ilen, .z = v.z * ilen};
+    float ilen = 1.0f / hglm_vec3_len(v);
+    return (HglmVec3) {.x = v.x * ilen, .y = v.y * ilen, .z = v.z * ilen};
 }
 
-static HGL_INLINE float vec3_dot(vec3 a, vec3 b)
+static HGL_INLINE float hglm_vec3_dot(HglmVec3 a, HglmVec3 b)
 {
     return a.x * b.x + a.y *b.y + a.z * b.z;
 }
 
-static HGL_INLINE vec3 vec3_cross(vec3 a, vec3 b)
+static HGL_INLINE HglmVec3 hglm_vec3_cross(HglmVec3 a, HglmVec3 b)
 {
-    return (vec3) {
+    return (HglmVec3) {
         .x = (a.y * b.z) - (a.z * b.y),
         .y = (a.z * b.x) - (a.x * b.z),
         .z = (a.x * b.y) - (a.y * b.x)
     };
 }
 
-static HGL_INLINE vec3 vec3_hadamard(vec3 a, vec3 b)
+static HGL_INLINE HglmVec3 hglm_vec3_hadamard(HglmVec3 a, HglmVec3 b)
 {
-    return (vec3) {.x = a.x * b.x, .y = a.y * b.y, .z = a.z * b.z};
+    return (HglmVec3) {.x = a.x * b.x, .y = a.y * b.y, .z = a.z * b.z};
 }
 
-static HGL_INLINE vec3 vec3_mul_scalar(vec3 v, float s)
+static HGL_INLINE HglmVec3 hglm_vec3_mul_scalar(HglmVec3 v, float s)
 {
-    return (vec3) {.x = s * v.x, .y = s * v.y, .z = s * v.z};
+    return (HglmVec3) {.x = s * v.x, .y = s * v.y, .z = s * v.z};
 }
 
-static HGL_INLINE vec3 vec3_reflect(vec3 v, vec3 normal)
+static HGL_INLINE HglmVec3 hglm_vec3_reflect(HglmVec3 v, HglmVec3 normal)
 {
-    return vec3_sub(v, vec3_mul_scalar(normal, 2*vec3_dot(v, normal)));
+    return hglm_vec3_sub(v, hglm_vec3_mul_scalar(normal, 2*hglm_vec3_dot(v, normal)));
 }
 
-static HGL_INLINE vec3 vec3_lerp(vec3 a, vec3 b, float amount)
+static HGL_INLINE HglmVec3 hglm_vec3_lerp(HglmVec3 a, HglmVec3 b, float amount)
 {
-    return vec3_add(
-        vec3_mul_scalar(a, 1.0f - amount),
-        vec3_mul_scalar(b, amount)
+    return hglm_vec3_add(
+        hglm_vec3_mul_scalar(a, 1.0f - amount),
+        hglm_vec3_mul_scalar(b, amount)
     );
 }
 
-static HGL_INLINE vec3 vec3_slerp(vec3 a, vec3 b, float t)
+static HGL_INLINE HglmVec3 vec3_slerp(HglmVec3 a, HglmVec3 b, float t)
 {
-    float Ω = acosf(vec3_dot(a, b));
-    return vec3_add(
-        vec3_mul_scalar(a, sinf((1.0f - t)*Ω)/sinf(Ω)),
-        vec3_mul_scalar(b, sinf(t*Ω)/sinf(Ω))
+    float omega = acosf(hglm_vec3_dot(a, b));
+    return hglm_vec3_add(
+        hglm_vec3_mul_scalar(a, sinf((1.0f - t)*omega)/sinf(omega)),
+        hglm_vec3_mul_scalar(b, sinf(t*omega)/sinf(omega))
     );
 }
 
-#define vec3_print(v) (printf("%s = {%f, %f, %f}\n", #v , (v).x, (v).y, (v).z))
+#define hglm_vec3_print(v) (printf("%s = {%f, %f, %f}\n", #v , (v).x, (v).y, (v).z))
 
-/* ========== vec4 ===========================================================*/
+/* ========== HglmVec4 =======================================================*/
 
-static HGL_INLINE vec4 vec4_make(float x, float y, float z, float w)
+static HGL_INLINE HglmVec4 hglm_vec4_make(float x, float y, float z, float w)
 {
-#ifdef HGL_MATH_USE_SIMD
-    return (vec4){.v = _mm_set_ps(w, z, y, x)};
+#ifdef HGLM_USE_SIMD
+    return (HglmVec4){.v = _mm_set_ps(w, z, y, x)};
 #else
-    return (vec4){.x = x, .y = y, .z = z, .w = w};
+    return (HglmVec4){.x = x, .y = y, .z = z, .w = w};
 #endif
 }
 
-static HGL_INLINE vec4 vec4_add(vec4 a, vec4 b)
+static HGL_INLINE HglmVec4 hglm_vec4_add(HglmVec4 a, HglmVec4 b)
 {
-#ifdef HGL_MATH_USE_SIMD
-    return (vec4){.v = _mm_add_ps(a.v, b.v)};
+#ifdef HGLM_USE_SIMD
+    return (HglmVec4){.v = _mm_add_ps(a.v, b.v)};
 #else
-    return (vec4){.x = a.x + b.x, .y = a.y + b.y, .z = a.z + b.z, .w = a.w + b.w};
+    return (HglmVec4){.x = a.x + b.x, .y = a.y + b.y, .z = a.z + b.z, .w = a.w + b.w};
 #endif
 }
 
-static HGL_INLINE vec4 vec4_sub(vec4 a, vec4 b)
+static HGL_INLINE HglmVec4 hglm_vec4_sub(HglmVec4 a, HglmVec4 b)
 {
-#ifdef HGL_MATH_USE_SIMD
-    return (vec4){.v = _mm_sub_ps(a.v, b.v)};
+#ifdef HGLM_USE_SIMD
+    return (HglmVec4){.v = _mm_sub_ps(a.v, b.v)};
 #else
-    return (vec4){.x = a.x - b.x, .y = a.y - b.y, .z = a.z - b.z, .w = a.w - b.w};
+    return (HglmVec4){.x = a.x - b.x, .y = a.y - b.y, .z = a.z - b.z, .w = a.w - b.w};
 #endif
 }
 
-static HGL_INLINE float vec4_distance(vec4 a, vec4 b)
+static HGL_INLINE float hglm_vec4_distance(HglmVec4 a, HglmVec4 b)
 {
-#ifdef HGL_MATH_USE_SIMD
+#ifdef HGLM_USE_SIMD
     __m128 d = _mm_sub_ps(b.v, a.v);
     d = _mm_mul_ps(d, d);
     d = _mm_hadd_ps(d,d);
@@ -299,9 +297,9 @@ static HGL_INLINE float vec4_distance(vec4 a, vec4 b)
 #endif
 }
 
-static HGL_INLINE float vec4_len(vec4 v)
+static HGL_INLINE float hglm_vec4_len(HglmVec4 v)
 {
-#ifdef HGL_MATH_USE_SIMD
+#ifdef HGLM_USE_SIMD
     __m128 d = _mm_mul_ps(v.v, v.v);
     d = _mm_hadd_ps(d,d);
     d = _mm_hadd_ps(d,d);
@@ -311,21 +309,21 @@ static HGL_INLINE float vec4_len(vec4 v)
 #endif
 }
 
-static HGL_INLINE vec4 vec4_normalize(vec4 v)
+static HGL_INLINE HglmVec4 hglm_vec4_normalize(HglmVec4 v)
 {
-#ifdef HGL_MATH_USE_SIMD
-    float rlen = 1.0f / vec4_len(v);
+#ifdef HGLM_USE_SIMD
+    float rlen = 1.0f / hglm_vec4_len(v);
     __m128 vrlen = _mm_broadcast_ss(&rlen);
-    return (vec4) {.v = _mm_mul_ps(v.v, vrlen)};
+    return (HglmVec4) {.v = _mm_mul_ps(v.v, vrlen)};
 #else
-    float len = vec4_len(v);
-    return (vec4) {.x = v.x / len, .y = v.y / len, .z = v.z / len, .w = v.w / len};
+    float len = hglm_vec4_len(v);
+    return (HglmVec4) {.x = v.x / len, .y = v.y / len, .z = v.z / len, .w = v.w / len};
 #endif
 }
 
-static HGL_INLINE float vec4_dot(vec4 a, vec4 b)
+static HGL_INLINE float hglm_vec4_dot(HglmVec4 a, HglmVec4 b)
 {
-#ifdef HGL_MATH_USE_SIMD
+#ifdef HGLM_USE_SIMD
     __m128 v = _mm_mul_ps(a.v, b.v);
     v = _mm_hadd_ps(v,v);
     v = _mm_hadd_ps(v,v);
@@ -335,55 +333,58 @@ static HGL_INLINE float vec4_dot(vec4 a, vec4 b)
 #endif
 }
 
-static HGL_INLINE vec4 vec4_hadamard(vec4 a, vec4 b)
+static HGL_INLINE HglmVec4 hglm_vec4_hadamard(HglmVec4 a, HglmVec4 b)
 {
-#ifdef HGL_MATH_USE_SIMD
-    return (vec4) {.v = _mm_mul_ps(a.v, b.v)};
+#ifdef HGLM_USE_SIMD
+    return (HglmVec4) {.v = _mm_mul_ps(a.v, b.v)};
 #else
-    return (vec4) {.x = a.x * b.x, .y = a.y * b.y, .z = a.z * b.z, .w = a.w * b.w};
+    return (HglmVec4) {.x = a.x * b.x, .y = a.y * b.y, .z = a.z * b.z, .w = a.w * b.w};
 #endif
 }
 
-static HGL_INLINE vec4 vec4_mul_scalar(vec4 v, float s)
+static HGL_INLINE HglmVec4 hglm_vec4_mul_scalar(HglmVec4 v, float s)
 {
-#ifdef HGL_MATH_USE_SIMD
-    return (vec4) {.v = _mm_mul_ps(v.v, _mm_broadcast_ss(&s))};
+#ifdef HGLM_USE_SIMD
+    return (HglmVec4) {.v = _mm_mul_ps(v.v, _mm_broadcast_ss(&s))};
 #else
-    return (vec4) {.x = s * v.x, .y = s * v.y, .z = s * v.z, .w = s * v.w};
+    return (HglmVec4) {.x = s * v.x, .y = s * v.y, .z = s * v.z, .w = s * v.w};
 #endif
 }
 
-static HGL_INLINE vec4 vec4_lerp(vec4 a, vec4 b, float amount)
+static HGL_INLINE HglmVec4 hglm_vec4_lerp(HglmVec4 a, HglmVec4 b, float amount)
 {
-    return vec4_add(
-        vec4_mul_scalar(a, 1.0f - amount),
-        vec4_mul_scalar(b, amount)
+    return hglm_vec4_add(
+        hglm_vec4_mul_scalar(a, 1.0f - amount),
+        hglm_vec4_mul_scalar(b, amount)
     );
 }
 
-#define vec4_print(v) (printf("%s = {%f, %f, %f, %f}\n", #v , (v).x, (v).y, (v).z, (v).w))
+#define hglm_vec4_print(v) (printf("%s = {%f, %f, %f, %f}\n", #v , (v).x, (v).y, (v).z, (v).w))
 
-/* ========== mat4 ===========================================================*/
+/* ========== HglmMat4 =======================================================*/
 
-static HGL_INLINE mat4 mat4_make(vec4 c0, vec4 c1, vec4 c2, vec4 c3)
+static HGL_INLINE HglmMat4 hglm_mat4_make(HglmVec4 c0,
+                                          HglmVec4 c1,
+                                          HglmVec4 c2,
+                                          HglmVec4 c3)
 {
-    return (mat4){.c0 = c0, .c1 = c1, .c2 = c2, .c3 = c3};
+    return (HglmMat4){.c0 = c0, .c1 = c1, .c2 = c2, .c3 = c3};
 }
 
-static HGL_INLINE mat4 mat4_make_zero()
+static HGL_INLINE HglmMat4 hglm_mat4_make_zero()
 {
-    return (mat4){0};
+    return (HglmMat4){0};
 }
 
-static HGL_INLINE mat4 mat4_make_identity(void)
+static HGL_INLINE HglmMat4 hglm_mat4_make_identity(void)
 {
-    return MAT4_IDENTITY;
+    return HGLM_MAT4_IDENTITY;
 }
 
 __attribute__ ((const, unused))
-static HGL_INLINE mat4 mat4_make_scale(vec3 v)
+static HGL_INLINE HglmMat4 hglm_mat4_make_scale(HglmVec3 v)
 {
-    mat4 s = MAT4_IDENTITY;
+    HglmMat4 s = HGLM_MAT4_IDENTITY;
     s.c0.x = v.x;
     s.c1.y = v.y;
     s.c2.z = v.z;
@@ -391,7 +392,7 @@ static HGL_INLINE mat4 mat4_make_scale(vec3 v)
 }
 
 __attribute__ ((const, unused))
-static inline mat4 mat4_make_rotation(float angle, vec3 axis)
+static inline HglmMat4 hglm_mat4_make_rotation(float angle, HglmVec3 axis)
 {
     float O = angle;
     float ux = axis.x;
@@ -406,7 +407,7 @@ static inline mat4 mat4_make_rotation(float angle, vec3 axis)
     float c0z = uz*ux * (1 - cosf(O)) - uy * sinf(O);
     float c1z = uz*uy * (1 - cosf(O)) + ux * sinf(O);
     float c2z = cosf(O) + uz*uz * (1 - cosf(O));
-    return (mat4) {
+    return (HglmMat4) {
         .c0 = {.x =  c0x, .y =  c0y, .z =  c0z, .w = 0.0f},
         .c1 = {.x =  c1x, .y =  c1y, .z =  c1z, .w = 0.0f},
         .c2 = {.x =  c2x, .y =  c2y, .z =  c2z, .w = 0.0f},
@@ -415,9 +416,9 @@ static inline mat4 mat4_make_rotation(float angle, vec3 axis)
 }
 
 __attribute__ ((pure, unused))
-static HGL_INLINE mat4 mat4_make_translation(vec3 v)
+static HGL_INLINE HglmMat4 hglm_mat4_make_translation(HglmVec3 v)
 {
-    mat4 t = MAT4_IDENTITY;
+    HglmMat4 t = HGLM_MAT4_IDENTITY;
     t.c3.x = v.x;
     t.c3.y = v.y;
     t.c3.z = v.z;
@@ -425,10 +426,10 @@ static HGL_INLINE mat4 mat4_make_translation(vec3 v)
 }
 
 __attribute__ ((const, unused))
-static HGL_INLINE mat4 mat4_make_ortho(float left, float right, float bottom,
-                                       float top,  float near,  float far)
+static HGL_INLINE HglmMat4 hglm_mat4_make_ortho(float left, float right, float bottom,
+                                                float top,  float near,  float far)
 {
-    mat4 m = MAT4_IDENTITY;
+    HglmMat4 m = HGLM_MAT4_IDENTITY;
     m.c0.x =  2 / (right - left);
     m.c1.y =  2 / (top - bottom);
     m.c2.z = -2 / (far - near); // Note: inversion
@@ -439,13 +440,13 @@ static HGL_INLINE mat4 mat4_make_ortho(float left, float right, float bottom,
 }
 
 __attribute__ ((const, unused))
-static HGL_INLINE mat4 mat4_make_perspective(float fov, float aspect, float znear, float zfar)
+static HGL_INLINE HglmMat4 hglm_mat4_make_perspective(float fov, float aspect, float znear, float zfar)
 {
     float a = 1.0f / aspect;
     float f = 1.0f / tanf(fov/2);
     float d0 = -(zfar + znear) / (zfar - znear);
     float d1 = -(2 * zfar * znear) / (zfar - znear);
-    return (mat4) {
+    return (HglmMat4) {
         .m00 =   a*f, .m01 =  0.0f, .m02 =  0.0f, .m03 =  0.0f,
         .m10 =  0.0f, .m11 =     f, .m12 =  0.0f, .m13 =  0.0f,
         .m20 =  0.0f, .m21 =  0.0f, .m22 =    d0, .m23 =    d1,
@@ -453,13 +454,52 @@ static HGL_INLINE mat4 mat4_make_perspective(float fov, float aspect, float znea
     };
 }
 
-static HGL_INLINE mat4 mat4_transpose(mat4 m)
+__attribute__ ((const, unused))
+static HGL_INLINE HglmMat4 hglm_mat4_add(HglmMat4 a, HglmMat4 b)
 {
-#ifdef HGL_MATH_USE_SIMD
+#ifdef HGLM_USE_SIMD
+    HglmMat4 m;
+    m.c0.v = _mm_add_ps(a.c0.v, b.c0.v);
+    m.c1.v = _mm_add_ps(a.c1.v, b.c1.v);
+    m.c2.v = _mm_add_ps(a.c2.v, b.c2.v);
+    m.c3.v = _mm_add_ps(a.c3.v, b.c3.v);
+    return m;
+#else
+    return (HglmMat4) {
+        .c0 = hglm_vec4_add(a.c0, b.c0),
+        .c1 = hglm_vec4_add(a.c1, b.c1),
+        .c2 = hglm_vec4_add(a.c2, b.c2),
+        .c3 = hglm_vec4_add(a.c3, b.c3)
+    };
+#endif
+}
+
+__attribute__ ((const, unused))
+static HGL_INLINE HglmMat4 hglm_mat4_sub(HglmMat4 a, HglmMat4 b)
+{
+#ifdef HGLM_USE_SIMD
+    HglmMat4 m;
+    m.c0.v = _mm_sub_ps(a.c0.v, b.c0.v);
+    m.c1.v = _mm_sub_ps(a.c1.v, b.c1.v);
+    m.c2.v = _mm_sub_ps(a.c2.v, b.c2.v);
+    m.c3.v = _mm_sub_ps(a.c3.v, b.c3.v);
+    return m;
+#else
+    return (HglmMat4) {
+        .c0 = hglm_vec4_sub(a.c0, b.c0),
+        .c1 = hglm_vec4_sub(a.c1, b.c1),
+        .c2 = hglm_vec4_sub(a.c2, b.c2),
+        .c3 = hglm_vec4_sub(a.c3, b.c3)
+    };
+#endif
+}
+static HGL_INLINE HglmMat4 hglm_mat4_transpose(HglmMat4 m)
+{
+#ifdef HGLM_USE_SIMD
     _MM_TRANSPOSE4_PS(m.c0.v, m.c1.v, m.c2.v, m.c3.v);
     return m;
 #else
-    return (mat4) {
+    return (HglmMat4) {
         .c0 = {.x = m.c0.x, .y = m.c1.x, .z = m.c2.x, .w = m.c3.x},
         .c1 = {.x = m.c0.y, .y = m.c1.y, .z = m.c2.y, .w = m.c3.y},
         .c2 = {.x = m.c0.z, .y = m.c1.z, .z = m.c2.z, .w = m.c3.z},
@@ -469,18 +509,18 @@ static HGL_INLINE mat4 mat4_transpose(mat4 m)
 }
 
 __attribute__ ((pure, unused))
-static HGL_INLINE mat4 mat4_mul_scalar(mat4 m, float s)
+static HGL_INLINE HglmMat4 hglm_mat4_mul_scalar(HglmMat4 m, float s)
 {
-#ifdef HGL_MATH_USE_SIMD
+#ifdef HGLM_USE_SIMD
     __m128 vec_s = _mm_broadcast_ss(&s);
-    return (mat4) {
+    return (HglmMat4) {
         .c0 = {.v = _mm_mul_ps(vec_s, m.c0.v)},
         .c1 = {.v = _mm_mul_ps(vec_s, m.c1.v)},
         .c2 = {.v = _mm_mul_ps(vec_s, m.c2.v)},
         .c3 = {.v = _mm_mul_ps(vec_s, m.c3.v)}
     };
 #else
-    return (mat4) {
+    return (HglmMat4) {
         .c0 = {.x = s * m.c0.x, .y = s * m.c0.y, .z = s * m.c0.z, .w = s * m.c0.w}, // c0
         .c1 = {.x = s * m.c1.x, .y = s * m.c1.y, .z = s * m.c1.z, .w = s * m.c1.w}, // c1
         .c2 = {.x = s * m.c2.x, .y = s * m.c2.y, .z = s * m.c2.z, .w = s * m.c2.w}, // c2
@@ -490,18 +530,18 @@ static HGL_INLINE mat4 mat4_mul_scalar(mat4 m, float s)
 }
 
 __attribute__ ((pure, unused))
-static HGL_INLINE vec4 mat4_mul_vec4(mat4 m, vec4 v)
+static HGL_INLINE HglmVec4 hglm_mat4_mul_vec4(HglmMat4 m, HglmVec4 v)
 {
-#ifdef HGL_MATH_USE_SIMD
+#ifdef HGLM_USE_SIMD
     //(void) m;
     //(void) v;
-    //return vec4_make(0,0,0,0);
+    //return hglm_vec4_make(0,0,0,0);
 
     //__m128 vec_s = _mm_set_ps1(s);
 
 
 
-    vec4 res;
+    HglmVec4 res;
     __m128 t0 = _mm_mul_ps(_mm_broadcast_ss(&v.x), m.c0.v);
     __m128 t1 = _mm_mul_ps(_mm_broadcast_ss(&v.y), m.c1.v);
     __m128 t2 = _mm_mul_ps(_mm_broadcast_ss(&v.z), m.c2.v);
@@ -515,10 +555,10 @@ static HGL_INLINE vec4 mat4_mul_vec4(mat4 m, vec4 v)
     //r = _mm_fmadd_ps(_mm_set1_ps(v.y), m.c1.v, r);
     //r = _mm_fmadd_ps(_mm_set1_ps(v.z), m.c2.v, r);
     //r = _mm_fmadd_ps(_mm_set1_ps(v.w), m.c3.v, r);
-    //return (vec4) {.v = r};
+    //return (HglmVec4) {.v = r};
 
 #else
-    return (vec4) {
+    return (HglmVec4) {
         .x = m.c0.x * v.x + m.c1.x * v.y + m.c2.x * v.z + m.c3.x * v.w,
         .y = m.c0.y * v.x + m.c1.y * v.y + m.c2.y * v.z + m.c3.y * v.w,
         .z = m.c0.z * v.x + m.c1.z * v.y + m.c2.z * v.z + m.c3.z * v.w,
@@ -528,10 +568,10 @@ static HGL_INLINE vec4 mat4_mul_vec4(mat4 m, vec4 v)
 }
 
 __attribute__ ((pure, unused))
-static HGL_INLINE mat4 mat4_matmul4(mat4 a, mat4 b)
+static HGL_INLINE HglmMat4 hglm_mat4_mul_mat4(HglmMat4 a, HglmMat4 b)
 {
-#ifdef HGL_MATH_USE_SIMD
-    //mat4 res;
+#ifdef HGLM_USE_SIMD
+    //HglmMat4 res;
     //__m128 row[4], sum[4];
     //for (int i = 0; i < 4; i++) row[i] = _mm_load_ps(&a.f[4*i]);
     //for (int i = 0; i < 4; i++) {
@@ -547,7 +587,7 @@ static HGL_INLINE mat4 mat4_matmul4(mat4 a, mat4 b)
     //return res;
     
 
-    //mat4 m;
+    //HglmMat4 m;
     //__m256 t0, t1, t2;
 
     //__m256 c01 = _mm256_load_ps((float *)&a.c0);
@@ -575,7 +615,7 @@ static HGL_INLINE mat4 mat4_matmul4(mat4 a, mat4 b)
 
     //return m;
     
-    //mat4 m;
+    //HglmMat4 m;
     //__m256 t0, t1, t2;
 
     //__m256 c01 = _mm256_load_ps((float *)&a.c0);
@@ -586,7 +626,7 @@ static HGL_INLINE mat4 mat4_matmul4(mat4 a, mat4 b)
 
     //return m;
 
-    mat4 m;
+    HglmMat4 m;
 
     __m128 t0, t1, t2, t3;
     __m128 c0, c1, c2, c3;
@@ -647,7 +687,7 @@ static HGL_INLINE mat4 mat4_matmul4(mat4 a, mat4 b)
     return m;
 
 #else
-    return (mat4) {
+    return (HglmMat4) {
         /* c0 */
         .m00 = a.c0.x * b.c0.x + a.c1.x * b.c0.y + a.c2.x * b.c0.z + a.c3.x * b.c0.w,
         .m10 = a.c0.y * b.c0.x + a.c1.y * b.c0.y + a.c2.y * b.c0.z + a.c3.y * b.c0.w,
@@ -673,99 +713,59 @@ static HGL_INLINE mat4 mat4_matmul4(mat4 a, mat4 b)
 }
 
 __attribute__ ((const, unused))
-static HGL_INLINE mat4 mat4_add(mat4 a, mat4 b)
+static HGL_INLINE HglmMat4 hglm_mat4_scale(HglmMat4 m, HglmVec3 v)
 {
-#ifdef HGL_MATH_USE_SIMD
-    mat4 m;
-    m.c0.v = _mm_add_ps(a.c0.v, b.c0.v);
-    m.c1.v = _mm_add_ps(a.c1.v, b.c1.v);
-    m.c2.v = _mm_add_ps(a.c2.v, b.c2.v);
-    m.c3.v = _mm_add_ps(a.c3.v, b.c3.v);
-    return m;
-#else
-    return (mat4) {
-        .c0 = vec4_add(a.c0, b.c0),
-        .c1 = vec4_add(a.c1, b.c1),
-        .c2 = vec4_add(a.c2, b.c2),
-        .c3 = vec4_add(a.c3, b.c3)
-    };
-#endif
+    return hglm_mat4_mul_mat4(m, hglm_mat4_make_scale(v));
 }
 
 __attribute__ ((const, unused))
-static HGL_INLINE mat4 mat4_sub(mat4 a, mat4 b)
+static inline HglmMat4 hglm_mat4_rotate(HglmMat4 m, float angle, HglmVec3 axis)
 {
-#ifdef HGL_MATH_USE_SIMD
-    mat4 m;
-    m.c0.v = _mm_sub_ps(a.c0.v, b.c0.v);
-    m.c1.v = _mm_sub_ps(a.c1.v, b.c1.v);
-    m.c2.v = _mm_sub_ps(a.c2.v, b.c2.v);
-    m.c3.v = _mm_sub_ps(a.c3.v, b.c3.v);
-    return m;
-#else
-    return (mat4) {
-        .c0 = vec4_sub(a.c0, b.c0),
-        .c1 = vec4_sub(a.c1, b.c1),
-        .c2 = vec4_sub(a.c2, b.c2),
-        .c3 = vec4_sub(a.c3, b.c3)
-    };
-#endif
-}
-
-__attribute__ ((const, unused))
-static HGL_INLINE mat4 mat4_scale(mat4 m, vec3 v)
-{
-    return mat4_matmul4(m, mat4_make_scale(v));
-}
-
-__attribute__ ((const, unused))
-static inline mat4 mat4_rotate(mat4 m, float angle, vec3 axis)
-{
-    return mat4_matmul4(m, mat4_make_rotation(angle, axis));
+    return hglm_mat4_mul_mat4(m, hglm_mat4_make_rotation(angle, axis));
 }
 
 __attribute__ ((pure, unused))
-static HGL_INLINE mat4 mat4_translate(mat4 m, vec3 v)
+static HGL_INLINE HglmMat4 hglm_mat4_translate(HglmMat4 m, HglmVec3 v)
 {
-    return mat4_matmul4(m, mat4_make_translation(v));
+    return hglm_mat4_mul_mat4(m, hglm_mat4_make_translation(v));
 }
 
 __attribute__ ((const, unused))
-static HGL_INLINE vec4 mat4_perspective_project(mat4 proj, vec4 v)
+static HGL_INLINE HglmVec4 hglm_mat4_perspective_project(HglmMat4 proj, HglmVec4 v)
 {
-    vec4 u = mat4_mul_vec4(proj, v);
+    HglmVec4 u = hglm_mat4_mul_vec4(proj, v);
     u.x /= u.w;
     u.y /= u.w;
     u.z /= u.w;
     return u;
 }
 
-#define mat4_print(m)                                                                    \
-(                                                                                        \
-    printf("%s = \n"                                                                     \
-           "    |%14.5f %14.5f %14.5f %14.5f |\n"                                        \
-           "    |%14.5f %14.5f %14.5f %14.5f |\n"                                        \
-           "    |%14.5f %14.5f %14.5f %14.5f |\n"                                        \
-           "    |%14.5f %14.5f %14.5f %14.5f |\n", #m ,                                  \
-            (double) (m).c0.x, (double) (m).c1.x, (double) (m).c2.x, (double) (m).c3.x,  \
-            (double) (m).c0.y, (double) (m).c1.y, (double) (m).c2.y, (double) (m).c3.y,  \
-            (double) (m).c0.z, (double) (m).c1.z, (double) (m).c2.z, (double) (m).c3.z,  \
-            (double) (m).c0.w, (double) (m).c1.w, (double) (m).c2.w, (double) (m).c3.w)  \
+#define hglm_mat4_print(m)                                                              \
+(                                                                                       \
+    printf("%s = \n"                                                                    \
+           "    |%14.5f %14.5f %14.5f %14.5f |\n"                                       \
+           "    |%14.5f %14.5f %14.5f %14.5f |\n"                                       \
+           "    |%14.5f %14.5f %14.5f %14.5f |\n"                                       \
+           "    |%14.5f %14.5f %14.5f %14.5f |\n", #m ,                                 \
+            (double) (m).c0.x, (double) (m).c1.x, (double) (m).c2.x, (double) (m).c3.x, \
+            (double) (m).c0.y, (double) (m).c1.y, (double) (m).c2.y, (double) (m).c3.y, \
+            (double) (m).c0.z, (double) (m).c1.z, (double) (m).c2.z, (double) (m).c3.z, \
+            (double) (m).c0.w, (double) (m).c1.w, (double) (m).c2.w, (double) (m).c3.w) \
 )
 
 /* ========== scalar interpolation functions =================================*/
 
-static HGL_INLINE float lerp(float a, float b, float amount)
+static HGL_INLINE float hglm_lerp(float a, float b, float amount)
 {
     return (1.0f - amount) * a + amount * b; // value
 }
 
-static HGL_INLINE float ilerp(float a, float b, float value)
+static HGL_INLINE float hglm_ilerp(float a, float b, float value)
 {
     return (value - a) / (b - a); // amount
 }
 
-static HGL_INLINE float clamp(float min, float max, float value)
+static HGL_INLINE float hglm_clamp(float min, float max, float value)
 {
     //return fminf(fmaxf(min, value), max);
     if (value < min) return min;
@@ -773,26 +773,30 @@ static HGL_INLINE float clamp(float min, float max, float value)
     return value;
 }
 
-static HGL_INLINE float remap(float in_min, float in_max, float out_min, float out_max, float value)
+static HGL_INLINE float hglm_remap(float in_min,
+                                   float in_max,
+                                   float out_min,
+                                   float out_max,
+                                   float value)
 {
-    float t = ilerp(in_min, in_max, value);
-    return lerp(out_min, out_max, t);
+    float t = hglm_ilerp(in_min, in_max, value);
+    return hglm_lerp(out_min, out_max, t);
 }
 
-static HGL_INLINE float smoothstep(float t)
+static HGL_INLINE float hglm_smoothstep(float t)
 {
     return t * t * (3.0f - 2.0f * t);
 }
 
-static HGL_INLINE float sinstep(float t)
+static HGL_INLINE float hglm_sinstep(float t)
 {
-    return -0.5f * cosf(t * PI) + 0.5f;
+    return -0.5f * cosf(t * HGLM_PI) + 0.5f;
 }
 
-static HGL_INLINE float lerpsmooth(float a, float b, float dt, float λ)
+static HGL_INLINE float hglm_lerpsmooth(float a, float b, float dt, float omega)
 {
-    return b + (a - b) * exp2f(-dt/λ);
+    return b + (a - b) * exp2f(-dt/omega);
 }
 
-#endif /* HGL_MATH_H */
+#endif /* HGLM_H */
 
