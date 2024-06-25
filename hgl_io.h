@@ -75,22 +75,23 @@
 #ifndef HGL_IO_H
 #define HGL_IO_H
 
+#include <endian.h>
 #include <stdint.h>
 #include <stddef.h>
 
 typedef enum
 {
-    HGL_FILE_MODE_NORMAL,
-    HGL_FILE_MODE_MEMORY_MAPPED,
+    HGL_IO_FILE_MODE_NORMAL,
+    HGL_IO_FILE_MODE_MEMORY_MAPPED,
 } HglFileMode;
 
 typedef enum 
 {
-    HGL_PIXEL_FORMAT_RGBA8,   /* 4x bytes per pixel in the order R, G, B, A         */
-    HGL_PIXEL_FORMAT_RGB8,    /* 3x bytes per pixel in the order R, G, B            */
-    HGL_PIXEL_FORMAT_RGBA32F, /* 4x 32-bit floats per pixel in the order R, G, B, A */
-    HGL_PIXEL_FORMAT_R8,      /* 1x byte per pixel (grayscale)                      */
-    HGL_PIXEL_FORMAT_R32F,    /* 1x 32-bit float per pixel (grayscale)              */
+    HGL_IO_PIXEL_FORMAT_RGBA8,   /* 4x bytes per pixel in the order R, G, B, A         */
+    HGL_IO_PIXEL_FORMAT_RGB8,    /* 3x bytes per pixel in the order R, G, B            */
+    HGL_IO_PIXEL_FORMAT_RGBA32F, /* 4x 32-bit floats per pixel in the order R, G, B, A */
+    HGL_IO_PIXEL_FORMAT_R8,      /* 1x byte per pixel (grayscale)                      */
+    HGL_IO_PIXEL_FORMAT_R32F,    /* 1x 32-bit float per pixel (grayscale)              */
 } HglPixelFormat; 
 
 typedef struct
@@ -213,7 +214,7 @@ HglFile hgl_io_file_read(const char *filepath)
 {
     HglFile file = {
         .path = filepath,
-        .mode = HGL_FILE_MODE_NORMAL,
+        .mode = HGL_IO_FILE_MODE_NORMAL,
         .data = NULL,
         .size = 0,
         .it   = 0
@@ -265,7 +266,7 @@ HglFile hgl_io_file_mmap(const char *filepath)
 {
     HglFile file = {
         .path = filepath,
-        .mode = HGL_FILE_MODE_MEMORY_MAPPED,
+        .mode = HGL_IO_FILE_MODE_MEMORY_MAPPED,
         .data = NULL,
         .size = 0,
         .it   = 0
@@ -310,7 +311,7 @@ out:
 
 int hgl_io_file_write(HglFile *file)
 {
-    if (file->mode == HGL_FILE_MODE_MEMORY_MAPPED) {
+    if (file->mode == HGL_IO_FILE_MODE_MEMORY_MAPPED) {
         fprintf(stderr, "[hgl_io_file_write] Error: HglFile is memory mapped.");
         return -1;
     }
@@ -397,7 +398,7 @@ void hgl_io_file_reset_iterator(HglFile *file)
 
 void hgl_io_file_free(HglFile *file)
 {
-    assert(file->mode == HGL_FILE_MODE_NORMAL);
+    assert(file->mode == HGL_IO_FILE_MODE_NORMAL);
     HGL_IO_FREE(file->data);
     file->data = NULL;
     file->size = 0;
@@ -405,7 +406,7 @@ void hgl_io_file_free(HglFile *file)
 
 void hgl_io_file_munmap(HglFile *file)
 {
-    assert(file->mode == HGL_FILE_MODE_MEMORY_MAPPED);
+    assert(file->mode == HGL_IO_FILE_MODE_MEMORY_MAPPED);
     munmap(file->data, file->size);
     file->data = NULL;
     file->size = 0;
@@ -435,23 +436,19 @@ void hgl_io_file_munmap(HglFile *file)
 		nv_;                                             \
     })
 
-#define HGL_IO_SWIZZLE4x8_IN_PLACE(bytes, a, b, c, d)     \
-    do {                                                  \
-        uint8_t *bytes_ = (uint8_t *)(bytes);             \
-        uint32_t temp_[4];                                \
-        __typeof__ (a) a_ = (a);                          \
-        __typeof__ (b) b_ = (b);                          \
-        __typeof__ (c) c_ = (c);                          \
-        __typeof__ (d) d_ = (d);                          \
-        assert((a_ >= 0) && (a_ <= 3));                   \
-        assert((b_ >= 0) && (b_ <= 3));                   \
-        assert((c_ >= 0) && (c_ <= 3));                   \
-        assert((d_ >= 0) && (d_ <= 3));                   \
-        temp_[0] = bytes_[a_];                            \
-        temp_[1] = bytes_[b_];                            \
-        temp_[2] = bytes_[c_];                            \
-        temp_[3] = bytes_[d_];                            \
-        for (int i = 0; i < 4; i++) bytes_[i] = temp_[i]; \
+#define HGL_IO_SWIZZLE4x8_IN_PLACE(ptr, a, b, c, d)        \
+    do {                                                   \
+        uint8_t *ptr_ = (uint8_t *)(ptr);                  \
+        uint32_t v32_ = 0;                                 \
+        v32_ |= (ptr[0] << 24);                            \
+        v32_ |= (ptr[1] << 16);                            \
+        v32_ |= (ptr[2] <<  8);                            \
+        v32_ |= (ptr[3]);                                  \
+        v32_ = HGL_IO_SWIZZLE32(v32_, (a), (b), (c), (d)); \
+        ptr_[0] = (v32_ & 0xFF000000) >> 24;               \
+        ptr_[1] = (v32_ & 0x00FF0000) >> 16;               \
+        ptr_[2] = (v32_ & 0x0000FF00) >>  8;               \
+        ptr_[3] = (v32_ & 0x000000FF);                     \
     } while (0)
 
 HglImage hgl_io_image_read_netpbm(const char *filepath);
@@ -461,11 +458,11 @@ int hgl_io_image_write_netpbm(const char *filepath, HglImage *image)
     const char *magic;
     int maxval;
     switch (image->format) {
-        case HGL_PIXEL_FORMAT_RGBA8:   magic = "P6"; maxval = 255;   break;
-        case HGL_PIXEL_FORMAT_RGB8:    magic = "P6"; maxval = 255;   break;
-        case HGL_PIXEL_FORMAT_RGBA32F: magic = "P6"; maxval = 65535; break;
-        case HGL_PIXEL_FORMAT_R8:      magic = "P5"; maxval = 255;   break;
-        case HGL_PIXEL_FORMAT_R32F:    magic = "P5"; maxval = 65535; break;
+        case HGL_IO_PIXEL_FORMAT_RGBA8:   magic = "P6"; maxval = 255;   break;
+        case HGL_IO_PIXEL_FORMAT_RGB8:    magic = "P6"; maxval = 255;   break;
+        case HGL_IO_PIXEL_FORMAT_RGBA32F: magic = "P6"; maxval = 65535; break;
+        case HGL_IO_PIXEL_FORMAT_R8:      magic = "P5"; maxval = 255;   break;
+        case HGL_IO_PIXEL_FORMAT_R32F:    magic = "P5"; maxval = 65535; break;
         default:
             return -1;
     }
@@ -475,6 +472,47 @@ int hgl_io_image_write_netpbm(const char *filepath, HglImage *image)
     fprintf(fp, "# Generated by hgl_io.h\n");
     fprintf(fp, "%zu %zu\n", image->width, image->height);
     fprintf(fp, "%d\n", maxval);
+
+    switch (image->format) {
+        case HGL_IO_PIXEL_FORMAT_R8: {
+            fwrite(image->data, 1, image->width * image->height, fp);
+        } break;
+        case HGL_IO_PIXEL_FORMAT_RGB8: {
+            fwrite(image->data, 1, 3 * image->width * image->height, fp);
+        } break;
+        case HGL_IO_PIXEL_FORMAT_RGBA8: {
+            for (size_t y = 0; y < image->height; y++) {
+                for (size_t x = 0; x < image->width; x++) {
+                    uint8_t rgb8[3]; 
+                    rgb8[0] = image->data[y*image->width*4 + x*4];
+                    rgb8[1] = image->data[y*image->width*4 + x*4 + 1];
+                    rgb8[2] = image->data[y*image->width*4 + x*4 + 2];
+                    fwrite(rgb8, 1, sizeof(rgb8), fp);
+                }
+            }
+        } break;
+        case HGL_IO_PIXEL_FORMAT_RGBA32F: {
+            float *image_data32f = (float *) image->data;
+            for (size_t y = 0; y < image->height; y++) {
+                for (size_t x = 0; x < image->width; x++) {
+                    uint16_t rgb16[3]; 
+                    rgb16[0] = htobe16((uint16_t)(image_data32f[y*image->width*4 + x*4] * 65535));
+                    rgb16[1] = htobe16((uint16_t)(image_data32f[y*image->width*4 + x*4 + 1] * 65535));
+                    rgb16[2] = htobe16((uint16_t)(image_data32f[y*image->width*4 + x*4 + 2] * 65535));
+                    fwrite(rgb16, 1, sizeof(rgb16), fp);
+                }
+            }
+        } break;
+        case HGL_IO_PIXEL_FORMAT_R32F: {
+            float *image_data32f = (float *) image->data;
+            for (size_t y = 0; y < image->height; y++) {
+                for (size_t x = 0; x < image->width; x++) {
+                    uint16_t r = htobe16((uint16_t)(image_data32f[y*image->width*4 + x*4] * 65535));
+                    fwrite(&r, 1, sizeof(r), fp);
+                }
+            }
+        } break;
+    }
 
     fclose(fp);
     return 0;

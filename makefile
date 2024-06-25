@@ -73,11 +73,11 @@ test_fft:
 
 test_hamming:
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_hamming.c -o test_hamming
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_hamming_encode.c -o test_hamming_encode
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_hamming_decode.c -o test_hamming_decode
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(SRCDIR)/test_hamming_encode.c -o test_hamming_encode
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(SRCDIR)/test_hamming_decode.c -o test_hamming_decode
 
 test_io:
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(SRCDIR)/test_io.c -o test_io
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(SRCDIR)/test_io.c -o test_io
 
 test_process:
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(SRCDIR)/test_process.c -o test_process
@@ -118,3 +118,4 @@ clean:
 	-rm test_profile
 	-rm test_math
 	-rm test_math_simd
+	-rm testfil_*
