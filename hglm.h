@@ -2,10 +2,17 @@
 #define HGLM_H
 
 #include <math.h>
+#include <stdint.h>
 
 #include <assert.h> // DEBUG
 
 #define HGL_INLINE inline __attribute__((always_inline))
+
+#if !defined(HGLM_ALLOC) && !defined(HGLM_FREE)
+#   include <stdlib.h>
+#   define HGLM_ALLOC malloc
+#   define HGLM_FREE  free
+#endif
 
 #define HGLM_PI 3.14159265358979
 
@@ -95,7 +102,101 @@ typedef struct __attribute__ ((aligned(16)))
     };
 } HglmMat4;
 
+typedef struct
+{
+    float *data;
+    union {
+        uint32_t M;
+        uint32_t rows;
+    };
+    union {
+        uint32_t N;
+        uint32_t cols;
+    };
+} HglmMat;
+
+static HGL_INLINE HglmVec2 hglm_vec2_make(float x, float y);
+static HGL_INLINE HglmVec2 hglm_vec2_add(HglmVec2 a, HglmVec2 b);
+static HGL_INLINE HglmVec2 hglm_vec2_sub(HglmVec2 a, HglmVec2 b);
+static HGL_INLINE float hglm_vec2_distance(HglmVec2 a, HglmVec2 b);
+static HGL_INLINE float hglm_vec2_len(HglmVec2 v);
+static HGL_INLINE HglmVec2 hglm_vec2_normalize(HglmVec2 v);
+static HGL_INLINE float hglm_vec2_dot(HglmVec2 a, HglmVec2 b);
+static HGL_INLINE HglmVec2 hglm_vec2_hadamard(HglmVec2 a, HglmVec2 b);
+static HGL_INLINE HglmVec2 hglm_vec2_mul_scalar(HglmVec2 v, float s);
+static HGL_INLINE HglmVec2 hglm_vec2_reflect(HglmVec2 v, HglmVec2 normal);
+static HGL_INLINE HglmVec2 hglm_vec2_lerp(HglmVec2 a, HglmVec2 b, float amount);
+static HGL_INLINE HglmVec2 hglm_vec2_bezier3(HglmVec2 v0, HglmVec2 v1, HglmVec2 v2, HglmVec2 v3, float t);
+
+static HGL_INLINE HglmVec3 hglm_vec3_make(float x, float y, float z);
+static HGL_INLINE HglmVec3 hglm_vec3_add(HglmVec3 a, HglmVec3 b);
+static HGL_INLINE HglmVec3 hglm_vec3_sub(HglmVec3 a, HglmVec3 b);
+static HGL_INLINE float hglm_vec3_distance(HglmVec3 a, HglmVec3 b);
+static HGL_INLINE float hglm_vec3_len(HglmVec3 v);
+static HGL_INLINE HglmVec3 hglm_vec3_normalize(HglmVec3 v);
+static HGL_INLINE float hglm_vec3_dot(HglmVec3 a, HglmVec3 b);
+static HGL_INLINE HglmVec3 hglm_vec3_cross(HglmVec3 a, HglmVec3 b);
+static HGL_INLINE HglmVec3 hglm_vec3_hadamard(HglmVec3 a, HglmVec3 b);
+static HGL_INLINE HglmVec3 hglm_vec3_mul_scalar(HglmVec3 v, float s);
+static HGL_INLINE HglmVec3 hglm_vec3_reflect(HglmVec3 v, HglmVec3 normal);
+static HGL_INLINE HglmVec3 hglm_vec3_lerp(HglmVec3 a, HglmVec3 b, float amount);
+static HGL_INLINE HglmVec3 hglm_vec3_slerp(HglmVec3 a, HglmVec3 b, float t);
+static HGL_INLINE HglmVec3 hglm_vec3_bezier3(HglmVec3 v0, HglmVec3 v1, HglmVec3 v2, HglmVec3 v3, float t);
+
+static HGL_INLINE HglmVec4 hglm_vec4_make(float x, float y, float z, float w);
+static HGL_INLINE HglmVec4 hglm_vec4_add(HglmVec4 a, HglmVec4 b);
+static HGL_INLINE HglmVec4 hglm_vec4_sub(HglmVec4 a, HglmVec4 b);
+static HGL_INLINE float hglm_vec4_distance(HglmVec4 a, HglmVec4 b);
+static HGL_INLINE float hglm_vec4_len(HglmVec4 v);
+static HGL_INLINE HglmVec4 hglm_vec4_normalize(HglmVec4 v);
+static HGL_INLINE float hglm_vec4_dot(HglmVec4 a, HglmVec4 b);
+static HGL_INLINE HglmVec4 hglm_vec4_hadamard(HglmVec4 a, HglmVec4 b);
+static HGL_INLINE HglmVec4 hglm_vec4_mul_scalar(HglmVec4 v, float s);
+static HGL_INLINE HglmVec4 hglm_vec4_lerp(HglmVec4 a, HglmVec4 b, float amount);
+static HGL_INLINE HglmVec4 hglm_vec4_bezier3(HglmVec4 v0, HglmVec4 v1, HglmVec4 v2, HglmVec4 v3, float t);
+
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make(HglmVec4 c0, HglmVec4 c1, HglmVec4 c2, HglmVec4 c3);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_zero(void);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_identity(void);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_scale(HglmVec3 v);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_rotation(float angle, HglmVec3 axis);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_translation(HglmVec3 v);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_ortho(float left, float right, float bottom, float top,  float near,  float far);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_perspective(float fov, float aspect, float znear, float zfar);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_add(HglmMat4 a, HglmMat4 b);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_sub(HglmMat4 a, HglmMat4 b);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_transpose(HglmMat4 m);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_mul_scalar(HglmMat4 m, float s);
+__attribute__ ((const, unused)) static HGL_INLINE HglmVec4 hglm_mat4_mul_vec4(HglmMat4 m, HglmVec4 v);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_mul_mat4(HglmMat4 a, HglmMat4 b);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_scale(HglmMat4 m, HglmVec3 v);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_rotate(HglmMat4 m, float angle, HglmVec3 axis);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_translate(HglmMat4 m, HglmVec3 v);
+__attribute__ ((const, unused)) static HGL_INLINE HglmVec4 hglm_mat4_perspective_project(HglmMat4 proj, HglmVec4 v);
+
+static HGL_INLINE HglmMat hglm_mat_make(uint32_t M /* rows */, uint32_t N /* cols */);
+static HGL_INLINE HglmMat hglm_mat_make_identity(uint32_t N);
+static HGL_INLINE void hglm_mat_free(HglmMat m);
+static HGL_INLINE void hglm_mat_fill(HglmMat m, float value);
+static HGL_INLINE void hglm_mat_add(HglmMat res, HglmMat a, HglmMat b);
+static HGL_INLINE void hglm_mat_sub(HglmMat res, HglmMat a, HglmMat b);
+static HGL_INLINE void hglm_mat_mul_scalar(HglmMat m, float s);
+static HGL_INLINE void hglm_mat_mul_mat(HglmMat res, HglmMat a, HglmMat b);
+static HGL_INLINE void hglm_mat_transpose_in_place(HglmMat m);
+static HGL_INLINE void hglm_mat_transpose(HglmMat res, HglmMat m);
+
+static HGL_INLINE float hglm_lerp(float a, float b, float amount);
+static HGL_INLINE float hglm_ilerp(float a, float b, float value);
+static HGL_INLINE float hglm_clamp(float min, float max, float value);
+static HGL_INLINE float hglm_remap(float in_min, float in_max, float out_min, float out_max, float value);
+static HGL_INLINE float hglm_smoothstep(float t);
+static HGL_INLINE float hglm_sinstep(float t);
+static HGL_INLINE float hglm_lerpsmooth(float a, float b, float dt, float omega);
+static HGL_INLINE HglmVec4 hglm_bezier3(float t);
+
 /* ========== HglmVec2 =======================================================*/
+
+#define hglm_vec2_print(v) (printf("%s = {%f, %f}\n", #v , (v).x, (v).y))
 
 static HGL_INLINE HglmVec2 hglm_vec2_make(float x, float y)
 {
@@ -158,9 +259,25 @@ static HGL_INLINE HglmVec2 hglm_vec2_lerp(HglmVec2 a, HglmVec2 b, float amount)
     );
 }
 
-#define hglm_vec2_print(v) (printf("%s = {%f, %f}\n", #v , (v).x, (v).y))
+static HGL_INLINE HglmVec2 hglm_vec2_bezier3(HglmVec2 v0, HglmVec2 v1, HglmVec2 v2, HglmVec2 v3, float t)
+{
+    HglmVec4 bezier3 = hglm_bezier3(t);
+    return hglm_vec2_add(
+        hglm_vec2_add(
+            hglm_vec2_mul_scalar(v0, bezier3.x),
+            hglm_vec2_mul_scalar(v1, bezier3.y)
+        ),
+        hglm_vec2_add(
+            hglm_vec2_mul_scalar(v2, bezier3.z),
+            hglm_vec2_mul_scalar(v3, bezier3.w)
+        )
+    );
+}
+
 
 /* ========== HglmVec3 =======================================================*/
+
+#define hglm_vec3_print(v) (printf("%s = {%f, %f, %f}\n", #v , (v).x, (v).y, (v).z))
 
 static HGL_INLINE HglmVec3 hglm_vec3_make(float x, float y, float z)
 {
@@ -233,7 +350,7 @@ static HGL_INLINE HglmVec3 hglm_vec3_lerp(HglmVec3 a, HglmVec3 b, float amount)
     );
 }
 
-static HGL_INLINE HglmVec3 vec3_slerp(HglmVec3 a, HglmVec3 b, float t)
+static HGL_INLINE HglmVec3 hglm_vec3_slerp(HglmVec3 a, HglmVec3 b, float t)
 {
     float omega = acosf(hglm_vec3_dot(a, b));
     return hglm_vec3_add(
@@ -242,9 +359,25 @@ static HGL_INLINE HglmVec3 vec3_slerp(HglmVec3 a, HglmVec3 b, float t)
     );
 }
 
-#define hglm_vec3_print(v) (printf("%s = {%f, %f, %f}\n", #v , (v).x, (v).y, (v).z))
+static HGL_INLINE HglmVec3 hglm_vec3_bezier3(HglmVec3 v0, HglmVec3 v1, HglmVec3 v2, HglmVec3 v3, float t)
+{
+    HglmVec4 bezier3 = hglm_bezier3(t);
+    return hglm_vec3_add(
+        hglm_vec3_add(
+            hglm_vec3_mul_scalar(v0, bezier3.x),
+            hglm_vec3_mul_scalar(v1, bezier3.y)
+        ),
+        hglm_vec3_add(
+            hglm_vec3_mul_scalar(v2, bezier3.z),
+            hglm_vec3_mul_scalar(v3, bezier3.w)
+        )
+    );
+}
+
 
 /* ========== HglmVec4 =======================================================*/
+
+#define hglm_vec4_print(v) (printf("%s = {%f, %f, %f, %f}\n", #v , (v).x, (v).y, (v).z, (v).w))
 
 static HGL_INLINE HglmVec4 hglm_vec4_make(float x, float y, float z, float w)
 {
@@ -359,10 +492,38 @@ static HGL_INLINE HglmVec4 hglm_vec4_lerp(HglmVec4 a, HglmVec4 b, float amount)
     );
 }
 
-#define hglm_vec4_print(v) (printf("%s = {%f, %f, %f, %f}\n", #v , (v).x, (v).y, (v).z, (v).w))
+static HGL_INLINE HglmVec4 hglm_vec4_bezier3(HglmVec4 v0, HglmVec4 v1, HglmVec4 v2, HglmVec4 v3, float t)
+{
+    HglmVec4 bezier3 = hglm_bezier3(t);
+    return hglm_vec4_add(
+        hglm_vec4_add(
+            hglm_vec4_mul_scalar(v0, bezier3.x),
+            hglm_vec4_mul_scalar(v1, bezier3.y)
+        ),
+        hglm_vec4_add(
+            hglm_vec4_mul_scalar(v2, bezier3.z),
+            hglm_vec4_mul_scalar(v3, bezier3.w)
+        )
+    );
+}
+
 
 /* ========== HglmMat4 =======================================================*/
 
+#define hglm_mat4_print(m)                                                              \
+(                                                                                       \
+    printf("%s = \n"                                                                    \
+           "    |%14.5f %14.5f %14.5f %14.5f |\n"                                       \
+           "    |%14.5f %14.5f %14.5f %14.5f |\n"                                       \
+           "    |%14.5f %14.5f %14.5f %14.5f |\n"                                       \
+           "    |%14.5f %14.5f %14.5f %14.5f |\n", #m ,                                 \
+            (double) (m).c0.x, (double) (m).c1.x, (double) (m).c2.x, (double) (m).c3.x, \
+            (double) (m).c0.y, (double) (m).c1.y, (double) (m).c2.y, (double) (m).c3.y, \
+            (double) (m).c0.z, (double) (m).c1.z, (double) (m).c2.z, (double) (m).c3.z, \
+            (double) (m).c0.w, (double) (m).c1.w, (double) (m).c2.w, (double) (m).c3.w) \
+)
+
+__attribute__ ((const, unused))
 static HGL_INLINE HglmMat4 hglm_mat4_make(HglmVec4 c0,
                                           HglmVec4 c1,
                                           HglmVec4 c2,
@@ -371,11 +532,13 @@ static HGL_INLINE HglmMat4 hglm_mat4_make(HglmVec4 c0,
     return (HglmMat4){.c0 = c0, .c1 = c1, .c2 = c2, .c3 = c3};
 }
 
+__attribute__ ((const, unused))
 static HGL_INLINE HglmMat4 hglm_mat4_make_zero()
 {
     return (HglmMat4){0};
 }
 
+__attribute__ ((const, unused))
 static HGL_INLINE HglmMat4 hglm_mat4_make_identity(void)
 {
     return HGLM_MAT4_IDENTITY;
@@ -392,7 +555,7 @@ static HGL_INLINE HglmMat4 hglm_mat4_make_scale(HglmVec3 v)
 }
 
 __attribute__ ((const, unused))
-static inline HglmMat4 hglm_mat4_make_rotation(float angle, HglmVec3 axis)
+static HGL_INLINE HglmMat4 hglm_mat4_make_rotation(float angle, HglmVec3 axis)
 {
     float O = angle;
     float ux = axis.x;
@@ -415,7 +578,7 @@ static inline HglmMat4 hglm_mat4_make_rotation(float angle, HglmVec3 axis)
     };
 }
 
-__attribute__ ((pure, unused))
+__attribute__ ((const, unused))
 static HGL_INLINE HglmMat4 hglm_mat4_make_translation(HglmVec3 v)
 {
     HglmMat4 t = HGLM_MAT4_IDENTITY;
@@ -493,6 +656,8 @@ static HGL_INLINE HglmMat4 hglm_mat4_sub(HglmMat4 a, HglmMat4 b)
     };
 #endif
 }
+
+__attribute__ ((const, unused))
 static HGL_INLINE HglmMat4 hglm_mat4_transpose(HglmMat4 m)
 {
 #ifdef HGLM_USE_SIMD
@@ -508,7 +673,7 @@ static HGL_INLINE HglmMat4 hglm_mat4_transpose(HglmMat4 m)
 #endif
 }
 
-__attribute__ ((pure, unused))
+__attribute__ ((const, unused))
 static HGL_INLINE HglmMat4 hglm_mat4_mul_scalar(HglmMat4 m, float s)
 {
 #ifdef HGLM_USE_SIMD
@@ -529,7 +694,7 @@ static HGL_INLINE HglmMat4 hglm_mat4_mul_scalar(HglmMat4 m, float s)
 #endif
 }
 
-__attribute__ ((pure, unused))
+__attribute__ ((const, unused))
 static HGL_INLINE HglmVec4 hglm_mat4_mul_vec4(HglmMat4 m, HglmVec4 v)
 {
 #ifdef HGLM_USE_SIMD
@@ -550,7 +715,7 @@ static HGL_INLINE HglmVec4 hglm_mat4_mul_vec4(HglmMat4 m, HglmVec4 v)
                        _mm_add_ps(t2, t3));
     return res;
 
-    // hmmmm 
+    // hmmmm
     //__m128 r = _mm_mul_ps(_mm_set1_ps(v.x), m.c0.v);
     //r = _mm_fmadd_ps(_mm_set1_ps(v.y), m.c1.v, r);
     //r = _mm_fmadd_ps(_mm_set1_ps(v.z), m.c2.v, r);
@@ -567,7 +732,7 @@ static HGL_INLINE HglmVec4 hglm_mat4_mul_vec4(HglmMat4 m, HglmVec4 v)
 #endif
 }
 
-__attribute__ ((pure, unused))
+__attribute__ ((const, unused))
 static HGL_INLINE HglmMat4 hglm_mat4_mul_mat4(HglmMat4 a, HglmMat4 b)
 {
 #ifdef HGLM_USE_SIMD
@@ -585,7 +750,7 @@ static HGL_INLINE HglmMat4 hglm_mat4_mul_mat4(HglmMat4 a, HglmMat4 b)
     //_mm_store_ps((float *)&res.c2.v, sum[2]);
     //_mm_store_ps((float *)&res.c3.v, sum[3]);
     //return res;
-    
+
 
     //HglmMat4 m;
     //__m256 t0, t1, t2;
@@ -607,14 +772,14 @@ static HGL_INLINE HglmMat4 hglm_mat4_mul_mat4(HglmMat4 a, HglmMat4 b)
     //t1     = _mm256_mul_ps(c23, _mm256_set_m128(_mm_broadcast_ss(&b.c2.w), _mm_broadcast_ss(&b.c2.z)));
     //t2     = _mm256_add_ps(t0, t1);
     //m.c2.v = _mm_add_ps(_mm256_castps256_ps128(t2), _mm256_extractf128_ps(t2, 1));
-    
+
     //t0     = _mm256_mul_ps(c01, _mm256_set_m128(_mm_broadcast_ss(&b.c3.y), _mm_broadcast_ss(&b.c3.x)));
     //t1     = _mm256_mul_ps(c23, _mm256_set_m128(_mm_broadcast_ss(&b.c3.w), _mm_broadcast_ss(&b.c3.z)));
     //t2     = _mm256_add_ps(t0, t1);
     //m.c3.v = _mm_add_ps(_mm256_castps256_ps128(t2), _mm256_extractf128_ps(t2, 1));
 
     //return m;
-    
+
     //HglmMat4 m;
     //__m256 t0, t1, t2;
 
@@ -658,22 +823,22 @@ static HGL_INLINE HglmMat4 hglm_mat4_mul_mat4(HglmMat4 a, HglmMat4 b)
     t2 = _mm_mul_ps(a.c2.v, _mm_broadcast_ss(&b.c3.z));
     t3 = _mm_mul_ps(a.c3.v, _mm_broadcast_ss(&b.c3.w));
     c3 = _mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3));
-    
+
     //c0 = _mm_mul_ps(a.c0.v, _mm_broadcast_ss(&b.c0.x));
     //c0 = _mm_fmadd_ps(a.c1.v, _mm_broadcast_ss(&b.c0.y), c0);
     //c0 = _mm_fmadd_ps(a.c2.v, _mm_broadcast_ss(&b.c0.z), c0);
     //c0 = _mm_fmadd_ps(a.c3.v, _mm_broadcast_ss(&b.c0.w), c0);
-    
+
     //c1 = _mm_mul_ps(a.c0.v, _mm_broadcast_ss(&b.c1.x));
     //c1 = _mm_fmadd_ps(a.c1.v, _mm_broadcast_ss(&b.c1.y), c1);
     //c1 = _mm_fmadd_ps(a.c2.v, _mm_broadcast_ss(&b.c1.z), c1);
     //c1 = _mm_fmadd_ps(a.c3.v, _mm_broadcast_ss(&b.c1.w), c1);
-    
+
     //c2 = _mm_mul_ps(a.c0.v, _mm_broadcast_ss(&b.c2.x));
     //c2 = _mm_fmadd_ps(a.c1.v, _mm_broadcast_ss(&b.c2.y), c2);
     //c2 = _mm_fmadd_ps(a.c2.v, _mm_broadcast_ss(&b.c2.z), c2);
     //c2 = _mm_fmadd_ps(a.c3.v, _mm_broadcast_ss(&b.c2.w), c2);
-    
+
     //c3 = _mm_mul_ps(a.c0.v, _mm_broadcast_ss(&b.c3.x));
     //c3 = _mm_fmadd_ps(a.c1.v, _mm_broadcast_ss(&b.c3.y), c3);
     //c3 = _mm_fmadd_ps(a.c2.v, _mm_broadcast_ss(&b.c3.z), c3);
@@ -719,12 +884,12 @@ static HGL_INLINE HglmMat4 hglm_mat4_scale(HglmMat4 m, HglmVec3 v)
 }
 
 __attribute__ ((const, unused))
-static inline HglmMat4 hglm_mat4_rotate(HglmMat4 m, float angle, HglmVec3 axis)
+static HGL_INLINE HglmMat4 hglm_mat4_rotate(HglmMat4 m, float angle, HglmVec3 axis)
 {
     return hglm_mat4_mul_mat4(m, hglm_mat4_make_rotation(angle, axis));
 }
 
-__attribute__ ((pure, unused))
+__attribute__ ((const, unused))
 static HGL_INLINE HglmMat4 hglm_mat4_translate(HglmMat4 m, HglmVec3 v)
 {
     return hglm_mat4_mul_mat4(m, hglm_mat4_make_translation(v));
@@ -740,18 +905,133 @@ static HGL_INLINE HglmVec4 hglm_mat4_perspective_project(HglmMat4 proj, HglmVec4
     return u;
 }
 
-#define hglm_mat4_print(m)                                                              \
-(                                                                                       \
-    printf("%s = \n"                                                                    \
-           "    |%14.5f %14.5f %14.5f %14.5f |\n"                                       \
-           "    |%14.5f %14.5f %14.5f %14.5f |\n"                                       \
-           "    |%14.5f %14.5f %14.5f %14.5f |\n"                                       \
-           "    |%14.5f %14.5f %14.5f %14.5f |\n", #m ,                                 \
-            (double) (m).c0.x, (double) (m).c1.x, (double) (m).c2.x, (double) (m).c3.x, \
-            (double) (m).c0.y, (double) (m).c1.y, (double) (m).c2.y, (double) (m).c3.y, \
-            (double) (m).c0.z, (double) (m).c1.z, (double) (m).c2.z, (double) (m).c3.z, \
-            (double) (m).c0.w, (double) (m).c1.w, (double) (m).c2.w, (double) (m).c3.w) \
-)
+
+/* ========== Arbitrary size Matrix funtions =================================*/
+
+#define hglm_mat_at(m, y, x) ((m).data[(y)*(m).N + (x)])
+#define hglm_mat_print(m) \
+    do { \
+        printf("%s = \n", #m ); \
+        for (uint32_t row = 0; row < (m).M; row++) {\
+            printf("  | "); \
+            for (uint32_t col = 0; col < (m).N; col++) {\
+                printf("%16f ", (double) hglm_mat_at((m), row, col)); \
+            } \
+            printf(" |\n"); \
+        } \
+    } while(0)
+
+static HGL_INLINE HglmMat hglm_mat_make(uint32_t M /* rows */, uint32_t N /* cols */)
+{
+    HglmMat m = {
+        .data = HGLM_ALLOC(M * N * sizeof(*m.data)),
+        .M = M,
+        .N = N,
+    };
+    assert(m.data != NULL);
+    return m;
+}
+
+static HGL_INLINE HglmMat hglm_mat_make_identity(uint32_t N)
+{
+    HglmMat m = hglm_mat_make(N, N);
+    hglm_mat_fill(m, 0);
+    for (uint32_t i = 0; i < N; i++) {
+        hglm_mat_at(m, i, i) = 1.0f;
+    }
+    return m;
+}
+
+static HGL_INLINE void hglm_mat_free(HglmMat m)
+{
+    HGLM_FREE(m.data);
+}
+
+static HGL_INLINE void hglm_mat_fill(HglmMat m, float value)
+{
+    for (uint32_t row = 0; row < m.M; row++) {
+        for (uint32_t col = 0; col < m.N; col++) {
+            hglm_mat_at(m, row, col) = value;
+        }
+    }
+}
+
+static HGL_INLINE void hglm_mat_add(HglmMat res, HglmMat a, HglmMat b)
+{
+    assert(a.M == b.M);
+    assert(a.N == b.N);
+    assert(res.N == a.N);
+    assert(res.M == a.M);
+    for (uint32_t row = 0; row < res.M; row++) {
+        for (uint32_t col = 0; col < res.N; col++) {
+            hglm_mat_at(res, row, col) = hglm_mat_at(a, row, col) + hglm_mat_at(b, row, col);
+        }
+    }
+}
+
+static HGL_INLINE void hglm_mat_sub(HglmMat res, HglmMat a, HglmMat b)
+{
+    assert(a.M == b.M);
+    assert(a.N == b.N);
+    assert(res.N == a.N);
+    assert(res.M == a.M);
+    for (uint32_t row = 0; row < res.M; row++) {
+        for (uint32_t col = 0; col < res.N; col++) {
+            hglm_mat_at(res, row, col) = hglm_mat_at(a, row, col) - hglm_mat_at(b, row, col);
+        }
+    }
+}
+
+static HGL_INLINE void hglm_mat_mul_scalar(HglmMat m, float s)
+{
+    for (uint32_t row = 0; row < m.M; row++) {
+        for (uint32_t col = 0; col < m.N; col++) {
+            hglm_mat_at(m, row, col) *= s;
+        }
+    }
+}
+
+static HGL_INLINE void hglm_mat_mul_mat(HglmMat res, HglmMat a, HglmMat b)
+{
+    /* AxB x BxC ==> AxC*/
+    assert(a.N == b.M);
+    assert(res.M == a.M);
+    assert(res.N == b.N);
+    assert(res.data != a.data);
+    assert(res.data != b.data);
+    for (uint32_t row = 0; row < res.M; row++) {
+        for (uint32_t col = 0; col < res.N; col++) {
+            hglm_mat_at(res, row, col) = 0.0f;
+            for (uint32_t i = 0; i < res.N; i++) {
+                hglm_mat_at(res, row, col) += hglm_mat_at(a, row, i) * hglm_mat_at(b, i, col);
+            }
+        }
+    }
+}
+
+static HGL_INLINE void hglm_mat_transpose_in_place(HglmMat m)
+{
+    assert((m.M == m.N) && "In-place transpose only supports square matrices");
+    for (uint32_t row = 0; row < m.M - 1; row++) {
+        for (uint32_t col = row + 1; col < m.N; col++) {
+            float temp = hglm_mat_at(m, row, col);
+            hglm_mat_at(m, row, col) = hglm_mat_at(m, col, row);
+            hglm_mat_at(m, col, row) = temp;
+        }
+    }
+}
+
+static HGL_INLINE void hglm_mat_transpose(HglmMat res, HglmMat m)
+{
+    assert(res.M == m.N);
+    assert(res.N == m.M);
+    for (uint32_t row = 0; row < res.M; row++) {
+        for (uint32_t col = 0; col < res.N; col++) {
+            hglm_mat_at(res, row, col) = hglm_mat_at(m, col, row);
+        }
+    }
+}
+
 
 /* ========== scalar interpolation functions =================================*/
 
@@ -796,6 +1076,22 @@ static HGL_INLINE float hglm_sinstep(float t)
 static HGL_INLINE float hglm_lerpsmooth(float a, float b, float dt, float omega)
 {
     return b + (a - b) * exp2f(-dt/omega);
+}
+
+
+static HGL_INLINE HglmVec4 hglm_bezier3(float t)
+{
+    HglmMat4 bezier3 = ((HglmMat4) {.m00 =  1.0f, .m01 =  0.0f, .m02 =  0.0f, .m03 =  0.0f,
+                                    .m10 = -3.0f, .m11 =  3.0f, .m12 =  0.0f, .m13 =  0.0f,
+                                    .m20 =  3.0f, .m21 = -6.0f, .m22 =  3.0f, .m23 =  0.0f,
+                                    .m30 = -1.0f, .m31 =  3.0f, .m32 = -3.0f, .m33 =  1.0f});
+    HglmVec4 ts = (HglmVec4) {.x = 1.0f, .y = t, .z = t*t, .w = t*t*t};
+    return (HglmVec4) {
+        .x = hglm_vec4_dot(ts, bezier3.c0),
+        .y = hglm_vec4_dot(ts, bezier3.c1),
+        .z = hglm_vec4_dot(ts, bezier3.c2),
+        .w = hglm_vec4_dot(ts, bezier3.c3),
+    };
 }
 
 #endif /* HGLM_H */
