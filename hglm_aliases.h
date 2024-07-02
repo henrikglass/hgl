@@ -20,7 +20,9 @@ typedef HglmVec2 Vec2;
 typedef HglmVec3 Vec3;
 typedef HglmVec4 Vec4;
 typedef HglmMat4 Mat4;
+typedef HglmMat  Mat;
 
+#define vec2_print               hglm_vec2_print
 #define vec2_make                hglm_vec2_make
 #define vec2_add                 hglm_vec2_add
 #define vec2_sub                 hglm_vec2_sub
@@ -32,8 +34,9 @@ typedef HglmMat4 Mat4;
 #define vec2_mul_scalar          hglm_vec2_mul_scalar
 #define vec2_reflect             hglm_vec2_reflect
 #define vec2_lerp                hglm_vec2_lerp
-#define vec2_print               hglm_vec2_print
+#define vec2_bezier3             hglm_vec2_bezier3
 
+#define vec3_print               hglm_vec3_print
 #define vec3_make                hglm_vec3_make
 #define vec3_add                 hglm_vec3_add
 #define vec3_sub                 hglm_vec3_sub
@@ -47,8 +50,9 @@ typedef HglmMat4 Mat4;
 #define vec3_reflect             hglm_vec3_reflect
 #define vec3_lerp                hglm_vec3_lerp
 #define vec3_slerp               hglm_vec3_slerp
-#define vec3_print               hglm_vec3_print
+#define vec3_bezier3             hglm_vec3_bezier3
 
+#define vec4_print               hglm_vec4_print
 #define vec4_make                hglm_vec4_make
 #define vec4_add                 hglm_vec4_add
 #define vec4_sub                 hglm_vec4_sub
@@ -59,8 +63,9 @@ typedef HglmMat4 Mat4;
 #define vec4_hadamard            hglm_vec4_hadamard
 #define vec4_mul_scalar          hglm_vec4_mul_scalar
 #define vec4_lerp                hglm_vec4_lerp
-#define vec4_print               hglm_vec4_print
+#define vec4_bezier3             hglm_vec4_bezier3
 
+#define mat4_print               hglm_mat4_print
 #define mat4_make                hglm_mat4_make
 #define mat4_make_zero           hglm_mat4_make_zero
 #define mat4_make_identity       hglm_mat4_make_identity
@@ -79,7 +84,19 @@ typedef HglmMat4 Mat4;
 #define mat4_rotate              hglm_mat4_rotate
 #define mat4_translate           hglm_mat4_translate
 #define mat4_perspective_project hglm_mat4_perspective_project
-#define mat4_print               hglm_mat4_print
+
+#define mat_print                hglm_mat_print
+#define mat_at                   hglm_mat_at
+#define mat_make                 hglm_mat_make
+#define mat_make_identity        hglm_mat_make_identity
+#define mat_free                 hglm_mat_free
+#define mat_fill                 hglm_mat_fill
+#define mat_add                  hglm_mat_add
+#define mat_sub                  hglm_mat_sub
+#define mat_mul_scalar           hglm_mat_mul_scalar
+#define mat_mul_mat              hglm_mat_mul_mat
+#define mat_transpose_in_place   hglm_mat_transpose_in_place
+#define mat_transpose            hglm_mat_transpose
 
 #define lerp                     hglm_lerp
 #define ilerp                    hglm_ilerp
@@ -87,7 +104,8 @@ typedef HglmMat4 Mat4;
 #define remap                    hglm_remap
 #define smoothstep               hglm_smoothstep
 #define sinstep                  hglm_sinstep
-#define lerpsmoot                hglm_lerpsmoot
+#define lerpsmooth               hglm_lerpsmooth
+#define bezier3                  hglm_bezier3
 
 #endif /* HGLM_ALIASES_H */
 
