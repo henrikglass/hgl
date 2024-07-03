@@ -103,9 +103,12 @@ typedef HglmMat  Mat;
 #define clamp                    hglm_clamp
 #define remap                    hglm_remap
 #define smoothstep               hglm_smoothstep
+#define smootherstep             hglm_smootherstep
 #define sinstep                  hglm_sinstep
 #define lerpsmooth               hglm_lerpsmooth
 #define bezier3                  hglm_bezier3
+#define grad                     hglm_grad
+#define perlin3D                 hglm_perlin3D
 
 #endif /* HGLM_ALIASES_H */
 
