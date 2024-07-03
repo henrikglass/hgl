@@ -46,6 +46,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <execinfo.h>
+#include <time.h>
 
 /*--- Public macros ---------------------------------------------------------------------*/
 
@@ -129,6 +130,37 @@ static inline void hgl_stack_trace_(const char *file, int line)
     free(strings);
 }
 
+static inline void hgl_busywait_ns(uint64_t ns)
+{
+    uint64_t t_spun = 0;
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    uint64_t t_start = t.tv_sec * 1000000000 + t.tv_nsec;
+    while(t_spun < ns) {
+        clock_gettime(CLOCK_MONOTONIC, &t);
+        t_spun = (t.tv_sec * 1000000000 + t.tv_nsec) - t_start;
+    }
+}
+
+static inline void hgl_sleep_ns(uint64_t ns)
+{
+    struct timespec t;
+    t.tv_sec = ns / 1000000000u;
+    t.tv_nsec = ns % 1000000000u;
+    while (-1 == nanosleep(&t, &t));
+}
+
+static inline void hgl_sleep_ms(float milliseconds)
+{
+    uint64_t ns = (uint64_t) (milliseconds * 1000000.0f);
+    hgl_sleep_ns(ns);
+}
+
+static inline void hgl_sleep_s(float seconds)
+{
+    uint64_t ns = (uint64_t) (seconds * 1000000000.0f);
+    hgl_sleep_ns(ns);
+}
 
 #endif /* HGL_H */
 
