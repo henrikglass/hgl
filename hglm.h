@@ -484,6 +484,15 @@ static HGL_INLINE HglmVec4 hglm_vec4_mul_scalar(HglmVec4 v, float s)
 #endif
 }
 
+static HGL_INLINE HglmVec4 hglm_vec4_swizzle(HglmVec4 v, int a, int b, int c, int d)
+{
+#ifdef HGLM_USE_SIMD
+    return (HglmVec4) {.v = _mm_shuffle_ps(v.v, v.v, _MM_SHUFFLE(d, c, b, a))};
+#else
+    return (HglmVec4) {.x = v.f[a], .y = v.f[b], .z = v.f[c], .w = v.f[d]};
+#endif
+}
+
 static HGL_INLINE HglmVec4 hglm_vec4_lerp(HglmVec4 a, HglmVec4 b, float amount)
 {
     return hglm_vec4_add(
