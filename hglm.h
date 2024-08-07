@@ -69,6 +69,7 @@ typedef union __attribute__ ((aligned(16)))
 #ifdef HGLM_USE_SIMD
     __m128 v;
 #endif
+    float f[4];
 } HglmVec4;
 
 typedef struct __attribute__ ((aligned(16)))

@@ -26,7 +26,7 @@ all: test_vec         \
          test_fft
 
 test_hgl:
-	gcc -I. -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(SRCDIR)/test_hgl.c -o test_hgl
+	gcc -I. -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L $(SRCDIR)/test_hgl.c -o test_hgl
 
 test_vec:
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_vec.c -o test_vec

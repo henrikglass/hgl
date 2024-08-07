@@ -288,6 +288,9 @@ void hgl_string_builder_trim(HglStringBuilder *sb);
 
 #ifdef HGL_STRING_IMPLEMENTATION
 
+#include <stdio.h>
+#include <assert.h>
+
 /*--- impl. macros ----------------------------------------------------------------------*/
 
 #if !defined(HGL_STRING_ALLOC) &&   \
