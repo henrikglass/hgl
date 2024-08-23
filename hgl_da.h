@@ -55,6 +55,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <stdint.h>
 
 #if !defined(HGL_ALLOC) && \
     !defined(HGL_REALLOC) && \
