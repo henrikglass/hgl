@@ -27,18 +27,18 @@
  *
  * ABOUT:
  *
- * hgl_binpack.h implements a simple to use binary packing/unpacking utility.
+ * hgl_serialize.h implements a simple to use binary serializing/unserializing utility.
  *
  *
  * USAGE:
  *
- * Include hgl_binpack.h file like this:
+ * Include hgl_serialize.h file like this:
  *
- *     #include "hgl_binpack.h"
+ *     #include "hgl_serialize.h"
  *
- * hgl_binpack.h exports the function:
+ * hgl_serialize.h exports the function:
  *
- *     void *hgl_binpack(void *dst, void *src, const char *fmt, ...);
+ *     void *hgl_serialize(void *dst, void *src, const char *fmt, ...);
  *
  * where
  *  
@@ -106,9 +106,9 @@
  *     const char *filepath = "./my_program"
  *     uint8_t *file_data = hgl_open(filepath, "r");
  *     ElfInfo elf_info = {0};
- *     assert(NULL != hgl_binpack(&elf_info, file_data, "#7F#'ELF'BB-BB") && "Not an ELF-file.");
- *     assert(NULL != hgl_binpack(&elf_info.e_type, file_data, 
- *                                (elf_info.ei_data == 1) ? "[LE]<10>%{W}": "[BE]<10>2{W}", 2));
+ *     assert(NULL != hgl_serialize(&elf_info, file_data, "#7F#'ELF'BB-BB") && "Not an ELF-file.");
+ *     assert(NULL != hgl_serialize(&elf_info.e_type, file_data, 
+ *                                  (elf_info.ei_data == 1) ? "[LE]<10>%{W}": "[BE]<10>2{W}", 2));
  *
  *     printf("%s: ELF, %s, %s, %s, %s\n", 
  *            argv[1],
@@ -123,8 +123,8 @@
  */
 
 
-#ifndef HGL_BINPACK_H
-#define HGL_BINPACK_H
+#ifndef HGL_SERIALIZE_H
+#define HGL_SERIALIZE_H
 
 /*--- Include files ---------------------------------------------------------------------*/
 
@@ -139,7 +139,7 @@
 #define EXPECT(cond) \
     do { \
         if (!(cond)) { \
-            fprintf(stderr, "[hgl_binpack error]: Expected %s <%s:%d>\n", \
+            fprintf(stderr, "[hgl_serialize error]: Expected %s <%s:%d>\n", \
                             #cond, __FILE__, __LINE__); \
             return NULL; \
         } \
@@ -233,7 +233,7 @@ static inline void write_64_(uint8_t **dst, uint64_t value)
     *dst += 8;
 }
 
-static inline void *hgl_binpack(void *dst, void *src, const char *fmt, ...)
+static inline void *hgl_serialize(void *dst, void *src, const char *fmt, ...)
 {
     uint8_t *read_ptr = (uint8_t *) src;
     uint8_t *write_ptr = (uint8_t *) dst;
@@ -456,5 +456,5 @@ static inline void *hgl_binpack(void *dst, void *src, const char *fmt, ...)
     return (void *) read_ptr;
 }
 
-#endif /* HGL_BINPACK_H */
+#endif /* HGL_SERIALIZE_H */
 

@@ -13,7 +13,7 @@ all: test_vec         \
          test_pool_alloc  \
          test_hgl         \
          test_hotload     \
-         test_binpack     \
+         test_serialize   \
          test_memdbg      \
          test_flags       \
          test_string      \
@@ -56,9 +56,9 @@ test_hotload: test_hotload_mylib
 test_hotload_mylib:
 	gcc -I. -fPIE -shared -Wall -Wextra -Wpedantic -Wstrict-prototypes -Wmissing-declarations -Wmissing-prototypes -ggdb3 $(SRCDIR)/mylib.c -o libmylib.so
 
-test_binpack:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_binpack.c -o test_binpack
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_binpack_elfinfo.c -o test_binpack_elfinfo
+test_serialize:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_serialize.c -o test_serialize
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_serialize_elfinfo.c -o test_serialize_elfinfo
 
 test_memdbg:
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_memdbg.c -o test_memdbg
@@ -107,8 +107,8 @@ clean:
 	-rm test_pool_alloc
 	-rm test_hotload
 	-rm libmylib.so
-	-rm test_binpack
-	-rm test_binpack_elfinfo
+	-rm test_serialize
+	-rm test_serialize_elfinfo
 	-rm test_memdbg
 	-rm test_flags
 	-rm test_string

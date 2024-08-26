@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "hgl_binpack.h"
+#include "hgl_serialize.h"
 
 // NB: this struct ignores some fields of the ELF header.
 typedef struct __attribute__((__packed__)) {
@@ -60,9 +60,9 @@ int main(int argc, char *argv[])
     fclose(fp);
 
     ElfInfo elf_info = {0};
-    assert(NULL != hgl_binpack(&elf_info, file_data, "#7F#'ELF'BB-BB") && "Not an ELF-file.");
-    assert(NULL != hgl_binpack(&elf_info.e_type, file_data, 
-                               (elf_info.ei_data == 1) ? "[LE]<10>%{W}": "[BE]<10>2{W}", 2));
+    assert(NULL != hgl_serialize(&elf_info, file_data, "#7F#'ELF'BB-BB") && "Not an ELF-file.");
+    assert(NULL != hgl_serialize(&elf_info.e_type, file_data, 
+                                 (elf_info.ei_data == 1) ? "[LE]<10>%{W}": "[BE]<10>2{W}", 2));
 
     printf("%s: ELF, %s, %s, %s, %s\n", 
            argv[1],
