@@ -108,7 +108,7 @@
 #define hgl_q_print(q) \
     do { \
         printf("[");\
-        for (int i = 0; i < hgl_q_capacity((q)); i++) {\
+        for (size_t i = 0; i < hgl_q_capacity((q)); i++) {\
             printf("%d, ", (q)->arr[i]); \
         } \
         printf("\b\b]\n");\
