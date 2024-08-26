@@ -191,6 +191,10 @@ void hgl_profile_begin(const char *name)
                         "\n"
                         "            These are typically not supported in a virtualized environment.\n"
                         "            Alternatively, you can omit HGL_PROFILE_DETAILED altogether.\n"
+                        "\n"
+                        "            If you are not running in a virtualized environment and you're\n"
+                        "            still seeing this message, make sure you are running your program\n"
+                        "            with the proper permissions (e.g. with sudo).\n\n"
                         );
         abort();
     }

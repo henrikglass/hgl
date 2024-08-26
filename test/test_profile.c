@@ -1,7 +1,7 @@
 
 #define _GNU_SOURCE
 
-//#define HGL_PROF_DETAILED
+#define HGL_PROFILE_DETAILED
 #define HGL_PROFILE_IMPLEMENTATION
 #include "hgl_profile.h"
 
