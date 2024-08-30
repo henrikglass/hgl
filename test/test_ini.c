@@ -5,7 +5,10 @@
 
 int main(void)
 {
-    HglIni ini = hgl_ini_parse("test.ini");
+    HglIni ini = hgl_ini_parse("test/data/test.ini");
+    if (ini.err != 0) {
+        return 1;
+    }
 
     printf("my_f64 got:        %f\n", hgl_ini_get_f64(&ini, "Things", "my_f64"));
     printf("my_i64 got:        %ld\n", hgl_ini_get_i64(&ini, "Things", "my_i64"));

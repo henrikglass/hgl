@@ -68,6 +68,12 @@
         size_t capacity;   \
     }
 
+typedef struct
+{
+    const char *ptr;
+    const char *const eof;
+} HglIniCursor;
+
 /**
  * Represents a key-value pair (e.g. "my_key = my_value").
  */
@@ -94,6 +100,7 @@ typedef HglIniDa(HglIniSection) HglIniSections;
 typedef struct
 {
     HglIniSections sections;
+    int err;
 } HglIni;
 
 /**
@@ -184,6 +191,20 @@ void hgl_ini_print(HglIni *ini);
         free((da)->arr);                                                         \
     } while (0)
 
+static bool cursor_reached_eof(HglIniCursor *cursor)
+{
+    return (cursor->ptr >= cursor->eof) || (*cursor->ptr == '\0');
+}
+
+static int step_cursor(HglIniCursor *cursor)
+{
+    if (!cursor_reached_eof(cursor)) {
+        cursor->ptr++;
+        return 0;
+    }
+    return 1;
+}
+
 static void ltrim(const char **str_start)
 {
     char c = **str_start;
@@ -204,19 +225,39 @@ static void rtrim(const char **str_end)
     }
 }
 
-static void eat_string_until(const char **cursor, char end_char)
+static void eat_string_until(HglIniCursor *cursor, char end_char)
 {
-    while (**cursor != end_char) {
-        if (**cursor == '\\') {
-            (*cursor)++;
+    while (*cursor->ptr != end_char) {
+        if (cursor_reached_eof(cursor)) {
+            return;
         }
-        (*cursor)++;
+
+        if (*cursor->ptr == '\\') {
+            step_cursor(cursor);
+        }
+
+        step_cursor(cursor);
+    }
+}
+
+static void eat_string_until_in_line(HglIniCursor *cursor, char end_char)
+{
+    while (*cursor->ptr != end_char && *cursor->ptr != '\n') {
+        if (cursor_reached_eof(cursor)) {
+            return;
+        }
+
+        if (*cursor->ptr == '\\') {
+            step_cursor(cursor);
+        }
+
+        step_cursor(cursor);
     }
 }
 
 HglIni hgl_ini_parse(const char *filepath)
 {
-    HglIni ini = {0};
+    HglIni ini = {.err = 1};
 
     /* open file in read binary mode */
     int fd = open(filepath, O_RDWR);
@@ -247,18 +288,28 @@ HglIni hgl_ini_parse(const char *filepath)
         goto out_close;
     }
 
+    /* fine so far. */
+    ini.err = 0;
+
     /* parse ini file contents */
-    const char *cursor = data;
-    while ((cursor - data) < file_size) {
-        char c = *cursor;
-        switch (c) {
+    HglIniCursor cursor = {
+        .ptr = data,
+        .eof = data + file_size,
+    };
+    int line_nr = 1;
+    while (!cursor_reached_eof(&cursor)) {
+        switch (*cursor.ptr) {
 
             case '[': {
-                cursor++;
-                const char *start = cursor;
+                step_cursor(&cursor);
+                const char *start = cursor.ptr;
                 eat_string_until(&cursor, ']');
-                const char *end = cursor;
-                cursor++;
+                const char *end = cursor.ptr;
+                if (cursor_reached_eof(&cursor)) {
+                    ini.err = 1;
+                    goto out_close;
+                }
+                step_cursor(&cursor);
                 HglIniSection section = {0};
                 section.name = malloc(end - start + 1);
                 memcpy(section.name, start, end - start);
@@ -267,34 +318,41 @@ HglIni hgl_ini_parse(const char *filepath)
             } break;
 
             case  '\0': {
-                fprintf(stderr, "[hgl_ini_parse] Warning: Encountered \'\\0\' byte.\n");
+                fprintf(stderr, "[hgl_ini_parse] Warning: Encountered \'\\0\' byte on line %d.\n", line_nr);
                 goto out_close;
             } break;
 
-            case  ' ': case '\n': case '\r':
-            case '\v': case '\t': case '\f': {
-                cursor++;
+            case '\n': {
+                step_cursor(&cursor);
+                line_nr++;
+            } break;
+
+            case  ' ': case '\r': case '\v': 
+            case '\t': case '\f': {
+                step_cursor(&cursor);
             } break;
 
             case  ';': {
-                while (*cursor != '\n') {
-                    cursor++;
-                }
-                cursor++;
+                eat_string_until(&cursor, '\n');
             } break;
 
             default: {
                 /* find key */
-                const char *key_start = cursor;
-                eat_string_until(&cursor, '=');
-                const char *key_end = cursor;
-                cursor++;
+                const char *key_start = cursor.ptr;
+                eat_string_until_in_line(&cursor, '=');
+                if (*cursor.ptr != '=') {
+                    fprintf(stderr, "[hgl_ini_parse] Error: Expected \'=\' on line %d.\n", line_nr);
+                    ini.err = 1;
+                    goto out_close;
+                }
+                const char *key_end = cursor.ptr;
+                step_cursor(&cursor);
 
                 /* find value */
-                const char *val_start = cursor;
+                const char *val_start = cursor.ptr;
                 eat_string_until(&cursor, '\n');
-                const char *val_end = cursor;
-                cursor++;
+                const char *val_end = cursor.ptr;
+                step_cursor(&cursor);
 
                 /* trim whitespace */
                 ltrim(&key_start);
@@ -313,6 +371,7 @@ HglIni hgl_ini_parse(const char *filepath)
 
                 if (ini.sections.capacity == 0) {
                     fprintf(stderr, "[hgl_ini_parse] Error: Key-value pair does not belong to a section\n");
+                    ini.err = 1;
                     goto out_close;
                 }
 
