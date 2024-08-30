@@ -24,6 +24,7 @@ all: test_vec         \
          test_profile     \
          test_math     	  \
          test_fft         \
+         test_ini         \
          test_queue
 
 test_hgl:
@@ -96,6 +97,9 @@ test_math:
 test_queue:
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(SRCDIR)/test_queue.c -o test_queue
 
+test_ini:
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_ini.c -o test_ini
+
 clean:
 	-rm test_hgl
 	-rm test_vec
@@ -123,4 +127,5 @@ clean:
 	-rm test_math
 	-rm test_math_simd
 	-rm test_queue
+	-rm test_ini
 	-rm testfil_*
