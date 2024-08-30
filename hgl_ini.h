@@ -75,25 +75,6 @@
     }
 
 /**
- * Represents a key-value pair (e.g. "my_key = my_value").
- */
-typedef struct HglIniKVPair
-{
-    char *key;
-    char *val;
-} HglIniKVPair;
-typedef HglIniDa(struct HglIniKVPair) HglIniKVPairs;
-
-/**
- * Represents a section (e.g. "[MySection]").
- */
-typedef struct HglIniSection
-{
-    char *name;
-    HglIniKVPairs kv_pairs;
-} HglIniSection;
-
-/**
  * Represents an entire parsed *.ini file.
  */
 typedef HglIniDa(struct HglIniSection) HglIni;
@@ -191,6 +172,26 @@ typedef struct
     const char *ptr;
     const char *const eof;
 } HglIniCursor;
+
+/**
+ * Represents a key-value pair (e.g. "my_key = my_value").
+ */
+typedef struct HglIniKVPair
+{
+    char *key;
+    char *val;
+} HglIniKVPair;
+typedef HglIniDa(struct HglIniKVPair) HglIniKVPairs;
+
+/**
+ * Represents a section (e.g. "[MySection]").
+ */
+typedef struct HglIniSection
+{
+    char *name;
+    HglIniKVPairs kv_pairs;
+} HglIniSection;
+
 
 static bool cursor_reached_eof(HglIniCursor *cursor)
 {
