@@ -21,7 +21,7 @@ A collection of small easy-to-use header only libraries written in C.
 | hgl\_serialize.h      | Utility                       | Powerful binary parsing and serializing/unserializing with a simple regex-like language.                |
 | hgl\_cmd.h            | Utility                       | Simple command prompt user interface with tab completion.                                               |
 | hgl\_flags.h          | Utility                       | Simple utility for parsing command-line arguments.                                                      |
-| hgl\_ini.g            | Utility                       | Simple utility for parsing (and generating) \*.ini files                                                |
+| hgl\_ini.h            | Utility                       | Simple utility for parsing (and generating) \*.ini files                                                |
 | hgl\_io.h             | Utility                       | Simple file I/O.                                                                                        |
 | hgl\_fft.h            | Algorithm                     | An implementation of the Fast Fourier Transform (FFT) using SIMD.                                       |
 | hgl\_hamming.h        | Algorithm                     | Hamming(16,11) encoding and decoding system.                                                            |

@@ -6,7 +6,7 @@
 int main(void)
 {
     HglIni ini = hgl_ini_parse("test/data/test.ini");
-    if (ini.err != 0) {
+    if (ini.sections == NULL) {
         return 1;
     }
 

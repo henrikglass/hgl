@@ -68,12 +68,6 @@
         size_t capacity;   \
     }
 
-typedef struct
-{
-    const char *ptr;
-    const char *const eof;
-} HglIniCursor;
-
 /**
  * Represents a key-value pair (e.g. "my_key = my_value").
  */
@@ -99,8 +93,7 @@ typedef HglIniDa(HglIniSection) HglIniSections;
  */
 typedef struct
 {
-    HglIniSections sections;
-    int err;
+    HglIniSections *sections;
 } HglIni;
 
 /**
@@ -191,6 +184,12 @@ void hgl_ini_print(HglIni *ini);
         free((da)->arr);                                                         \
     } while (0)
 
+typedef struct
+{
+    const char *ptr;
+    const char *const eof;
+} HglIniCursor;
+
 static bool cursor_reached_eof(HglIniCursor *cursor)
 {
     return (cursor->ptr >= cursor->eof) || (*cursor->ptr == '\0');
@@ -257,13 +256,21 @@ static void eat_string_until_in_line(HglIniCursor *cursor, char end_char)
 
 HglIni hgl_ini_parse(const char *filepath)
 {
-    HglIni ini = {.err = 1};
+    HglIni ini = {
+        .sections = malloc(sizeof(HglIniSections)),
+    };
+    int fd = -1;
+
+    if (ini.sections == NULL) {
+        fprintf(stderr, "[hgl_ini_parse] Error: Buy more ram lol\n");
+        goto out_error;
+    }
 
     /* open file in read binary mode */
-    int fd = open(filepath, O_RDWR);
+    fd = open(filepath, O_RDWR);
     if (fd == -1) {
         fprintf(stderr, "[hgl_ini_parse] Error: errno=%s\n", strerror(errno));
-        goto out;
+        goto out_error;
     }
 
     /* get file size */
@@ -271,7 +278,7 @@ HglIni hgl_ini_parse(const char *filepath)
     fstat(fd, &sb);
     if (fd == -1) {
         fprintf(stderr, "[hgl_ini_parse] Error: errno=%s\n", strerror(errno));
-        goto out_close;
+        goto out_error;
     }
 
     /* mmap file */
@@ -285,11 +292,8 @@ HglIni hgl_ini_parse(const char *filepath)
     if (data == MAP_FAILED) {
         fprintf(stderr, "[hgl_ini_parse] Error: mmap failed with errno=%s\n",
                 strerror(errno));
-        goto out_close;
+        goto out_error;
     }
-
-    /* fine so far. */
-    ini.err = 0;
 
     /* parse ini file contents */
     HglIniCursor cursor = {
@@ -306,20 +310,19 @@ HglIni hgl_ini_parse(const char *filepath)
                 eat_string_until(&cursor, ']');
                 const char *end = cursor.ptr;
                 if (cursor_reached_eof(&cursor)) {
-                    ini.err = 1;
-                    goto out_close;
+                    goto out_error;
                 }
                 step_cursor(&cursor);
                 HglIniSection section = {0};
                 section.name = malloc(end - start + 1);
                 memcpy(section.name, start, end - start);
                 section.name[end - start] = '\0';
-                hgl_ini_da_add(&ini.sections, section);
+                hgl_ini_da_add(ini.sections, section);
             } break;
 
             case  '\0': {
                 fprintf(stderr, "[hgl_ini_parse] Warning: Encountered \'\\0\' byte on line %d.\n", line_nr);
-                goto out_close;
+                goto out_error;
             } break;
 
             case '\n': {
@@ -342,8 +345,7 @@ HglIni hgl_ini_parse(const char *filepath)
                 eat_string_until_in_line(&cursor, '=');
                 if (*cursor.ptr != '=') {
                     fprintf(stderr, "[hgl_ini_parse] Error: Expected \'=\' on line %d.\n", line_nr);
-                    ini.err = 1;
-                    goto out_close;
+                    goto out_error;
                 }
                 const char *key_end = cursor.ptr;
                 step_cursor(&cursor);
@@ -369,29 +371,32 @@ HglIni hgl_ini_parse(const char *filepath)
                 kv_pair.key[key_end - key_start] = '\0';
                 kv_pair.val[val_end - val_start] = '\0';
 
-                if (ini.sections.capacity == 0) {
+                if (ini.sections->capacity == 0) {
                     fprintf(stderr, "[hgl_ini_parse] Error: Key-value pair does not belong to a section\n");
-                    ini.err = 1;
-                    goto out_close;
+                    goto out_error;
                 }
 
-                HglIniSection *current_section = &ini.sections.arr[ini.sections.count - 1];
+                HglIniSection *current_section = &ini.sections->arr[ini.sections->count - 1];
                 hgl_ini_da_add(&current_section->kv_pairs, kv_pair);
             } break;
         }
     }
 
-out_close:
     close(fd);
-out:
     return ini;
 
+out_error:
+    if (fd != -1) {
+        close(fd);
+    }
+    hgl_ini_free(&ini);
+    return ini;
 }
 
 void hgl_ini_free(HglIni *ini)
 {
-    for (size_t i = 0; i < ini->sections.count; i++) {
-        HglIniSection *s = &ini->sections.arr[i];
+    for (size_t i = 0; i < ini->sections->count; i++) {
+        HglIniSection *s = &ini->sections->arr[i];
         for (size_t j = 0; j < s->kv_pairs.count; j++) {
             HglIniKVPair *kv = &s->kv_pairs.arr[j];
             free(kv->key);
@@ -399,7 +404,9 @@ void hgl_ini_free(HglIni *ini)
         }
         hgl_ini_da_free(&s->kv_pairs);
     }
-    hgl_ini_da_free(&ini->sections);
+    hgl_ini_da_free(ini->sections);
+    free(ini->sections);
+    ini->sections = NULL;
 }
 
 const char *hgl_ini_get(HglIni *ini, const char *section_name, const char *key_name)
@@ -408,8 +415,8 @@ const char *hgl_ini_get(HglIni *ini, const char *section_name, const char *key_n
     size_t key_name_len     = strlen(key_name);
 
     /* Get the raw value */
-    for (size_t i = 0; i < ini->sections.count; i++) {
-        HglIniSection *section = &ini->sections.arr[i];
+    for (size_t i = 0; i < ini->sections->count; i++) {
+        HglIniSection *section = &ini->sections->arr[i];
 
         if (strncmp(section_name, section->name, section_name_len) != 0) {
             continue;
@@ -473,8 +480,8 @@ void hgl_ini_put(HglIni *ini,
     HglIniKVPair *kv_pair = NULL;
 
     /* look for already present section & kv-pair */
-    for (size_t i = 0; i < ini->sections.count; i++) {
-        HglIniSection *s = &ini->sections.arr[i];
+    for (size_t i = 0; i < ini->sections->count; i++) {
+        HglIniSection *s = &ini->sections->arr[i];
 
         if (strcmp(section_name, s->name) != 0) {
             continue;
@@ -504,8 +511,8 @@ void hgl_ini_put(HglIni *ini,
         new_section.name[section_name_len] = '\0';
 
         /* Add to ini */
-        hgl_ini_da_add(&ini->sections, new_section);
-        section = &ini->sections.arr[ini->sections.count - 1];
+        hgl_ini_da_add(ini->sections, new_section);
+        section = &ini->sections->arr[ini->sections->count - 1];
     }
 
     assert(section != NULL);
@@ -536,8 +543,8 @@ void hgl_ini_put(HglIni *ini,
 
 void hgl_ini_print(HglIni *ini)
 {
-    for (size_t i = 0; i < ini->sections.count; i++) {
-        HglIniSection *s = &ini->sections.arr[i];
+    for (size_t i = 0; i < ini->sections->count; i++) {
+        HglIniSection *s = &ini->sections->arr[i];
         printf("[%s]\n", s->name);
         for (size_t j = 0; j < s->kv_pairs.count; j++) {
             HglIniKVPair *kv = &s->kv_pairs.arr[j];
