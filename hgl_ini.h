@@ -40,13 +40,19 @@
  *
  * Code example:
  *
- *     HglIni ini = hgl_ini_parse("my_ini_file.ini");
+ *     HglIni *ini = hgl_ini_parse("my_ini_file.ini");
+ *     if (ini == NULL) {
+ *         fprintf(stderr, "Uh oh parsing failed for some reason.\n");
+ *         return 1;
+ *     }
  *
- *     const char *my_text = hgl_ini_get(&ini, "MySection", "MyKeyName");
- *     bool my_bool        = hgl_ini_get_bool(&ini, "MyOtherSection", "MyBool");
- *     uint64_t my_u64     = hgl_ini_get_u64(&ini, "MyNumbers", "MyUnsignedNumber");
- *     int64_t my_i64      = hgl_ini_get_i64(&ini, "MyNumbers", "MySignedNumber");
- *     float my_f32        = (float) hgl_ini_get_f64(&ini, "MyNumbers", "MyFloat");
+ *     const char *my_text = hgl_ini_get(ini, "MySection", "MyKeyName");
+ *     bool my_bool        = hgl_ini_get_bool(ini, "MyOtherSection", "MyBool");
+ *     uint64_t my_u64     = hgl_ini_get_u64(ini, "MyNumbers", "MyUnsignedNumber");
+ *     int64_t my_i64      = hgl_ini_get_i64(ini, "MyNumbers", "MySignedNumber");
+ *     float my_f32        = (float) hgl_ini_get_f64(ini, "MyNumbers", "MyFloat");
+ *
+ * See test/test_ini.c for more usage examples.
  *
  *
  * AUTHOR: Henrik A. Glass
@@ -71,35 +77,31 @@
 /**
  * Represents a key-value pair (e.g. "my_key = my_value").
  */
-typedef struct
+typedef struct HglIniKVPair
 {
     char *key;
     char *val;
 } HglIniKVPair;
-typedef HglIniDa(HglIniKVPair) HglIniKVPairs;
+typedef HglIniDa(struct HglIniKVPair) HglIniKVPairs;
 
 /**
  * Represents a section (e.g. "[MySection]").
  */
-typedef struct
+typedef struct HglIniSection
 {
     char *name;
     HglIniKVPairs kv_pairs;
 } HglIniSection;
-typedef HglIniDa(HglIniSection) HglIniSections;
 
 /**
  * Represents an entire parsed *.ini file.
  */
-typedef struct
-{
-    HglIniSections *sections;
-} HglIni;
+typedef HglIniDa(struct HglIniSection) HglIni;
 
 /**
  * Parses the *.ini file at `filepath`.
  */
-HglIni hgl_ini_parse(const char *filepath);
+HglIni *hgl_ini_parse(const char *filepath);
 
 /**
  * Frees the memory used by `ini`.
@@ -254,14 +256,11 @@ static void eat_string_until_in_line(HglIniCursor *cursor, char end_char)
     }
 }
 
-HglIni hgl_ini_parse(const char *filepath)
+HglIni *hgl_ini_parse(const char *filepath)
 {
-    HglIni ini = {
-        .sections = malloc(sizeof(HglIniSections)),
-    };
     int fd = -1;
-
-    if (ini.sections == NULL) {
+    HglIni *ini = malloc(sizeof(HglIni));
+    if (ini == NULL) {
         fprintf(stderr, "[hgl_ini_parse] Error: Buy more ram lol\n");
         goto out_error;
     }
@@ -317,7 +316,7 @@ HglIni hgl_ini_parse(const char *filepath)
                 section.name = malloc(end - start + 1);
                 memcpy(section.name, start, end - start);
                 section.name[end - start] = '\0';
-                hgl_ini_da_add(ini.sections, section);
+                hgl_ini_da_add(ini, section);
             } break;
 
             case  '\0': {
@@ -371,12 +370,12 @@ HglIni hgl_ini_parse(const char *filepath)
                 kv_pair.key[key_end - key_start] = '\0';
                 kv_pair.val[val_end - val_start] = '\0';
 
-                if (ini.sections->capacity == 0) {
+                if (ini->capacity == 0) {
                     fprintf(stderr, "[hgl_ini_parse] Error: Key-value pair does not belong to a section\n");
                     goto out_error;
                 }
 
-                HglIniSection *current_section = &ini.sections->arr[ini.sections->count - 1];
+                HglIniSection *current_section = &ini->arr[ini->count - 1];
                 hgl_ini_da_add(&current_section->kv_pairs, kv_pair);
             } break;
         }
@@ -389,14 +388,15 @@ out_error:
     if (fd != -1) {
         close(fd);
     }
-    hgl_ini_free(&ini);
-    return ini;
+    hgl_ini_free(ini);
+    return NULL;
 }
 
 void hgl_ini_free(HglIni *ini)
 {
-    for (size_t i = 0; i < ini->sections->count; i++) {
-        HglIniSection *s = &ini->sections->arr[i];
+    for (size_t i = 0; i < ini->count; i++) {
+        HglIniSection *s = &ini->arr[i];
+        free(s->name);
         for (size_t j = 0; j < s->kv_pairs.count; j++) {
             HglIniKVPair *kv = &s->kv_pairs.arr[j];
             free(kv->key);
@@ -404,9 +404,8 @@ void hgl_ini_free(HglIni *ini)
         }
         hgl_ini_da_free(&s->kv_pairs);
     }
-    hgl_ini_da_free(ini->sections);
-    free(ini->sections);
-    ini->sections = NULL;
+    hgl_ini_da_free(ini);
+    free(ini);
 }
 
 const char *hgl_ini_get(HglIni *ini, const char *section_name, const char *key_name)
@@ -415,8 +414,8 @@ const char *hgl_ini_get(HglIni *ini, const char *section_name, const char *key_n
     size_t key_name_len     = strlen(key_name);
 
     /* Get the raw value */
-    for (size_t i = 0; i < ini->sections->count; i++) {
-        HglIniSection *section = &ini->sections->arr[i];
+    for (size_t i = 0; i < ini->count; i++) {
+        HglIniSection *section = &ini->arr[i];
 
         if (strncmp(section_name, section->name, section_name_len) != 0) {
             continue;
@@ -480,8 +479,8 @@ void hgl_ini_put(HglIni *ini,
     HglIniKVPair *kv_pair = NULL;
 
     /* look for already present section & kv-pair */
-    for (size_t i = 0; i < ini->sections->count; i++) {
-        HglIniSection *s = &ini->sections->arr[i];
+    for (size_t i = 0; i < ini->count; i++) {
+        HglIniSection *s = &ini->arr[i];
 
         if (strcmp(section_name, s->name) != 0) {
             continue;
@@ -511,8 +510,8 @@ void hgl_ini_put(HglIni *ini,
         new_section.name[section_name_len] = '\0';
 
         /* Add to ini */
-        hgl_ini_da_add(ini->sections, new_section);
-        section = &ini->sections->arr[ini->sections->count - 1];
+        hgl_ini_da_add(ini, new_section);
+        section = &ini->arr[ini->count - 1];
     }
 
     assert(section != NULL);
@@ -543,8 +542,8 @@ void hgl_ini_put(HglIni *ini,
 
 void hgl_ini_print(HglIni *ini)
 {
-    for (size_t i = 0; i < ini->sections->count; i++) {
-        HglIniSection *s = &ini->sections->arr[i];
+    for (size_t i = 0; i < ini->count; i++) {
+        HglIniSection *s = &ini->arr[i];
         printf("[%s]\n", s->name);
         for (size_t j = 0; j < s->kv_pairs.count; j++) {
             HglIniKVPair *kv = &s->kv_pairs.arr[j];

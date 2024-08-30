@@ -125,6 +125,7 @@ int hgl_memdbg_report(void);
 
 #ifdef HGL_MEMDBG_IMPLEMENTATION
 
+#include <stdio.h>
 #include <stddef.h>
 
 /* Size of header + required padding to keep the alignment constraints of malloc */
@@ -172,6 +173,10 @@ void *hgl_memdbg_internal_malloc_(size_t size, const char *file, int line)
 
 void *hgl_memdbg_internal_realloc_(void *ptr, size_t size, const char *file, int line)
 {
+    if (ptr == NULL) {
+        return hgl_memdbg_internal_malloc_(size, file, line);
+    }
+
     uint8_t *ptr8 = (uint8_t *) ptr;
     HglAllocationHeader *header = (HglAllocationHeader *) (ptr8 - HGL_MEMDBG_PADDED_HEADER_SIZE);
     HglAllocationHeader *prev = header->prev;
@@ -216,6 +221,10 @@ void *hgl_memdbg_internal_realloc_(void *ptr, size_t size, const char *file, int
 void hgl_memdbg_internal_free_(void *ptr)
 {
     uint8_t *ptr8 = (uint8_t *) ptr;
+
+    if (ptr == NULL) {
+        return;
+    }
 
     /* Remove allocation from linked list and free it. */
     HglAllocationHeader *header = (HglAllocationHeader *) (ptr8 - HGL_MEMDBG_PADDED_HEADER_SIZE);
