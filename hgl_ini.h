@@ -1,0 +1,492 @@
+
+/**
+ * LICENSE:
+ *
+ * MIT License
+ *
+ * Copyright (c) 2023 Henrik A. Glass
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ * MIT License
+ *
+ *
+ * ABOUT:
+ *
+ * hgl_ini.h implements a simple *.ini file parser.
+ *
+ *
+ * USAGE:
+ *
+ * Include hgl_ini.h file like this:
+ *
+ *     #define HGL_INI_IMPLEMENTATION
+ *     #include "hgl_ini.h"
+ *
+ * Code example:
+ *
+ *     HglIni ini = hgl_ini_parse("my_ini_file.ini");
+ *
+ *     const char *my_text = hgl_ini_get(&ini, "MySection", "MyKeyName");
+ *     bool my_bool        = hgl_ini_get_bool(&ini, "MyOtherSection", "MyBool");
+ *     uint64_t my_u64     = hgl_ini_get_u64(&ini, "MyNumbers", "MyUnsignedNumber");
+ *     int64_t my_i64      = hgl_ini_get_i64(&ini, "MyNumbers", "MySignedNumber");
+ *     float my_f32        = (float) hgl_ini_get_f64(&ini, "MyNumbers", "MyFloat");
+ *
+ *
+ * AUTHOR: Henrik A. Glass
+ *
+ */
+
+
+#ifndef HGL_INI_H
+#define HGL_INI_H
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <sys/types.h>
+
+#define HglIniDa(T)        \
+    struct {               \
+        T *arr;            \
+        size_t count;      \
+        size_t capacity;   \
+    }
+
+/**
+ * Represents a key-value pair (e.g. "my_key = my_value").
+ */
+typedef struct
+{
+    char *key;
+    char *val;
+} HglIniKVPair;
+typedef HglIniDa(HglIniKVPair) HglIniKVPairs;
+
+/**
+ * Represents a section (e.g. "[MySection]").
+ */
+typedef struct
+{
+    char *name;
+    HglIniKVPairs kv_pairs;
+} HglIniSection;
+typedef HglIniDa(HglIniSection) HglIniSections;
+
+/**
+ * Represents an entire parsed *.ini file.
+ */
+typedef struct
+{
+    HglIniSections sections;
+} HglIni;
+
+/**
+ * Parses the *.ini file at `filepath`.
+ */
+HglIni hgl_ini_parse(const char *filepath);
+
+/**
+ * Frees the memory used by `ini`.
+ */
+void hgl_ini_free(HglIni *ini);
+
+/**
+ * Gets a raw value from `ini`, i.e. a string representation of the value.
+ */
+const char *hgl_ini_get(HglIni *ini, const char *section_name, const char *key_name);
+
+/**
+ * Gets a boolean value from `ini`. The raw value is retrieved and parsed
+ * as a boolean.
+ *
+ * Only the raw values "true", "True", "TRUE", and "1" represent a true value.
+ * All other raw values result in this function returning false.
+ */
+bool hgl_ini_get_bool(HglIni *ini, const char *section_name, const char *key_name);
+
+/**
+ * Gets a signed integer value from `ini`. The raw value is retrieved and
+ * parsed as a 64-bit signed integer.
+ */
+int64_t hgl_ini_get_i64(HglIni *ini, const char *section_name, const char *key_name);
+
+/**
+ * Gets an unsigned integer value from `ini`. The raw value is retrieved and
+ * parsed as a 64-bit unsigned integer.
+ */
+uint64_t hgl_ini_get_u64(HglIni *ini, const char *section_name, const char *key_name);
+
+/**
+ * Gets an floating point value from `ini`. The raw value is retrieved and
+ * parsed as a 64-bit float.
+ *
+ * Note: this assumes "double" is 64 bits, which it in most cases is.
+ */
+double hgl_ini_get_f64(HglIni *ini, const char *section_name, const char *key_name);
+
+/**
+ * Adds or updates a key-value pair in `ini`. If the section name or key name
+ * is not present in `ini` a new key-value pair will be added. If both the
+ * section name and key name are present in `ini` the old value will be updated.
+ */
+void hgl_ini_put(HglIni *ini, const char *section_name, const char *key_name, const char *raw_value);
+
+/**
+ * Pretty-prints the contents of `ini`. The output is a valid *.ini file albeit
+ * without any comments.
+ */
+void hgl_ini_print(HglIni *ini);
+
+#endif /* HGL_INI_H */
+
+#ifdef HGL_INI_IMPLEMENTATION
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <assert.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+#define hgl_ini_da_add(da, item)                                                 \
+    do {                                                                         \
+        if ((da)->capacity < ((da)->count + 1)) {                                \
+            (da)->capacity = MAX(10, 2*(da)->capacity);                          \
+            (da)->arr = realloc((da)->arr, (da)->capacity * sizeof(*(da)->arr)); \
+        }                                                                        \
+        assert(((da)->arr != NULL) && "[hgl] Error: (re)alloc failed");          \
+        (da)->arr[(da)->count++] = (item);                                       \
+    } while (0)
+
+#define hgl_ini_da_free(da)                                                      \
+    do {                                                                         \
+        free((da)->arr);                                                         \
+    } while (0)
+
+static void ltrim(const char **str_start)
+{
+    char c = **str_start;
+    while (c == ' '  || c == '\t' || c == '\n' ||
+           c == '\r' || c == '\v' || c == '\f') {
+        (*str_start)++;
+        c = **str_start;
+    }
+}
+
+static void rtrim(const char **str_end)
+{
+    char c = *(*str_end - 1);
+    while (c == ' '  || c == '\t' || c == '\n' ||
+           c == '\r' || c == '\v' || c == '\f') {
+        (*str_end)--;
+        c = *(*str_end - 1);
+    }
+}
+
+static void eat_string_until(const char **cursor, char end_char)
+{
+    while (**cursor != end_char) {
+        if (**cursor == '\\') {
+            (*cursor)++;
+        }
+        (*cursor)++;
+    }
+}
+
+HglIni hgl_ini_parse(const char *filepath)
+{
+    HglIni ini = {0};
+
+    /* open file in read binary mode */
+    int fd = open(filepath, O_RDWR);
+    if (fd == -1) {
+        fprintf(stderr, "[hgl_ini_parse] Error: errno=%s\n", strerror(errno));
+        goto out;
+    }
+
+    /* get file size */
+    struct stat sb;
+    fstat(fd, &sb);
+    if (fd == -1) {
+        fprintf(stderr, "[hgl_ini_parse] Error: errno=%s\n", strerror(errno));
+        goto out_close;
+    }
+
+    /* mmap file */
+    ssize_t file_size = sb.st_size;
+    char *data = mmap(NULL,                   /* Let kernel choose page-aligned address */
+                      file_size,              /* Length of mapping in bytes */
+                      PROT_READ | PROT_WRITE, /* Readable & writable */
+                      MAP_SHARED,             /* Shared mapping. Visible to other processes */
+                      fd,                     /* File descriptor of file to map */
+                      0);                     /* Begin map at offset 0 into file */
+    if (data == MAP_FAILED) {
+        fprintf(stderr, "[hgl_ini_parse] Error: mmap failed with errno=%s\n",
+                strerror(errno));
+        goto out_close;
+    }
+
+    /* parse ini file contents */
+    const char *cursor = data;
+    while ((cursor - data) < file_size) {
+        char c = *cursor;
+        switch (c) {
+
+            case '[': {
+                cursor++;
+                const char *start = cursor;
+                eat_string_until(&cursor, ']');
+                const char *end = cursor;
+                cursor++;
+                HglIniSection section = {0};
+                section.name = malloc(end - start + 1);
+                memcpy(section.name, start, end - start);
+                section.name[end - start] = '\0';
+                hgl_ini_da_add(&ini.sections, section);
+            } break;
+
+            case  '\0': {
+                fprintf(stderr, "[hgl_ini_parse] Warning: Encountered \'\\0\' byte.\n");
+                goto out_close;
+            } break;
+
+            case  ' ': case '\n': case '\r':
+            case '\v': case '\t': case '\f': {
+                cursor++;
+            } break;
+
+            case  ';': {
+                while (*cursor != '\n') {
+                    cursor++;
+                }
+                cursor++;
+            } break;
+
+            default: {
+                /* find key */
+                const char *key_start = cursor;
+                eat_string_until(&cursor, '=');
+                const char *key_end = cursor;
+                cursor++;
+
+                /* find value */
+                const char *val_start = cursor;
+                eat_string_until(&cursor, '\n');
+                const char *val_end = cursor;
+                cursor++;
+
+                /* trim whitespace */
+                ltrim(&key_start);
+                ltrim(&val_start);
+                rtrim(&key_end);
+                rtrim(&val_end);
+
+                HglIniKVPair kv_pair = (HglIniKVPair) {
+                    .key = malloc(key_end - key_start + 1),
+                    .val = malloc(val_end - val_start + 1),
+                };
+                memcpy(kv_pair.key, key_start, key_end - key_start);
+                memcpy(kv_pair.val, val_start, val_end - val_start);
+                kv_pair.key[key_end - key_start] = '\0';
+                kv_pair.val[val_end - val_start] = '\0';
+
+                if (ini.sections.capacity == 0) {
+                    fprintf(stderr, "[hgl_ini_parse] Error: Key-value pair does not belong to a section\n");
+                    goto out_close;
+                }
+
+                HglIniSection *current_section = &ini.sections.arr[ini.sections.count - 1];
+                hgl_ini_da_add(&current_section->kv_pairs, kv_pair);
+            } break;
+        }
+    }
+
+out_close:
+    close(fd);
+out:
+    return ini;
+
+}
+
+void hgl_ini_free(HglIni *ini)
+{
+    for (size_t i = 0; i < ini->sections.count; i++) {
+        HglIniSection *s = &ini->sections.arr[i];
+        for (size_t j = 0; j < s->kv_pairs.count; j++) {
+            HglIniKVPair *kv = &s->kv_pairs.arr[j];
+            free(kv->key);
+            free(kv->val);
+        }
+        hgl_ini_da_free(&s->kv_pairs);
+    }
+    hgl_ini_da_free(&ini->sections);
+}
+
+const char *hgl_ini_get(HglIni *ini, const char *section_name, const char *key_name)
+{
+    size_t section_name_len = strlen(section_name);
+    size_t key_name_len     = strlen(key_name);
+
+    /* Get the raw value */
+    for (size_t i = 0; i < ini->sections.count; i++) {
+        HglIniSection *section = &ini->sections.arr[i];
+
+        if (strncmp(section_name, section->name, section_name_len) != 0) {
+            continue;
+        }
+
+        for (size_t j = 0; j < section->kv_pairs.count; j++) {
+            HglIniKVPair *kv_pair = &section->kv_pairs.arr[j];
+            if (strncmp(key_name, kv_pair->key, key_name_len) == 0) {
+                return (const char *) kv_pair->val;
+            }
+        }
+
+        return NULL; /* don't allow duplicate section names */
+    }
+    return NULL;
+}
+
+bool hgl_ini_get_bool(HglIni *ini, const char *section_name, const char *key_name)
+{
+    const char *raw_value = hgl_ini_get(ini, section_name, key_name);
+    size_t raw_value_len = strlen(raw_value);
+
+    return ((raw_value_len == 4) && (strcmp(raw_value, "true") == 0)) ||
+           ((raw_value_len == 4) && (strcmp(raw_value, "True") == 0)) ||
+           ((raw_value_len == 4) && (strcmp(raw_value, "TRUE") == 0)) ||
+           ((raw_value_len == 1) && (strcmp(raw_value, "1") == 0));
+}
+
+int64_t hgl_ini_get_i64(HglIni *ini, const char *section_name, const char *key_name)
+{
+    const char *raw_value = hgl_ini_get(ini, section_name, key_name);
+    char *end;
+    return strtol(raw_value, &end, 0);
+}
+
+uint64_t hgl_ini_get_u64(HglIni *ini, const char *section_name, const char *key_name)
+{
+    const char *raw_value = hgl_ini_get(ini, section_name, key_name);
+    char *end;
+    return strtoul(raw_value, &end, 0);
+}
+
+double hgl_ini_get_f64(HglIni *ini, const char *section_name, const char *key_name)
+{
+    const char *raw_value = hgl_ini_get(ini, section_name, key_name);
+    char *end;
+    return strtod(raw_value, &end);
+}
+
+
+void hgl_ini_put(HglIni *ini,
+                 const char *section_name,
+                 const char *key_name,
+                 const char *raw_value)
+{
+    size_t section_name_len = strlen(section_name);
+    size_t key_name_len     = strlen(key_name);
+    size_t raw_value_len    = strlen(raw_value);
+
+    HglIniSection *section = NULL;
+    HglIniKVPair *kv_pair = NULL;
+
+    /* look for already present section & kv-pair */
+    for (size_t i = 0; i < ini->sections.count; i++) {
+        HglIniSection *s = &ini->sections.arr[i];
+
+        if (strcmp(section_name, s->name) != 0) {
+            continue;
+        }
+
+        section = s;
+
+        for (size_t j = 0; j < section->kv_pairs.count; j++) {
+            HglIniKVPair *kv = &section->kv_pairs.arr[j];
+            if (strcmp(kv->key, key_name) != 0) {
+                continue;
+            }
+            kv_pair = kv;
+            break;
+        }
+
+        break;
+    }
+
+    /* if section is not present, add it */
+    if (section == NULL) {
+
+        /* create new section */
+        HglIniSection new_section = {0};
+        new_section.name = malloc(section_name_len + 1);
+        memcpy(new_section.name, section_name, section_name_len);
+        new_section.name[section_name_len] = '\0';
+
+        /* Add to ini */
+        hgl_ini_da_add(&ini->sections, new_section);
+        section = &ini->sections.arr[ini->sections.count - 1];
+    }
+
+    assert(section != NULL);
+
+    /* if kv-pair is not present, add it */
+    if (kv_pair == NULL) {
+        /* create new kv-pair */
+        HglIniKVPair new_kv_pair = (HglIniKVPair) {
+            .key = malloc(key_name_len + 1),
+            .val = NULL,
+        };
+        memcpy(new_kv_pair.key, key_name, key_name_len);
+        new_kv_pair.key[key_name_len] = '\0';
+
+        /* Add to section */
+        hgl_ini_da_add(&section->kv_pairs, new_kv_pair);
+        kv_pair = &section->kv_pairs.arr[section->kv_pairs.count - 1];
+    }
+
+    assert(kv_pair != NULL);
+
+    free(kv_pair->val);
+    kv_pair->val = malloc(raw_value_len + 1);
+    memcpy(kv_pair->val, raw_value, raw_value_len);
+    kv_pair->val[raw_value_len] = '\0';
+
+}
+
+void hgl_ini_print(HglIni *ini)
+{
+    for (size_t i = 0; i < ini->sections.count; i++) {
+        HglIniSection *s = &ini->sections.arr[i];
+        printf("[%s]\n", s->name);
+        for (size_t j = 0; j < s->kv_pairs.count; j++) {
+            HglIniKVPair *kv = &s->kv_pairs.arr[j];
+            printf("%s = %s\n", kv->key, kv->val);
+
+        }
+        printf("\n");
+    }
+}
+
+#endif
