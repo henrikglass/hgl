@@ -52,6 +52,8 @@
  *     int64_t my_i64      = hgl_ini_get_i64(ini, "MyNumbers", "MySignedNumber");
  *     float my_f32        = (float) hgl_ini_get_f64(ini, "MyNumbers", "MyFloat");
  *
+ *     hgl_ini_free(ini);
+ *
  * See test/test_ini.c for more usage examples.
  *
  *
