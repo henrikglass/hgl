@@ -41,7 +41,7 @@ int main()
     hgl_io_file_free(&file);
 
     const char *str = "1337\n";
-    hgl_io_file_append_to("testfil_gubbe.txt", (uint8_t *) str, strlen(str));
+    hgl_io_file_append("testfil_gubbe.txt", (uint8_t *) str, strlen(str));
 
     /* HglImage write test 1 */
     HglImage image = {

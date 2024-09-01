@@ -144,7 +144,7 @@ int hgl_io_file_write_to(const char *filepath, uint8_t *data, size_t size);
  * Appends `size` bytes from `data` to the file at `filepath` in binary mode.
  * Returns -1 on error, 0 otherwise.
  */
-int hgl_io_file_append_to(const char *filepath, uint8_t *data, size_t size);
+int hgl_io_file_append(const char *filepath, uint8_t *data, size_t size);
 
 /**
  * Gets the next line in the file `file`. Returns the size of the line in bytes and
@@ -350,7 +350,7 @@ int hgl_io_file_write_to(const char *filepath, uint8_t *data, size_t size)
     return 0;
 }
 
-int hgl_io_file_append_to(const char *filepath, uint8_t *data, size_t size)
+int hgl_io_file_append(const char *filepath, uint8_t *data, size_t size)
 {
     /* open file in write binary mode */
     FILE *fp = fopen(filepath, "ab");
