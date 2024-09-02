@@ -6,6 +6,7 @@ A collection of small easy-to-use header only libraries written in C.
 | hgl\_arena\_alloc.h   | Allocator                     | Arena allocator.                                                                                        |
 | hgl\_stack\_alloc.h   | Allocator                     | Stack allocator (requires hgl\_arena\_alloc.h).                                                         |
 | hgl\_pool\_alloc.h    | Allocator                     | Pool allocator.                                                                                         |
+| hgl\_fs\_alloc.h      | Allocator                     | A "free stack" allocator. Similar to other free list allocators.                                                                                         |
 | hgl\_vector.h         | Data Structure                | Typed\* dynamic (resizable) array.                                                                      |
 | hgl\_da.h             | Data Structure                | Macro-only generic dynamic array implementation.                                                        |
 | hgl\_q.h              | Data Structure                | Macro-only generic queue (circular buffer) implementation.                                              |
