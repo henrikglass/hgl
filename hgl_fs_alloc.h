@@ -178,6 +178,12 @@ static_assert((HGL_FS_ALLOC_ALIGNMENT & (HGL_FS_ALLOC_ALIGNMENT - 1)) == 0,
 HglFsAllocator hgl_fs_make(size_t size, int free_stack_capacity)
 {
 
+    if (free_stack_capacity < 1) {
+        fprintf(stderr, "[hgl_fs_make] `free_stack_capacity` is too small (%d).\n",
+                free_stack_capacity);
+        return (HglFsAllocator) {0};
+    }
+
     if ((size & (HGL_FS_ALLOC_ALIGNMENT - 1)) != 0) {
         fprintf(stderr, "[hgl_fs_make] `size` is not a multiple of the chosen alignment (%d).\n",
                 HGL_FS_ALLOC_ALIGNMENT);
@@ -290,6 +296,10 @@ void *hgl_fs_realloc(HglFsAllocator *allocator, void *ptr, size_t size)
 void hgl_fs_free(HglFsAllocator *allocator, void *ptr)
 {
     uint8_t *ptr8 = (uint8_t *) ptr;
+
+    if (ptr8 == NULL) {
+        return;
+    }
 
     if ((ptr8 < allocator->memory) || (ptr8 > (allocator->memory + allocator->size))) {
         fprintf(stderr, "[hgl_fs_free] Invalid pointer. Pointer ptr=%p is outside the valid range [%p, %p].\n", 

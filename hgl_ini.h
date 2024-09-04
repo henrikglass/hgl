@@ -144,7 +144,6 @@ void hgl_ini_print(HglIni *ini);
 
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <assert.h>
 #include <sys/stat.h>
@@ -152,21 +151,30 @@ void hgl_ini_print(HglIni *ini);
 #include <sys/mman.h>
 #include <unistd.h>
 
+#if !defined(HGL_INI_ALLOC) &&   \
+    !defined(HGL_INI_REALLOC) && \
+    !defined(HGL_INI_FREE)
+#include <stdlib.h>
+#define HGL_INI_ALLOC malloc
+#define HGL_INI_REALLOC realloc
+#define HGL_INI_FREE free
+#endif
+
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-#define hgl_ini_da_add(da, item)                                                 \
-    do {                                                                         \
-        if ((da)->capacity < ((da)->count + 1)) {                                \
-            (da)->capacity = MAX(10, 2*(da)->capacity);                          \
-            (da)->arr = realloc((da)->arr, (da)->capacity * sizeof(*(da)->arr)); \
-        }                                                                        \
-        assert(((da)->arr != NULL) && "[hgl] Error: (re)alloc failed");          \
-        (da)->arr[(da)->count++] = (item);                                       \
+#define hgl_ini_da_add(da, item)                                                         \
+    do {                                                                                 \
+        if ((da)->capacity < ((da)->count + 1)) {                                        \
+            (da)->capacity = MAX(10, 2*(da)->capacity);                                  \
+            (da)->arr = HGL_INI_REALLOC((da)->arr, (da)->capacity * sizeof(*(da)->arr)); \
+        }                                                                                \
+        assert(((da)->arr != NULL) && "[hgl] Error: (re)alloc failed");                  \
+        (da)->arr[(da)->count++] = (item);                                               \
     } while (0)
 
-#define hgl_ini_da_free(da)                                                      \
-    do {                                                                         \
-        free((da)->arr);                                                         \
+#define hgl_ini_da_free(da)                                                              \
+    do {                                                                                 \
+        HGL_INI_FREE((da)->arr);                                                         \
     } while (0)
 
 typedef struct
@@ -262,7 +270,7 @@ static void eat_string_until_in_line(HglIniCursor *cursor, char end_char)
 HglIni *hgl_ini_parse(const char *filepath)
 {
     int fd = -1;
-    HglIni *ini = malloc(sizeof(HglIni));
+    HglIni *ini = HGL_INI_ALLOC(sizeof(HglIni));
     if (ini == NULL) {
         fprintf(stderr, "[hgl_ini_parse] Error: Buy more ram lol\n");
         goto out_error;
@@ -316,7 +324,7 @@ HglIni *hgl_ini_parse(const char *filepath)
                 }
                 step_cursor(&cursor);
                 HglIniSection section = {0};
-                section.name = malloc(end - start + 1);
+                section.name = HGL_INI_ALLOC(end - start + 1);
                 memcpy(section.name, start, end - start);
                 section.name[end - start] = '\0';
                 hgl_ini_da_add(ini, section);
@@ -365,8 +373,8 @@ HglIni *hgl_ini_parse(const char *filepath)
                 rtrim(&val_end);
 
                 HglIniKVPair kv_pair = (HglIniKVPair) {
-                    .key = malloc(key_end - key_start + 1),
-                    .val = malloc(val_end - val_start + 1),
+                    .key = HGL_INI_ALLOC(key_end - key_start + 1),
+                    .val = HGL_INI_ALLOC(val_end - val_start + 1),
                 };
                 memcpy(kv_pair.key, key_start, key_end - key_start);
                 memcpy(kv_pair.val, val_start, val_end - val_start);
@@ -399,16 +407,16 @@ void hgl_ini_free(HglIni *ini)
 {
     for (size_t i = 0; i < ini->count; i++) {
         HglIniSection *s = &ini->arr[i];
-        free(s->name);
+        HGL_INI_FREE(s->name);
         for (size_t j = 0; j < s->kv_pairs.count; j++) {
             HglIniKVPair *kv = &s->kv_pairs.arr[j];
-            free(kv->key);
-            free(kv->val);
+            HGL_INI_FREE(kv->key);
+            HGL_INI_FREE(kv->val);
         }
         hgl_ini_da_free(&s->kv_pairs);
     }
     hgl_ini_da_free(ini);
-    free(ini);
+    HGL_INI_FREE(ini);
 }
 
 const char *hgl_ini_get(HglIni *ini, const char *section_name, const char *key_name)
@@ -508,7 +516,7 @@ void hgl_ini_put(HglIni *ini,
 
         /* create new section */
         HglIniSection new_section = {0};
-        new_section.name = malloc(section_name_len + 1);
+        new_section.name = HGL_INI_ALLOC(section_name_len + 1);
         memcpy(new_section.name, section_name, section_name_len);
         new_section.name[section_name_len] = '\0';
 
@@ -523,7 +531,7 @@ void hgl_ini_put(HglIni *ini,
     if (kv_pair == NULL) {
         /* create new kv-pair */
         HglIniKVPair new_kv_pair = (HglIniKVPair) {
-            .key = malloc(key_name_len + 1),
+            .key = HGL_INI_ALLOC(key_name_len + 1),
             .val = NULL,
         };
         memcpy(new_kv_pair.key, key_name, key_name_len);
@@ -536,8 +544,8 @@ void hgl_ini_put(HglIni *ini,
 
     assert(kv_pair != NULL);
 
-    free(kv_pair->val);
-    kv_pair->val = malloc(raw_value_len + 1);
+    HGL_INI_FREE(kv_pair->val);
+    kv_pair->val = HGL_INI_ALLOC(raw_value_len + 1);
     memcpy(kv_pair->val, raw_value, raw_value_len);
     kv_pair->val[raw_value_len] = '\0';
 
