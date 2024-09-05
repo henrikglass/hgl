@@ -26,7 +26,7 @@ all: test_vec         \
      test_math        \
      test_fft         \
      test_ini         \
-     test_threadpool  \
+     test_worker_pool \
      test_queue
 
 test_hgl:
@@ -105,8 +105,8 @@ test_queue:
 test_ini:
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_ini.c -o test_ini
 
-test_threadpool:
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L $(SRCDIR)/test_threadpool.c -o test_threadpool -lpthread
+test_worker_pool:
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L -fsanitize=thread $(SRCDIR)/test_worker_pool.c -o test_worker_pool -lpthread
 
 
 clean:
@@ -138,5 +138,5 @@ clean:
 	-rm test_math_simd
 	-rm test_queue
 	-rm test_ini
-	-rm test_threadpool
+	-rm test_worker_pool
 	-rm testfil_*
