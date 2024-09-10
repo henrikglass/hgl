@@ -12,6 +12,7 @@ A collection of small easy-to-use header only libraries written in C.
 | hgl\_q.h              | Data Structure                | Macro-only generic queue (circular buffer) implementation.                                              |
 | hgl\_hash\_table.h    | Data Structure                | Typed\* Robin Hood style hash table/map.                                                                |
 | hgl\_ring\_buffer.h   | Data Structure                | Typed\* circular buffer.                                                                                |
+| hgl\_rbtree.h         | Data Structure                | Your CS professor's ye olde red-black tree.                                                                      |
 | hgl\_chan.h           | Data Structure/Thread Utility | Typed\* synchronized message passing utility. Similar to Go's channels.                                 |
 | hgl\_buffered\_chan.h | Data Structure/Thread Utility | Typed\* and buffered synchronized message passing utility. Similar to Go's buffered channels.           |
 | hgl\_string.h         | Data Strucutre/Utility        | Dynamic string builder, sized strings, and easy-to-use string operations.                               |

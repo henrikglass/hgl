@@ -27,6 +27,7 @@ all: test_vec         \
      test_fft         \
      test_ini         \
      test_worker_pool \
+     test_rbtree 	  \
      test_queue
 
 test_hgl:
@@ -108,6 +109,9 @@ test_ini:
 test_worker_pool:
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L -fsanitize=thread $(SRCDIR)/test_worker_pool.c -o test_worker_pool -lpthread
 
+test_rbtree:
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_rbtree.c -o test_rbtree
+
 
 clean:
 	-rm test_hgl
@@ -139,4 +143,5 @@ clean:
 	-rm test_queue
 	-rm test_ini
 	-rm test_worker_pool
+	-rm test_rbtree
 	-rm testfil_*
