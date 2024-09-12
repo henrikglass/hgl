@@ -1114,7 +1114,7 @@ static HGL_INLINE HglmVec4 hglm_hermite3(float t)
                                      .m10 =  0.0f, .m11 =  1.0f, .m12 =  0.0f, .m13 =  0.0f,
                                      .m20 = -3.0f, .m21 = -2.0f, .m22 =  3.0f, .m23 = -1.0f,
                                      .m30 =  2.0f, .m31 =  1.0f, .m32 = -2.0f, .m33 =  1.0f});
-    HglmVec4 ts = (VHglmec4) {.x = 1.0f, .y = t, .z = t*t, .w = t*t*t};
+    HglmVec4 ts = (HglmVec4) {.x = 1.0f, .y = t, .z = t*t, .w = t*t*t};
     return (HglmVec4) {
         .x = hglm_vec4_dot(ts, hermite3.c0),
         .y = hglm_vec4_dot(ts, hermite3.c1),
