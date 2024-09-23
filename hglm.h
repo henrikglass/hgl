@@ -1108,6 +1108,21 @@ static HGL_INLINE HglmVec4 hglm_bezier3(float t)
     };
 }
 
+static HGL_INLINE HglmVec4 hglm_hermite3(float t)
+{
+    HglmMat4 hermite3 = ((HglmMat4) {.m00 =  1.0f, .m01 =  0.0f, .m02 =  0.0f, .m03 =  0.0f,
+                                     .m10 =  0.0f, .m11 =  1.0f, .m12 =  0.0f, .m13 =  0.0f,
+                                     .m20 = -3.0f, .m21 = -2.0f, .m22 =  3.0f, .m23 = -1.0f,
+                                     .m30 =  2.0f, .m31 =  1.0f, .m32 = -2.0f, .m33 =  1.0f});
+    HglmVec4 ts = (VHglmec4) {.x = 1.0f, .y = t, .z = t*t, .w = t*t*t};
+    return (HglmVec4) {
+        .x = hglm_vec4_dot(ts, hermite3.c0),
+        .y = hglm_vec4_dot(ts, hermite3.c1),
+        .z = hglm_vec4_dot(ts, hermite3.c2),
+        .w = hglm_vec4_dot(ts, hermite3.c3),
+    };
+}
+
 static HGL_INLINE float hglm_grad(int hash, float x, float y, float z)
 {
     int h = hash & 15;
