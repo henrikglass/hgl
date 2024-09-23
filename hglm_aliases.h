@@ -108,6 +108,7 @@ typedef HglmMat  Mat;
 #define sinstep                  hglm_sinstep
 #define lerpsmooth               hglm_lerpsmooth
 #define bezier3                  hglm_bezier3
+#define hermite3                 hglm_hermite3
 #define grad                     hglm_grad
 #define perlin3D                 hglm_perlin3D
 
