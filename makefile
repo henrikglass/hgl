@@ -8,6 +8,8 @@ all: test_vec         \
      test_rbuf        \
      test_chan        \
      test_rhashtbl    \
+     test_htable      \
+     test_hset        \
      test_stack_alloc \
      test_arena_alloc \
      test_pool_alloc  \
@@ -44,6 +46,12 @@ test_chan:
 
 test_rhashtbl:
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_rhashtbl.c -o test_rhashtbl
+
+test_htable:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_htable.c -o test_htable
+
+test_hset:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_hset.c -o test_hset
 
 test_stack_alloc:
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_stack_alloc.c -o test_stack_alloc
@@ -119,6 +127,8 @@ clean:
 	-rm test_rbuf
 	-rm test_chan
 	-rm test_rhashtbl
+	-rm test_htable
+	-rm test_hset
 	-rm test_stack_alloc
 	-rm test_arena_alloc
 	-rm test_pool_alloc
