@@ -108,6 +108,9 @@
 #define HGL_SV_FMT "%.*s"
 #define HGL_SV_ARG(sv) (int) (sv).length, (sv).start 
 
+#define HGL_SB_FMT "%.*s"
+#define HGL_SB_ARG(sb) (int) (sv).length, (sv).cstr 
+
 /*--- Public type definitions -----------------------------------------------------------*/
 
 typedef enum {
