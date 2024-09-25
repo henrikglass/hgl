@@ -111,7 +111,7 @@
 #define HGL_SV_ARG(sv) (int) (sv).length, (sv).start 
 
 #define HGL_SB_FMT "%.*s"
-#define HGL_SB_ARG(sb) (int) (sv).length, (sv).cstr 
+#define HGL_SB_ARG(sb) (int) (sb).length, (sb).cstr 
 
 /*--- Public type definitions -----------------------------------------------------------*/
 
