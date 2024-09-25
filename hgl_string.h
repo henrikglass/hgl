@@ -283,7 +283,7 @@ int hgl_sv_compare(HglStringView *a, HglStringView *b);
 bool hgl_sv_equal(HglStringView *a, HglStringView *b);
 
 /*=======================================================================================*/
-/*--- String View function prototypes ---------------------------------------------------*/
+/*--- String Builder function prototypes ------------------------------------------------*/
 /*=======================================================================================*/
 
 /**
