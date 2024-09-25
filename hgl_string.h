@@ -116,8 +116,8 @@
 /*--- Public type definitions -----------------------------------------------------------*/
 
 typedef enum {
-    HGL_STRING_GROWTH_POLICY_DOUBLE,
-    HGL_STRING_GROWTH_POLICY_TO_FIT,
+    HGL_SB_GROWTH_POLICY_DOUBLE,
+    HGL_SB_GROWTH_POLICY_TO_FIT,
 } HglStringGrowthPolicy;
 
 /* mutable string type. Owns the underlying `cstr`. */
@@ -408,9 +408,9 @@ void hgl_sb_trim(HglStringBuilder *sb);
 #define HGL_STRING_FREE free
 #endif
 
-/* CONFIGURABLE: HGL_STRING_BUILDER_DEFAULT_GROWTH_POLICY */
-#ifndef HGL_STRING_BUILDER_DEFAULT_GROWTH_POLICY
-#define HGL_STRING_BUILDER_DEFAULT_GROWTH_POLICY HGL_STRING_GROWTH_POLICY_DOUBLE
+/* CONFIGURABLE: HGL_SB_DEFAULT_GROWTH_POLICY */
+#ifndef HGL_SB_DEFAULT_GROWTH_POLICY
+#define HGL_SB_DEFAULT_GROWTH_POLICY HGL_SB_GROWTH_POLICY_DOUBLE
 #endif
 
 HglStringView hgl_sv_from(const char *cstr, size_t length)
@@ -821,10 +821,10 @@ void hgl_sb_grow_by_policy(HglStringBuilder *sb,
     
     size_t new_capacity;
     switch (policy) {
-        case HGL_STRING_GROWTH_POLICY_TO_FIT: {
+        case HGL_SB_GROWTH_POLICY_TO_FIT: {
             new_capacity = needed_capacity; 
         } break;
-        case HGL_STRING_GROWTH_POLICY_DOUBLE: {
+        case HGL_SB_GROWTH_POLICY_DOUBLE: {
             new_capacity = 2*sb->capacity;
             while (new_capacity < needed_capacity) {
                 new_capacity *= 2;
@@ -854,7 +854,7 @@ void hgl_sb_append(HglStringBuilder *sb, const char *src, size_t length)
     }
     
     hgl_sb_grow_by_policy(sb, sb->length + length + 1, 
-                          HGL_STRING_BUILDER_DEFAULT_GROWTH_POLICY);
+                          HGL_SB_DEFAULT_GROWTH_POLICY);
     
     if ((src > sb->cstr) && (src < sb->cstr + sb->length)) {
         memmove(sb->cstr + sb->length, src, length);
@@ -868,7 +868,7 @@ void hgl_sb_append(HglStringBuilder *sb, const char *src, size_t length)
 void hgl_sb_append_char(HglStringBuilder *sb, char c)
 {
     hgl_sb_grow_by_policy(sb, sb->length + 2, 
-                          HGL_STRING_BUILDER_DEFAULT_GROWTH_POLICY);
+                          HGL_SB_DEFAULT_GROWTH_POLICY);
     
     sb->length++;
     sb->cstr[sb->length - 1] = c;
@@ -897,7 +897,7 @@ void hgl_sb_append_fmt(HglStringBuilder *sb, const char *fmt, ...)
     }
 
     hgl_sb_grow_by_policy(sb, sb->length + length + 1, 
-                          HGL_STRING_BUILDER_DEFAULT_GROWTH_POLICY);
+                          HGL_SB_DEFAULT_GROWTH_POLICY);
     
     va_start(args, fmt);
     vsnprintf(&sb->cstr[sb->length], length + 1, fmt, args);
@@ -926,7 +926,7 @@ void hgl_sb_append_file(HglStringBuilder *sb, const char *path)
     /* grow sb if necessary */
     size_t needed_capacity = sb->length + fsize + 1;
     hgl_sb_grow_by_policy(sb, needed_capacity, 
-                          HGL_STRING_BUILDER_DEFAULT_GROWTH_POLICY);
+                          HGL_SB_DEFAULT_GROWTH_POLICY);
 
     /* read file into sb, update length, write null byte */
     assert(fread(sb->cstr + sb->length, fsize, 1, fp) == 1);
@@ -959,7 +959,7 @@ void hgl_sb_replace_section(HglStringBuilder *sb,
         /* replacement is bigger */
         /* grow if necessary */
         hgl_sb_grow_by_policy(sb, sb->length + len_diff + 1, 
-                              HGL_STRING_BUILDER_DEFAULT_GROWTH_POLICY);
+                              HGL_SB_DEFAULT_GROWTH_POLICY);
             
         /* shift remaining string "right". */
         memmove(sb->cstr + offset + repl_length, 
