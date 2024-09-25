@@ -243,6 +243,10 @@ int main(void)
     printf("sb: \"%s\"\n", sb.cstr);
     hgl_sb_destroy(&sb);
 
+    HglStringView a = HGL_SV("Hello!");
+    HglStringView b = HGL_SV("Hello!");
+    assert(hgl_sv_equals(&a, &b));
+
 #endif
 
 

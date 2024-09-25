@@ -84,9 +84,6 @@
  *     * Don't call hgl_sb_grow_by_policy when not necessary. Check length before.
  *     * sb prepend? Or maybe not?
  *     * sb lchop & rchop? Or maybe not?
- *     * parse int/float/etc.
- *     * sv_equal.
- *
  *
  * AUTHOR: Henrik A. Glass
  *
@@ -280,7 +277,7 @@ int hgl_sv_compare(HglStringView *a, HglStringView *b);
 /**
  * Returns true if `a` and `b` are equal.
  */
-bool hgl_sv_equal(HglStringView *a, HglStringView *b);
+bool hgl_sv_equals(HglStringView *a, HglStringView *b);
 
 /*=======================================================================================*/
 /*--- String Builder function prototypes ------------------------------------------------*/
@@ -757,7 +754,7 @@ int hgl_sv_compare(HglStringView *a, HglStringView *b)
     return strncmp(a->start, b->start, a->length);
 }
 
-bool hgl_sv_equal(HglStringView *a, HglStringView *b)
+bool hgl_sv_equals(HglStringView *a, HglStringView *b)
 {
     return 0 == hgl_sv_compare(a, b);
 }
