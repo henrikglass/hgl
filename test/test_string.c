@@ -165,19 +165,19 @@ int main(void)
 
     hgl_sb_destroy(&sb);
 #endif
-#if 1
+#if 0
     HglStringView sv = hgl_sv_from_cstr("bingo/bango/bongo - bish/bash/bosh");
     printf(HGL_SV_FMT "\n", HGL_SV_ARG(sv));
-    HglStringView left_of_minus = hgl_sv_lchop(&sv, '-');
+    HglStringView left_of_minus = hgl_sv_lchop_until(&sv, '-');
     printf(HGL_SV_FMT "|" HGL_SV_FMT "\n", HGL_SV_ARG(left_of_minus), HGL_SV_ARG(sv));
 
-    HglStringView bingo = hgl_sv_lchop(&left_of_minus, '/');
-    HglStringView bango = hgl_sv_lchop(&left_of_minus, '/');
-    HglStringView bongo = hgl_sv_trim(hgl_sv_lchop(&left_of_minus, '/'));
+    HglStringView bingo = hgl_sv_lchop_until(&left_of_minus, '/');
+    HglStringView bango = hgl_sv_lchop_until(&left_of_minus, '/');
+    HglStringView bongo = hgl_sv_trim(hgl_sv_lchop_until(&left_of_minus, '/'));
 
-    HglStringView bosh = hgl_sv_rchop(&sv, '/');
-    HglStringView bash = hgl_sv_rchop(&sv, '/');
-    HglStringView bish = hgl_sv_rchop(&sv, '/');
+    HglStringView bosh = hgl_sv_rchop_until(&sv, '/');
+    HglStringView bash = hgl_sv_rchop_until(&sv, '/');
+    HglStringView bish = hgl_sv_rchop_until(&sv, '/');
 
     printf("bingo? " HGL_SV_FMT "!\n", HGL_SV_ARG(bingo));
     printf("bango? " HGL_SV_FMT "!\n", HGL_SV_ARG(bango));
@@ -189,6 +189,59 @@ int main(void)
 
     printf("sv length = %zu\n", sv.length);
     printf("left_of_minus length = %zu\n", left_of_minus.length);
+
+#endif
+#if 1
+    printf(HGL_SV_FMT "\n", HGL_SV_ARG(HGL_SV("hello!")));
+
+    HglStringView csv = HGL_SV("1234, 4.123 , 0x1337, 420, 69, 123, hej");
+    int ival = (int) hgl_sv_lchop_i64(&csv);
+    hgl_sv_lchop_until(&csv, ',');
+    float fval = (float) hgl_sv_lchop_f64(&csv);
+    hgl_sv_lchop_until(&csv, ',');
+    unsigned int uval = (unsigned int) hgl_sv_lchop_u64(&csv);
+
+    printf("ival = %d\n", ival);
+    printf("fval = %f\n", (double) fval);
+    printf("uval = 0x%X\n", uval);
+
+    int should_be_420 = hgl_sv_to_i64(&csv);
+    int should_be_420_again = hgl_sv_to_i64(&csv);
+
+    assert(should_be_420 == should_be_420_again);
+    printf("Yay!\n");
+
+    /* should put us at the end of the string. I.e. csv->length should be 0 */
+    HglStringView left;
+    printf(HGL_SV_FMT "\n", HGL_SV_ARG(csv));
+    left = hgl_sv_lchop_until(&csv, ',');
+
+    printf("--------\n");
+    left = hgl_sv_lchop_until(&csv, ',');
+    printf(HGL_SV_FMT "\n", HGL_SV_ARG(left));
+    printf("--------\n");
+    left = hgl_sv_lchop_until(&csv, ',');
+    printf(HGL_SV_FMT "\n", HGL_SV_ARG(left));
+    printf("--------\n");
+    left = hgl_sv_lchop_until(&csv, ',');
+    printf(HGL_SV_FMT "\n", HGL_SV_ARG(left));
+    printf("--------\n");
+    left = hgl_sv_lchop_until(&csv, ',');
+    printf(HGL_SV_FMT "\n", HGL_SV_ARG(left));
+    printf("csv->length = %zu\n", csv.length);
+
+    HglStringView greeting = HGL_SV("Hello friend!");
+    HglStringView hello = hgl_sv_lchop(&greeting, 5);
+    HglStringView friend = hgl_sv_ltrim(greeting);
+    printf(HGL_SV_FMT " " HGL_SV_FMT "\n", HGL_SV_ARG(hello), HGL_SV_ARG(friend));
+
+    HglStringBuilder sb = hgl_sb_make("", 0);
+    hgl_sb_append_sv(&sb, &hello);
+    hgl_sb_append_char(&sb, ',');
+    hgl_sb_append_char(&sb, ' ');
+    hgl_sb_append_sv(&sb, &friend);
+    printf("sb: \"%s\"\n", sb.cstr);
+    hgl_sb_destroy(&sb);
 
 #endif
 

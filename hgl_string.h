@@ -84,6 +84,8 @@
  *     * Don't call hgl_sb_grow_by_policy when not necessary. Check length before.
  *     * sb prepend? Or maybe not?
  *     * sb lchop & rchop? Or maybe not?
+ *     * parse int/float/etc.
+ *     * sv_equal.
  *
  *
  * AUTHOR: Henrik A. Glass
@@ -96,6 +98,7 @@
 /*--- Include files ---------------------------------------------------------------------*/
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
@@ -104,6 +107,8 @@
 #include <errno.h>
 
 /*--- Public macros ---------------------------------------------------------------------*/
+
+#define HGL_SV(literal) (hgl_sv_from(literal, sizeof(literal) - 1))
 
 #define HGL_SV_FMT "%.*s"
 #define HGL_SV_ARG(sv) (int) (sv).length, (sv).start 
@@ -176,13 +181,23 @@ HglStringView hgl_sv_find_next(HglStringView *sv, const char *substr);
 HglStringView hgl_sv_find_next_regex_match(HglStringView *sv, const char *regex);
 
 /**
+ * Chops `n` bytes from the beginning of `sv`.
+ */
+HglStringView hgl_sv_lchop(HglStringView *sv, size_t n);
+
+/**
+ * Chops `n` bytes from the end of `sv`.
+ */
+HglStringView hgl_sv_rchop(HglStringView *sv, size_t n);
+
+/**
  * Find the next substring when splitting by `delim`. Similar to 
  * hgl_sv_split_next, but chops up the original string view. The part of the 
  * string to the left of `delim` is returned, and `sv` is modified to contain 
  * the part to the right of `delim`. If `sv` does not contain `delim`, the 
  * and identical string view to `sv` is returned.
  */
-HglStringView hgl_sv_lchop(HglStringView *sv, char delim);
+HglStringView hgl_sv_lchop_until(HglStringView *sv, char delim);
 
 /**
  * Find the next substring when splitting by `delim`, from the right. Similar to
@@ -191,7 +206,7 @@ HglStringView hgl_sv_lchop(HglStringView *sv, char delim);
  * the part to the right of `delim`. If `sv` does not contain `delim`, the 
  * and identical string view to `sv` is returned.
  */
-HglStringView hgl_sv_rchop(HglStringView *sv, char delim);
+HglStringView hgl_sv_rchop_until(HglStringView *sv, char delim);
 
 /**
  * Trims all whitespace from the left.
@@ -207,6 +222,38 @@ HglStringView hgl_sv_rtrim(HglStringView sv);
  * Trims all whitespace from both the right and the left.
  */
 HglStringView hgl_sv_trim(HglStringView sv);
+
+/**
+ * Parse the first part of `sv` as an unsigned 64 bit integer.
+ */
+uint64_t hgl_sv_to_u64(HglStringView *sv);
+
+/**
+ * Parse the first part of `sv` as a signed 64 bit integer.
+ */
+int64_t hgl_sv_to_i64(HglStringView *sv);
+
+/**
+ * Parse the first part of `sv` as a 64 bit float.
+ */
+double hgl_sv_to_f64(HglStringView *sv);
+
+/**
+ * Parse the first part of `sv` as an unsigned 64 bit integer, then
+ * chop it out.
+ */
+uint64_t hgl_sv_lchop_u64(HglStringView *sv);
+
+/**
+ * Parse the first part of `sv` as a signed 64 bit integer, then
+ * chop it out.
+ */
+int64_t hgl_sv_lchop_i64(HglStringView *sv);
+
+/**
+ * Parse the first part of `sv` as a 64 bit float, then chop it out.
+ */
+double hgl_sv_lchop_f64(HglStringView *sv);
 
 /**
  * Returns true if string view `sv` contains the substring `substr`.
@@ -229,6 +276,11 @@ bool hgl_sv_ends_with(HglStringView *sv, const char *substr);
  * definition of "less than" and "greater than".
  */
 int hgl_sv_compare(HglStringView *a, HglStringView *b);
+
+/**
+ * Returns true if `a` and `b` are equal.
+ */
+bool hgl_sv_equal(HglStringView *a, HglStringView *b);
 
 /**
  * Makes a new string builder from an initial (optional) c-string `cstr`, and a 
@@ -280,6 +332,11 @@ void hgl_sb_append(HglStringBuilder *sb, const char *src, size_t length);
  * Appends character `c` to `sb`.
  */
 void hgl_sb_append_char(HglStringBuilder *sb, char c);
+
+/**
+ * Appends string view `sv` to `sb`.
+ */
+void hgl_sb_append_sv(HglStringBuilder *sb, HglStringView *sv);
 
 /**
  * Appends `strlen(cstr)` bytes of `cstr` to `sb`.
@@ -493,7 +550,44 @@ HglStringView hgl_sv_find_next_regex_match(HglStringView *sv, const char *regex)
     return match;
 }
 
-HglStringView hgl_sv_lchop(HglStringView *sv, char delim)
+HglStringView hgl_sv_lchop(HglStringView *sv, size_t n)
+{
+    if (n > sv->length) {
+        n = sv->length;
+    }
+
+    HglStringView left_part = (HglStringView) {
+        .start  = sv->start,  
+        .length = n,
+        .it_    = 0,
+    };
+
+    sv->start  += n;
+    sv->length -= n;
+    sv->it_     = 0;
+
+    return left_part;
+}
+
+HglStringView hgl_sv_rchop(HglStringView *sv, size_t n)
+{
+    if (n > sv->length) {
+        n = sv->length;
+    }
+
+    HglStringView right_part = (HglStringView) {
+        .start  = sv->start + sv->length - n,  
+        .length = n,
+        .it_    = 0,
+    };
+
+    sv->length -= n;
+    sv->it_     = 0;
+
+    return right_part;
+}
+
+HglStringView hgl_sv_lchop_until(HglStringView *sv, char delim)
 {
     size_t i;
     for (i = 0; i < sv->length; i++) {
@@ -508,13 +602,14 @@ HglStringView hgl_sv_lchop(HglStringView *sv, char delim)
         .it_    = 0,
     };
 
-    sv->start += i + 1;
+    sv->start  += i + 1;
     sv->length -= (i + 1 > sv->length) ? sv->length : i + 1;
+    sv->it_     = 0;
 
     return left_part;
 }
 
-HglStringView hgl_sv_rchop(HglStringView *sv, char delim)
+HglStringView hgl_sv_rchop_until(HglStringView *sv, char delim)
 {
     size_t i;
     for (i = sv->length - 1; i > 0; i--) {
@@ -530,6 +625,7 @@ HglStringView hgl_sv_rchop(HglStringView *sv, char delim)
     };
 
     sv->length = i;
+    sv->it_    = 0;
 
     return right_part;
 }
@@ -569,6 +665,69 @@ HglStringView hgl_sv_trim(HglStringView sv)
     return hgl_sv_rtrim(hgl_sv_ltrim(sv));
 }
 
+uint64_t hgl_sv_to_u64(HglStringView *sv)
+{
+    char temp[64];
+    size_t n = (sv->length < 63) ? sv->length : 63;
+    memcpy(temp, sv->start, n);
+    temp[n] = '\0';
+    return strtoul(temp, NULL, 0);
+}
+
+int64_t hgl_sv_to_i64(HglStringView *sv)
+{
+    char temp[64];
+    size_t n = (sv->length < 63) ? sv->length : 63;
+    memcpy(temp, sv->start, n);
+    temp[n] = '\0';
+    return strtol(temp, NULL, 0);
+}
+
+double hgl_sv_to_f64(HglStringView *sv)
+{
+    char temp[64];
+    size_t n = (sv->length < 63) ? sv->length : 63;
+    memcpy(temp, sv->start, n);
+    temp[n] = '\0';
+    return strtod(temp, NULL);
+}
+
+uint64_t hgl_sv_lchop_u64(HglStringView *sv)
+{
+    char temp[64];
+    char *end;
+    size_t n = (sv->length < 63) ? sv->length : 63;
+    memcpy(temp, sv->start, n);
+    temp[n] = '\0';
+    double value = strtoul(temp, &end, 0);
+    hgl_sv_lchop(sv, end - temp);
+    return value;
+}
+  
+int64_t hgl_sv_lchop_i64(HglStringView *sv)
+{
+    char temp[64];
+    char *end;
+    size_t n = (sv->length < 63) ? sv->length : 63;
+    memcpy(temp, sv->start, n);
+    temp[n] = '\0';
+    double value = strtol(temp, &end, 0);
+    hgl_sv_lchop(sv, end - temp);
+    return value;
+}
+  
+double hgl_sv_lchop_f64(HglStringView *sv)
+{
+    char temp[64];
+    char *end;
+    size_t n = (sv->length < 63) ? sv->length : 63;
+    memcpy(temp, sv->start, n);
+    temp[n] = '\0';
+    double value = strtod(temp, &end);
+    hgl_sv_lchop(sv, end - temp);
+    return value;
+}
+
 bool hgl_sv_contains(HglStringView *sv, const char *substr)
 {
     hgl_sv_op_begin(sv);
@@ -595,6 +754,11 @@ int hgl_sv_compare(HglStringView *a, HglStringView *b)
     if (a->length < b->length) return -1;
     if (a->length > b->length) return  1;
     return strncmp(a->start, b->start, a->length);
+}
+
+bool hgl_sv_equal(HglStringView *a, HglStringView *b)
+{
+    return 0 == hgl_sv_compare(a, b);
 }
 
 HglStringBuilder hgl_sb_make(const char *cstr, size_t initial_capacity)
@@ -711,6 +875,11 @@ void hgl_sb_append_char(HglStringBuilder *sb, char c)
     sb->length++;
     sb->cstr[sb->length - 1] = c;
     sb->cstr[sb->length] = '\0';
+}
+
+void hgl_sb_append_sv(HglStringBuilder *sb, HglStringView *sv)
+{
+    hgl_sb_append(sb, sv->start, sv->length);
 }
 
 void hgl_sb_append_cstr(HglStringBuilder *sb, const char *cstr)
