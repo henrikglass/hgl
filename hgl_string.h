@@ -137,9 +137,9 @@ typedef struct {
     size_t it_;          /* gen. purpose iterator for reentrant string view ops. */
 } HglStringView;
 
-/*--- Public variables ------------------------------------------------------------------*/
-
-/*--- Public function prototypes --------------------------------------------------------*/
+/*=======================================================================================*/
+/*--- String View function prototypes ---------------------------------------------------*/
+/*=======================================================================================*/
 
 /**
  * Create a string view of `cstr` with length `length`
@@ -282,6 +282,10 @@ int hgl_sv_compare(HglStringView *a, HglStringView *b);
  */
 bool hgl_sv_equal(HglStringView *a, HglStringView *b);
 
+/*=======================================================================================*/
+/*--- String View function prototypes ---------------------------------------------------*/
+/*=======================================================================================*/
+
 /**
  * Makes a new string builder from an initial (optional) c-string `cstr`, and a 
  * suggested initial capacity `initial_capacity`. The actual initial capacity 
@@ -410,7 +414,6 @@ void hgl_sb_trim(HglStringBuilder *sb);
 /* CONFIGURABLE: HGL_STRING_BUILDER_DEFAULT_GROWTH_POLICY */
 #ifndef HGL_STRING_BUILDER_DEFAULT_GROWTH_POLICY
 #define HGL_STRING_BUILDER_DEFAULT_GROWTH_POLICY HGL_STRING_GROWTH_POLICY_DOUBLE
-//#define HGL_STRING_BUILDER_DEFAULT_GROWTH_POLICY HGL_STRING_GROWTH_POLICY_TO_FIT
 #endif
 
 HglStringView hgl_sv_from(const char *cstr, size_t length)
@@ -516,8 +519,6 @@ HglStringView hgl_sv_find_next_regex_match(HglStringView *sv, const char *regex)
     HglStringView match = {0};
     regex_t re;
     regmatch_t rmatch;
-
-    printf("it = %zu\n", sv->it_); // DEBUG
 
     /* assert sv is a view to a null terminated string */
     if (sv->start[sv->length] != '\0') {
