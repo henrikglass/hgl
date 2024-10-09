@@ -63,6 +63,7 @@ typedef HglmMat  Mat;
 #define vec4_hadamard            hglm_vec4_hadamard
 #define vec4_mul_scalar          hglm_vec4_mul_scalar
 #define vec4_swizzle             hglm_vec4_swizzle
+#define vec4_perspective_divide  hglm_vec4_perspective_divide
 #define vec4_lerp                hglm_vec4_lerp
 #define vec4_bezier3             hglm_vec4_bezier3
 
