@@ -902,7 +902,11 @@ static HGL_INLINE HglmMat4 hglm_mat4_rotate(HglmMat4 m, float angle, HglmVec3 ax
 __attribute__ ((const, unused))
 static HGL_INLINE HglmMat4 hglm_mat4_translate(HglmMat4 m, HglmVec3 v)
 {
-    return hglm_mat4_mul_mat4(m, hglm_mat4_make_translation(v));
+    HglmVec4 c3 = m.c3;
+    c3.x += v.x;
+    c3.y += v.y;
+    c3.z += v.z;
+    return (HglmMat4) {.c0 = m.c0, .c1 = m.c1, .c2 = m.c2, .c3 = c3};
 }
 
 __attribute__ ((const, unused))
