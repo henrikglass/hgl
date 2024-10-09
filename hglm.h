@@ -153,6 +153,7 @@ static HGL_INLINE HglmVec4 hglm_vec4_normalize(HglmVec4 v);
 static HGL_INLINE float hglm_vec4_dot(HglmVec4 a, HglmVec4 b);
 static HGL_INLINE HglmVec4 hglm_vec4_hadamard(HglmVec4 a, HglmVec4 b);
 static HGL_INLINE HglmVec4 hglm_vec4_mul_scalar(HglmVec4 v, float s);
+static HGL_INLINE HglmVec4 hglm_vec4_perspective_divide(HglmVec4 v);
 static HGL_INLINE HglmVec4 hglm_vec4_lerp(HglmVec4 a, HglmVec4 b, float amount);
 static HGL_INLINE HglmVec4 hglm_vec4_bezier3(HglmVec4 v0, HglmVec4 v1, HglmVec4 v2, HglmVec4 v3, float t);
 
@@ -492,6 +493,16 @@ static HGL_INLINE HglmVec4 hglm_vec4_swizzle(HglmVec4 v, int a, int b, int c, in
 #else
     return (HglmVec4) {.x = v.f[a], .y = v.f[b], .z = v.f[c], .w = v.f[d]};
 #endif
+}
+
+static HGL_INLINE HglmVec4 hglm_vec4_perspective_divide(HglmVec4 v)
+{
+    HglmVec4 u;
+    u.x = v.x / v.w;
+    u.y = v.y / v.w;
+    u.z = v.z / v.w;
+    u.w = 1.0f;
+    return u;
 }
 
 static HGL_INLINE HglmVec4 hglm_vec4_lerp(HglmVec4 a, HglmVec4 b, float amount)
