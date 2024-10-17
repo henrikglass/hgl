@@ -7,23 +7,25 @@
 
 #define HGL_PROFILE_TIME_LAST              (1u << 0)
 #define HGL_PROFILE_TIME_AVG               (1u << 1)
-#define HGL_PROFILE_TIME_TOTAL             (1u << 2)
-#define HGL_PROFILE_CACHE_MISSES_LAST      (1u << 3)
-#define HGL_PROFILE_CACHE_MISSES_AVG       (1u << 4)
-#define HGL_PROFILE_CACHE_MISSES_TOTAL     (1u << 5)
-#define HGL_PROFILE_BRANCH_MISSES_LAST     (1u << 6)
-#define HGL_PROFILE_BRANCH_MISSES_AVG      (1u << 7)
-#define HGL_PROFILE_BRANCH_MISSES_TOTAL    (1u << 8)
+#define HGL_PROFILE_TIME_MAX               (1u << 2)
+#define HGL_PROFILE_TIME_TOTAL             (1u << 3)
+#define HGL_PROFILE_CACHE_MISSES_LAST      (1u << 4)
+#define HGL_PROFILE_CACHE_MISSES_AVG       (1u << 5)
+#define HGL_PROFILE_CACHE_MISSES_TOTAL     (1u << 6)
+#define HGL_PROFILE_BRANCH_MISSES_LAST     (1u << 7)
+#define HGL_PROFILE_BRANCH_MISSES_AVG      (1u << 8)
+#define HGL_PROFILE_BRANCH_MISSES_TOTAL    (1u << 9)
 
 #define HGL_PROFILE_TIME_ALL          (HGL_PROFILE_TIME_LAST | \
                                        HGL_PROFILE_TIME_AVG  | \
+                                       HGL_PROFILE_TIME_MAX  | \
                                        HGL_PROFILE_TIME_TOTAL)
 #define HGL_PROFILE_CACHE_MISSES_ALL  (HGL_PROFILE_CACHE_MISSES_LAST | \
                                        HGL_PROFILE_CACHE_MISSES_AVG  | \
                                        HGL_PROFILE_CACHE_MISSES_TOTAL)
-#define HGL_PROFILE_BRANCH_MISSES_ALL (HGL_PROFILE_TIME_LAST | \
-                                       HGL_PROFILE_TIME_AVG  | \
-                                       HGL_PROFILE_TIME_TOTAL)
+#define HGL_PROFILE_BRANCH_MISSES_ALL (HGL_PROFILE_BRANCH_MISSES_LAST | \
+                                       HGL_PROFILE_BRANCH_MISSES_AVG  | \
+                                       HGL_PROFILE_BRANCH_MISSES_TOTAL)
 #define HGL_PROFILE_EVERYTHING        (HGL_PROFILE_TIME_ALL         | \
                                        HGL_PROFILE_CACHE_MISSES_ALL | \
                                        HGL_PROFILE_BRANCH_MISSES_ALL)
@@ -33,6 +35,7 @@
 #define HGL_PROFILE_DEFAULT HGL_PROFILE_LAST
 
 #define HGL_PROFILE_MEASURE(stmt) do {hgl_profile_begin(#stmt); stmt; hgl_profile_end();} while(0)
+#define HGL_PROFILE_MEASURE_NAMED(name, stmt) do {hgl_profile_begin(name); stmt; hgl_profile_end();} while(0)
 
 typedef struct
 {
@@ -42,6 +45,7 @@ typedef struct
     bool is_complete;
 
     uint64_t time_ns_last;
+    uint64_t time_ns_max;
     uint64_t time_ns_total;
 
 #ifdef HGL_PROFILE_DETAILED
@@ -153,6 +157,9 @@ void hgl_profile_begin(const char *name)
     if (entry == NULL) {
         HglProfStat new_entry = {0};
         new_entry.name = name;
+        new_entry.time_ns_last  = 0;
+        new_entry.time_ns_max   = 0;
+        new_entry.time_ns_total = 0;
         da_push_(&stats, new_entry);
     }
     entry = hgl_profile_get(name);
@@ -212,6 +219,9 @@ void hgl_profile_end(void)
     HglProfStat *entry = hgl_profile_get(name);
     entry->time_ns_last = time_ns - entry->time_ns_last;
     entry->time_ns_total += entry->time_ns_last;
+    if (entry->time_ns_last > entry->time_ns_max) {
+        entry->time_ns_max = entry->time_ns_last;
+    }
 
 #ifdef HGL_PROFILE_DETAILED
     ioctl(entry->fd, PERF_EVENT_IOC_DISABLE, 0);
@@ -244,6 +254,7 @@ void hgl_profile_report(uint32_t flags)
 
         /* time */
         double last_ms = (double)entry->time_ns_last/1000000.0;
+        double max_ms = (double)entry->time_ns_max/1000000.0;
         double total_ms = (double)entry->time_ns_total/1000000.0;
         double avg_ms = total_ms / entry->n_samples;
         if (flags & HGL_PROFILE_TIME_LAST) {
@@ -252,6 +263,10 @@ void hgl_profile_report(uint32_t flags)
 
         if (flags & HGL_PROFILE_TIME_AVG) {
             printf("avg = %f ms ", avg_ms);
+        }
+
+        if (flags & HGL_PROFILE_TIME_MAX) {
+            printf("max = %f ms ", max_ms);
         }
 
         if (flags & HGL_PROFILE_TIME_TOTAL) {
