@@ -507,7 +507,7 @@ int hgl_io_image_write_netpbm(const char *filepath, HglImage *image)
             float *image_data32f = (float *) image->data;
             for (size_t y = 0; y < image->height; y++) {
                 for (size_t x = 0; x < image->width; x++) {
-                    uint16_t r = htobe16((uint16_t)(image_data32f[y*image->width*4 + x*4] * 65535));
+                    uint16_t r = htobe16((uint16_t)(image_data32f[y*image->width + x] * 65535));
                     fwrite(&r, 1, sizeof(r), fp);
                 }
             }
