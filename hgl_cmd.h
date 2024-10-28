@@ -151,7 +151,7 @@ struct HglCommand
  */
 const HglCommand *hgl_cmd_input(const HglCommand *command_tree,
                                 const char *prompt,
-                                char **args);
+                                const char **args);
 
 /**
  * Clears (and frees) history.
@@ -171,7 +171,8 @@ void hgl_cmd_tree_verify(const HglCommand *command_tree);
 void hgl_cmd_tree_print(const HglCommand *command_tree, int indent, int desc_margin);
 
 /**
- * Returns a pointer to the HglCommand at the specified path in the tree.
+ * Returns a pointer to the HglCommand at the specified path in the tree, or NULL, if
+ * no such command exists. The path is supplied as a variadic arguments list.
  *
  * Example usage: hgl_cmd_tree_at(&cmd_tree, "open", "door");
  */
@@ -179,20 +180,31 @@ void hgl_cmd_tree_print(const HglCommand *command_tree, int indent, int desc_mar
 HglCommand *hgl_cmd_tree_at_(HglCommand *command_tree, ...);
 
 /**
- * Returns a pointer to the HglCommand at the specified path in the tree. The path is
- * supplied as an array of C-strings `path` with `len` elements.
+ * Returns a pointer to the HglCommand at the specified path in the tree, or NULL, if
+ * no such command exists. The path is supplied as an array of C-strings `path` with
+ * `len` elements. `*end_index` is set to the index of the first element of `path` after the
+ * prefix that was matched against the `command_tree` structure. If `*end_idx` == `len`,
+ * then no suffix exists. This might be useful if the path contains a suffix that you want to
+ * parse separately, e.g. if the command takes a list of arguments.
  *
- * Example usage: hgl_cmd_tree_at(&cmd_tree, &argv[1], argc - 1);
+ * Example usage: hgl_cmd_tree_at(&cmd_tree, &argv[1], argc - 1, &end_idx);
  */
-HglCommand *hgl_cmd_tree_at_argv(const HglCommand *command_tree, const char *path[], size_t len);
+HglCommand *hgl_cmd_tree_at_argv(const HglCommand *command_tree,
+                                 const char *path[],
+                                 size_t len,
+                                 size_t *end_idx);
 
 /**
- * Returns a pointer to the HglCommand at the specified path in the tree. The path is
- * supplied as a null-terminated string `path`.
+ * Returns a pointer to the HglCommand at the specified path in the tree, or NULL, if
+ * no such command exists. The path is supplied as a null-terminated string `path`.
+ * `*end` is set to point at the first character of `path` after the prefix that was
+ * matched against the `command_tree` structure. This might be useful if the path
+ * contains a suffix that you want to parse separately, e.g. if the command takes a
+ * list of arguments.
  *
- * Example usage: hgl_cmd_tree_at(&cmd_tree, "open door");
+ * Example usage: hgl_cmd_tree_at(&cmd_tree, "open door", &end);
  */
-HglCommand *hgl_cmd_tree_at_cstr(const HglCommand *command_tree, const char *path);
+HglCommand *hgl_cmd_tree_at_cstr(const HglCommand *command_tree, const char *path, const char **end);
 
 /**
  * Returns a pointer to the child of `parent` with the name `child_name`, or NULL
@@ -275,7 +287,7 @@ char hgl_temp_buf_[HGL_CMD_BUFFER_SIZE];
 
 const HglCommand *hgl_cmd_input(const HglCommand *command_tree,
                                 const char *prompt,
-                                char **args)
+                                const char **args)
 {
     /* allocate new buffer for this command*/
     char *buf = HGL_CMD_ALLOC(HGL_CMD_BUFFER_SIZE);
@@ -596,7 +608,10 @@ HglCommand *hgl_cmd_tree_at_(const HglCommand *command_tree, ...)
     return cmd;
 }
 
-HglCommand *hgl_cmd_tree_at_argv(const HglCommand *command_tree, const char *path[], size_t len)
+HglCommand *hgl_cmd_tree_at_argv(const HglCommand *command_tree,
+                                 const char *path[],
+                                 size_t len,
+                                 size_t *end_idx)
 {
     HglCommand *cmd = NULL;
     const char *arg;
@@ -607,12 +622,14 @@ HglCommand *hgl_cmd_tree_at_argv(const HglCommand *command_tree, const char *pat
         cmd = hgl_cmd_tree_get_child(command_tree, arg);
 
         if (cmd == NULL) {
+            *end_idx = 0;
             return NULL;
         }
 
         if (cmd->kind == HGL_CMD_NODE) {
             command_tree = cmd->sub_tree;
         } else {
+            *end_idx = i + 1;
             break;
         }
     }
@@ -620,7 +637,7 @@ HglCommand *hgl_cmd_tree_at_argv(const HglCommand *command_tree, const char *pat
     return (HglCommand *) cmd;
 }
 
-HglCommand *hgl_cmd_tree_at_cstr(const HglCommand *command_tree, const char *path)
+HglCommand *hgl_cmd_tree_at_cstr(const HglCommand *command_tree, const char *path, const char **end)
 {
     HglCommand *cmd = NULL;
 
@@ -635,6 +652,8 @@ HglCommand *hgl_cmd_tree_at_cstr(const HglCommand *command_tree, const char *pat
             }
             arglen++;
         }
+
+        *end = arg + arglen;
 
         if (arglen == 0) {
             break;
