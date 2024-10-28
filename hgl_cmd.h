@@ -55,6 +55,9 @@
  *
  *     HGL_CMD_PRIVATE_DATA_T
  *
+ * Note: The name of a command must not contain any whitespace. This can be verified
+ * for the entire tree by calling `hgl_cmd_tree_verify`.
+ *
  * You may provide a custom allocator hgl_cmd.h by redefining the following:
  *
  *     HGL_CMD_ALLOC
@@ -156,6 +159,12 @@ const HglCommand *hgl_cmd_input(const HglCommand *command_tree,
 void hgl_cmd_clear_history();
 
 /**
+ * Verifies that the tree is valid (For now, that names follow the no whitespace rule).
+ * Passing an invalid tree will terminate the program with a descriptive message.
+ */
+void hgl_cmd_tree_verify(const HglCommand *command_tree);
+
+/**
  * Pretty-prints the command tree `command_tree`. `indent` is the initial indentation
  * used when printing the tree.
  */
@@ -168,6 +177,28 @@ void hgl_cmd_tree_print(const HglCommand *command_tree, int indent, int desc_mar
  */
 #define hgl_cmd_tree_at(command_tree, ...) (hgl_cmd_tree_at_((command_tree), __VA_ARGS__, NULL))
 HglCommand *hgl_cmd_tree_at_(HglCommand *command_tree, ...);
+
+/**
+ * Returns a pointer to the HglCommand at the specified path in the tree. The path is
+ * supplied as an array of C-strings `path` with `len` elements.
+ *
+ * Example usage: hgl_cmd_tree_at(&cmd_tree, &argv[1], argc - 1);
+ */
+HglCommand *hgl_cmd_tree_at_argv(const HglCommand *command_tree, const char *path[], size_t len);
+
+/**
+ * Returns a pointer to the HglCommand at the specified path in the tree. The path is
+ * supplied as a null-terminated string `path`.
+ *
+ * Example usage: hgl_cmd_tree_at(&cmd_tree, "open door");
+ */
+HglCommand *hgl_cmd_tree_at_cstr(const HglCommand *command_tree, const char *path);
+
+/**
+ * Returns a pointer to the child of `parent` with the name `child_name`, or NULL
+ * if no such child exists.
+ */
+HglCommand *hgl_cmd_tree_get_child(const HglCommand *parent, const char *child_name);
 
 /**
  * Returns true if `command_tree` is an ancestor of `cmd`. Essentially performs DFS
@@ -537,36 +568,121 @@ void hgl_cmd_clear_history()
     hgl_cmd_history_.length = 0;
 }
 
-HglCommand *hgl_cmd_tree_at_(HglCommand *command_tree, ...)
+HglCommand *hgl_cmd_tree_at_(const HglCommand *command_tree, ...)
 {
     HglCommand *cmd = NULL;
     va_list path;
     va_start(path, command_tree);
-    while (true)
-    {
+    while (true) {
         const char *arg = va_arg(path, const char *);
         if ((arg == NULL) || (strlen(arg) == 0)) {
             break;
         }
 
-        size_t i = 0;
-        while(true) {
-            cmd = &command_tree[i++];
-            if (cmd->kind == HGL_CMD_NONE) {
-                return NULL;
-            }
-            if ((cmd->kind == HGL_CMD_NODE) && (0 == strcmp(arg, cmd->name))) {
-                command_tree = (HglCommand *) cmd->sub_tree;
-                break;
-            }
-            if (0 == strcmp(arg, cmd->name)) {
-                return cmd;
-            }
+        cmd = hgl_cmd_tree_get_child(command_tree, arg);
+
+        if (cmd == NULL) {
+            return NULL;
+        }
+
+        if (cmd->kind == HGL_CMD_NODE) {
+            command_tree = cmd->sub_tree;
+        } else {
+            break;
         }
     }
     va_end(path);
 
     return cmd;
+}
+
+HglCommand *hgl_cmd_tree_at_argv(const HglCommand *command_tree, const char *path[], size_t len)
+{
+    HglCommand *cmd = NULL;
+    const char *arg;
+
+    for (size_t i = 0; i < len; i++) {
+        arg = path[i];
+
+        cmd = hgl_cmd_tree_get_child(command_tree, arg);
+
+        if (cmd == NULL) {
+            return NULL;
+        }
+
+        if (cmd->kind == HGL_CMD_NODE) {
+            command_tree = cmd->sub_tree;
+        } else {
+            break;
+        }
+    }
+
+    return (HglCommand *) cmd;
+}
+
+HglCommand *hgl_cmd_tree_at_cstr(const HglCommand *command_tree, const char *path)
+{
+    HglCommand *cmd = NULL;
+
+    const char *arg = path;
+    size_t arglen = 0;
+
+    while (true) {
+        /* extract next argument */
+        while (true) {
+            if (arg[arglen] == ' ' || arg[arglen] == '\0') {
+                break;
+            }
+            arglen++;
+        }
+
+        if (arglen == 0) {
+            break;
+        }
+
+        /* get child */
+        size_t i = 0;
+        while(true) {
+            cmd = (HglCommand *) &command_tree[i++];
+
+            if (cmd->kind == HGL_CMD_NONE) {
+                return NULL;
+            }
+
+            if ((cmd->kind == HGL_CMD_NODE) && (0 == strncmp(arg, cmd->name, arglen))) {
+                command_tree = (HglCommand *) cmd->sub_tree;
+                break;
+            }
+
+            if (0 == strncmp(arg, cmd->name, arglen)) {
+                return cmd;
+            }
+        }
+
+        /* step to next argument */
+        arg += arglen + 1;
+        arglen = 0;
+
+    }
+
+    return cmd;
+
+}
+
+HglCommand *hgl_cmd_tree_get_child(const HglCommand *command_tree, const char *child_name)
+{
+    size_t i = 0;
+    while(true) {
+        HglCommand *child = (HglCommand *) &command_tree[i++];
+
+        if (child->kind == HGL_CMD_NONE) {
+            return NULL;
+        }
+
+        if (0 == strcmp(child_name, child->name)) {
+            return child;
+        }
+    }
 }
 
 bool hgl_cmd_is_descendant(const HglCommand *command_tree, const HglCommand *cmd)
@@ -601,6 +717,44 @@ bool hgl_cmd_is_descendant(const HglCommand *command_tree, const HglCommand *cmd
             (hgl_cmd_is_descendant(next_ancestor, cmd))) {
             return true;
         }
+    }
+}
+
+void hgl_cmd_tree_verify(const HglCommand *command_tree)
+{
+    bool tree_invalid = false;
+    int i = 0;
+    while (true) {
+        HglCommand *cmd = (HglCommand *) &command_tree[i++];
+
+        if (cmd->kind == HGL_CMD_NONE) {
+            break;
+        }
+
+        int j = 0;
+        while (true) {
+
+            if (cmd->name[j] == '\0') {
+                break;
+            }
+
+            if (cmd->name[j] == ' ') {
+                tree_invalid = true;
+                printf("[hgl_cmd_tree_verify] Error: Command names must not "
+                       "contain spaces \"%s\"\n", cmd->name);
+            }
+
+            j++;
+        }
+
+        if (cmd->kind == HGL_CMD_NODE) {
+            hgl_cmd_tree_verify(cmd->sub_tree);
+        }
+    }
+
+    if (tree_invalid) {
+        printf("Aborting...\n");
+        abort();
     }
 }
 
