@@ -61,7 +61,7 @@ int main()
     hgl_cmd_tree_at(command_tree, "operate", "vehicle", "bike")->private_data = operate_bike;
 
     while (true) {
-        char *args;
+        const char *args;
         const HglCommand *cmd = hgl_cmd_input(command_tree, ">>> ", &args);
         if (cmd->private_data != NULL) {
             proc_t f = cmd->private_data;
