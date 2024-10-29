@@ -177,7 +177,7 @@ void hgl_cmd_tree_print(const HglCommand *command_tree, int indent, int desc_mar
  * Example usage: hgl_cmd_tree_at(&cmd_tree, "open", "door");
  */
 #define hgl_cmd_tree_at(command_tree, ...) (hgl_cmd_tree_at_((command_tree), __VA_ARGS__, NULL))
-HglCommand *hgl_cmd_tree_at_(HglCommand *command_tree, ...);
+HglCommand *hgl_cmd_tree_at_(const HglCommand *command_tree, ...);
 
 /**
  * Returns a pointer to the HglCommand at the specified path in the tree, or NULL, if
