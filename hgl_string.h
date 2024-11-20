@@ -352,7 +352,7 @@ void hgl_sb_append_fmt(HglStringBuilder *sb, const char *fmt, ...);
 /**
  * Appends contents of file at `path` to `sb`.
  */
-void hgl_sb_append_file(HglStringBuilder *sb, const char *path);
+int hgl_sb_append_file(HglStringBuilder *sb, const char *path);
 
 /**
  * Replaces the section of text specified by `offset` and `length` with `replacement` 
@@ -907,14 +907,14 @@ void hgl_sb_append_fmt(HglStringBuilder *sb, const char *fmt, ...)
     va_end(args);
 }
 
-void hgl_sb_append_file(HglStringBuilder *sb, const char *path)
+int hgl_sb_append_file(HglStringBuilder *sb, const char *path)
 {
     /* open file */
     FILE *fp = fopen(path, "rb");
     if (fp == NULL) {
         fprintf(stderr, "[hgl_string] ERROR: Could not open file %s. errno=%s\n", 
                 path, strerror(errno));
-        return;
+        return -1;
     }
 
     /* get file size */
@@ -934,7 +934,7 @@ void hgl_sb_append_file(HglStringBuilder *sb, const char *path)
     sb->cstr[sb->length] = '\0';
     
     fclose(fp);
-    return;
+    return 0;
 }
 
 void hgl_sb_replace_section(HglStringBuilder *sb, 
