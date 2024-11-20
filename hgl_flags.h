@@ -171,7 +171,7 @@ double *hgl_flags_add_f64_range(const char *names, const char *desc, double defa
 /**
  * Add a flag of type `const char *`.
  */
-const char **hgl_flags_add_string(const char *names, const char *desc, const char *default_value, uint32_t opts);
+const char **hgl_flags_add_str(const char *names, const char *desc, const char *default_value, uint32_t opts);
 
 /**
  * Parses all command line arguments.
@@ -181,7 +181,7 @@ int hgl_flags_parse(int argc, char *argv[]);
 /**
  * Prints the descriptions for all flags defined through calls to hgl_flags_add_*.
  */
-void hgl_flags_print();
+void hgl_flags_print(void);
 
 /**
  * Generates a completion cmd for the `completion` command line utility on
@@ -547,13 +547,13 @@ void hgl_flags_generate_completion_cmd(FILE *stream, const char *program_name)
     for (size_t i = 0; i < hgl_n_flags_; i++) {
         const char *names = hgl_flags_[i].names;
         size_t offset = 0;
-        for (size_t i = 0;; i++) {
-            if (names[i] == ',') {
-                fprintf(stream, "%.*s ", (int)(i - offset), names + offset);
-                offset = ++i;
+        for (size_t j = 0;; i++) {
+            if (names[j] == ',') {
+                fprintf(stream, "%.*s ", (int)(j - offset), names + offset);
+                offset = ++j;
             }
-            if (names[i] == '\0') {
-                fprintf(stream, "%.*s ", (int)(i - offset), names + offset);
+            if (names[j] == '\0') {
+                fprintf(stream, "%.*s ", (int)(j - offset), names + offset);
                 break;
             }
         }
