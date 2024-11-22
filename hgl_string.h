@@ -268,16 +268,16 @@ bool hgl_sv_starts_with(HglStringView *sv, const char *substr);
 bool hgl_sv_ends_with(HglStringView *sv, const char *substr);
 
 /**
- * Returns 0 if the string views `a` and `b` are equal, -1 if `a` is "less 
- * than" `b`, and 1 if `a` is "greater than" `b`. See `man 3 strncmp` for the 
+ * Returns 0 if the string views `a` and `b` are equal, -1 if `a` is "less
+ * than" `b`, and 1 if `a` is "greater than" `b`. See `man 3 strncmp` for the
  * definition of "less than" and "greater than".
  */
-int hgl_sv_compare(HglStringView *a, HglStringView *b);
+int hgl_sv_compare(HglStringView a, HglStringView b);
 
 /**
  * Returns true if `a` and `b` are equal.
  */
-bool hgl_sv_equals(HglStringView *a, HglStringView *b);
+bool hgl_sv_equals(HglStringView a, HglStringView b);
 
 /*=======================================================================================*/
 /*--- String Builder function prototypes ------------------------------------------------*/
@@ -747,14 +747,14 @@ bool hgl_sv_ends_with(HglStringView *sv, const char *substr)
     return (match.length != 0) && ((match.start + match.length) == (sv->start + sv->length));
 }
 
-int hgl_sv_compare(HglStringView *a, HglStringView *b)
+int hgl_sv_compare(HglStringView a, HglStringView b)
 {
-    if (a->length < b->length) return -1;
-    if (a->length > b->length) return  1;
-    return strncmp(a->start, b->start, a->length);
+    if (a.length < b.length) return -1;
+    if (a.length > b.length) return  1;
+    return strncmp(a.start, b.start, a.length);
 }
 
-bool hgl_sv_equals(HglStringView *a, HglStringView *b)
+bool hgl_sv_equals(HglStringView a, HglStringView b)
 {
     return 0 == hgl_sv_compare(a, b);
 }
