@@ -245,7 +245,7 @@ int main(void)
 
     HglStringView a = HGL_SV("Hello!");
     HglStringView b = HGL_SV("Hello!");
-    assert(hgl_sv_equals(&a, &b));
+    assert(hgl_sv_equals(a, b));
 
 #endif
 
