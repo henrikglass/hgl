@@ -166,11 +166,8 @@ void *hgl_internal_worker_(void *arg)
     pthread_mutex_lock(&wp->mutex);
     wp->n_alive_workers++;
     wp->n_busy_workers++;
-    pthread_mutex_unlock(&wp->mutex);
 
     while (true) {
-        /* lock mutex */
-        pthread_mutex_lock(&wp->mutex);
 
         /* wait till job queue becomes readable (or we get killed) */
         while(wp->jq_write_idx == wp->jq_read_idx) {
@@ -182,7 +179,7 @@ void *hgl_internal_worker_(void *arg)
 
             if (!wp->workers_keep_alive) {
                 wp->n_alive_workers--;
-                pthread_cond_signal(&wp->cvar_notify_host); /* SIGNAL: 3. worker was killed */
+                pthread_cond_signal(&wp->cvar_notify_host);         /* SIGNAL: 3. worker was killed */
                 pthread_mutex_unlock(&wp->mutex);
                 return NULL;
             }
@@ -195,12 +192,15 @@ void *hgl_internal_worker_(void *arg)
         job = wp->job_queue[wp->jq_read_idx];
         wp->jq_read_idx = (wp->jq_read_idx + 1) & (wp->jq_capacity - 1);
 
-        /* signal that queue is now writable & unlock mutex */
+        /* signal that queue is now writable & unlock mutex while performing job */
         pthread_cond_signal(&wp->cvar_notify_host); /* SIGNAL: 1. job removed from work queue */
         pthread_mutex_unlock(&wp->mutex);
 
         /* do assigned job */
         (*job.func)(job.arg);
+
+        /* lock mutex */
+        pthread_mutex_lock(&wp->mutex);
 
     }
 
@@ -275,6 +275,14 @@ HglWorkerPool *hgl_worker_pool_init(uint32_t n_requested_workers, uint32_t job_q
         fprintf(stderr, "[hgl_worker_pool_init] Warning: Could only create %u (out of %u requested) workers. \n",
                 wp->n_workers, n_requested_workers);
     }
+    
+    /* wait for all workers to come alive */
+    pthread_mutex_lock(&wp->mutex);
+    while ((wp->n_alive_workers != wp->n_workers) ||
+           (wp->n_busy_workers) != 0) {
+        pthread_cond_wait(&wp->cvar_notify_host, &wp->mutex);
+    }
+    pthread_mutex_unlock(&wp->mutex);
 
     return wp;
 
@@ -294,9 +302,9 @@ void hgl_worker_pool_destroy(HglWorkerPool *wp)
     /* Kill workers */
     pthread_mutex_lock(&wp->mutex);
     wp->workers_keep_alive = false;
-    pthread_cond_broadcast(&wp->cvar_notify_worker);
-    while(wp->n_alive_workers != 0) {
-        pthread_cond_wait(&wp->cvar_notify_host, &wp->mutex); /* AWAIT: 3. worker was killed */
+    while(wp->n_alive_workers > 0) {
+        pthread_cond_broadcast(&wp->cvar_notify_worker);
+        pthread_cond_wait(&wp->cvar_notify_host, &wp->mutex);
     }
     pthread_mutex_unlock(&wp->mutex);
 

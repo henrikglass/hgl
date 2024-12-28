@@ -1,74 +1,48 @@
 
-typedef void (*proc_t)(void);
+#include "hgl_test.h"
 
-#define HGL_CMD_PRIVATE_DATA_T proc_t
+typedef struct {
+    int i;
+    const char *str;
+} MyData;
+
 #define HGL_CMD_IMPLEMENTATION
+#define HGL_CMD_PRIVATE_DATA_T MyData
+
 #include "hgl_cmd.h"
-
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
-void open_door(void);
-void open_door()
-{
-    printf("Opening door\n");
-}
-
-void operate_tractor(void);
-void operate_tractor()
-{
-    printf("Operating tractor\n");
-}
-
-void operate_bike(void);
-void operate_bike()
-{
-    printf("Operating bike. Pling pling!\n");
-}
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-static HglCommand command_tree[] =
+static const HglCommand cmd_tree[] =
 {
-    {HGL_CMD_LEAF, "hello", "prints \"Hello World!\""},
-    {HGL_CMD_LEAF, "goodbye", "prints \"Goodbye folks!\""},
-    {HGL_CMD_LEAF, "hejsan", "prints \"Hejsan Hoppsan!\""},
-    {HGL_CMD_NODE, "operate", "operates something", .sub_tree = (HglCommand[]){
-        {HGL_CMD_LEAF, "forklift", "a forklift"},
-        {HGL_CMD_NODE, "vehicle", "some vehicle", .sub_tree = (HglCommand[]){
-            {HGL_CMD_LEAF, "car", "a car"},
-            {HGL_CMD_LEAF, "bike", "a bike"},
-            {HGL_CMD_LEAF, "tractor", "a tractor", .private_data = operate_tractor},
-            {HGL_CMD_NONE}
-        }},
+    {HGL_CMD_NODE, "say", "say something", .sub_tree = (HglCommand[]) {
+        {HGL_CMD_LEAF, "hello", "prints \"Hello World!\""},
+        {HGL_CMD_LEAF, "goodbye", "prints \"Goodbye folks!\""},
         {HGL_CMD_NONE}
     }},
-    {HGL_CMD_NODE, "open", "opens something", .sub_tree = (HglCommand[]){
-        {HGL_CMD_LEAF, "jar", "a jar"},
-        {HGL_CMD_LEAF, "can", "a can"},
-        {HGL_CMD_LEAF, "door", "a door", .private_data = open_door},
+    {HGL_CMD_NODE, "data", "description", .sub_tree = (HglCommand[]) {
+        {HGL_CMD_LEAF, "a", "description", .private_data = {.i = 6, .str = "A"}},
+        {HGL_CMD_LEAF, "b", "description", .private_data = {.i = 7, .str = "B"}},
+        {HGL_CMD_LEAF, "c", "description", .private_data = {.i = 8, .str = "C"}},
         {HGL_CMD_NONE}
     }},
-    {HGL_CMD_LEAF, "help", "prints help message"},
     {HGL_CMD_NONE}
 };
 #pragma GCC diagnostic pop
 
-int main()
+TEST(test_say_hello, .input = "say hello 123\n")
 {
-    hgl_cmd_tree_at(command_tree, "operate", "vehicle", "bike")->private_data = operate_bike;
+    const char *args;
+    const HglCommand *cmd = hgl_cmd_input(cmd_tree, ">>> ", &args);
+    ASSERT(cmd == hgl_cmd_tree_at(cmd_tree, "say", "hello"));
+    ASSERT_CSTR_EQ(args, "123");
+}
 
-    while (true) {
-        const char *args;
-        const HglCommand *cmd = hgl_cmd_input(command_tree, ">>> ", &args);
-        if (cmd->private_data != NULL) {
-            proc_t f = cmd->private_data;
-            f();
-        }
-        if (cmd == hgl_cmd_tree_at(command_tree, "help")) {
-            hgl_cmd_tree_print(command_tree, 2, 42);
-        }
-    }
+TEST(test_get_data, .input = "data b\n")
+{
+    const char *args;
+    const HglCommand *cmd = hgl_cmd_input(cmd_tree, ">>> ", &args);
+    ASSERT(cmd == hgl_cmd_tree_at(cmd_tree, "data", "b"));
+    ASSERT(cmd->private_data.i == 7);
+    ASSERT_CSTR_EQ(cmd->private_data.str, "B");
 }

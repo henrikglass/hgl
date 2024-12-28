@@ -1,59 +1,75 @@
-#include <stdio.h>
 
-#define HGL_ARENA_ALIGNMENT 32
+#include "hgl_test.h"
+
 #define HGL_STACK_ALLOC_IMPLEMENTATION
 #include "hgl_stack_alloc.h"
 
-static uint8_t memory_chunk[128 * 1024];
+static HglArena arena;
 
-static HglArena s_arena;
-
-void *arena_alloc(size_t size)
-{
-    return hgl_arena_alloc(&s_arena, size);
+GLOBAL_SETUP {
+    arena = hgl_arena_make(128 * 1024); // 128 KiB
 }
 
-void *stack_alloc(size_t size)
-{
-    return hgl_stack_alloc(&s_arena, size);
+GLOBAL_TEARDOWN {
+    hgl_arena_destroy(&arena);
 }
 
-void stack_free(void *ptr)
-{
-    hgl_stack_free(&s_arena, ptr);
+TEST(simple_alloc) {
+    void *p0 = hgl_stack_alloc(&arena, 100); 
+    void *p1 = hgl_stack_alloc(&arena, 1000); 
+    void *p2 = hgl_stack_alloc(&arena, 10000); 
+
+    ASSERT(p0 != NULL);
+    ASSERT(p1 != NULL);
+    ASSERT(p2 != NULL);
+
+    ASSERT(hgl_stack_alloc(&arena, 0) == NULL);
 }
 
-int main()
-{
-    //s_arena = hgl_arena_make(256 * 1024);  // 128 KiB
-    s_arena = hgl_arena_make_from_buffer(memory_chunk, sizeof(memory_chunk));
+TEST(test_free_all_behavior) {
+    void *p0 = hgl_stack_alloc(&arena, 100); 
+    void *p1 = hgl_stack_alloc(&arena, 1000); 
+    void *p2 = hgl_stack_alloc(&arena, 10000); 
 
-    void *arena_alloced_thing = arena_alloc(32);
+    ASSERT(p0 != NULL);
+    ASSERT(p1 != NULL);
+    ASSERT(p2 != NULL);
 
-    void *a = stack_alloc(32);
-    void *b = stack_alloc(128);
-    void *c = stack_alloc(512);
-    stack_free(c);
-    stack_free(b);
-    //stack_free(a);
-    void *d = stack_alloc(4096);
+    hgl_arena_free_all(&arena);
 
-    printf("%p\n", arena_alloced_thing);
-    printf("%p\n", a);
-    printf("%p\n", b);
-    printf("%p\n", c);
-    printf("%p\n", d);
+    void *p3 = hgl_stack_alloc(&arena, 100);
 
-    printf("%08lX\n", (uint8_t*)arena_alloced_thing - s_arena.memory);
-    printf("%08lX\n", (uint8_t*)a - s_arena.memory);
-    printf("%08lX\n", (uint8_t*)b - s_arena.memory);
-    printf("%08lX\n", (uint8_t*)c - s_arena.memory);
-    printf("%08lX\n", (uint8_t*)d - s_arena.memory);
+    ASSERT(p0 == p3);
+}
 
-    hgl_arena_free_all(&s_arena);
+TEST(test_too_big_allocation) {
+    void *p0 = hgl_stack_alloc(&arena, 128*1024 + 4); 
 
-    a = stack_alloc(128 * 1024);
-    printf("%08lX\n", (uint8_t*)a - s_arena.memory);
+    ASSERT(p0 == NULL);
+}
 
-    //hgl_arena_destroy(&s_arena);
+TEST(test_free_last) {
+    void *p0 = hgl_stack_alloc(&arena, 100); 
+    void *p1 = hgl_stack_alloc(&arena, 1000); 
+    void *p2 = hgl_stack_alloc(&arena, 10000); 
+
+    hgl_stack_free(&arena, p2);
+
+    void *p3 = hgl_stack_alloc(&arena, 100);
+
+    ASSERT(p3 != NULL);
+    ASSERT(p2 == p3);
+}
+
+TEST(test_free_non_last, .expect_signal = SIGABRT) {
+    void *p0 = hgl_stack_alloc(&arena, 100); 
+    void *p1 = hgl_stack_alloc(&arena, 1000); 
+    void *p2 = hgl_stack_alloc(&arena, 10000); 
+
+    hgl_stack_free(&arena, p1);
+
+    void *p3 = hgl_stack_alloc(&arena, 100);
+
+    ASSERT(p3 != NULL);
+    ASSERT(p2 == p3);
 }

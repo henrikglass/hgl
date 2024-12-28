@@ -1,3 +1,73 @@
+/**
+ * LICENSE:
+ *
+ * MIT License
+ *
+ * Copyright (c) 2024 Henrik A. Glass
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ * MIT License
+ *
+ *
+ * ABOUT:
+ *
+ * hgl_profile.h is a utility for quick and dirty profiling.
+ *
+ *
+ * USAGE:
+ *
+ * Include hgl_hotload.h file like this:
+ *
+ *     #define HGL_PROFILE_IMPLEMENTATION
+ *     #include "hgl_profile.h"
+ *
+ * If you want more detailed information, you can define:
+ *
+ *     #define HGL_PROFILE_DETAILED
+ *
+ * before including hgl_profile.h. NOTE: HGL_PROFILE_DETAILED is a 
+ * work in progress and might not work at all.
+ *
+ *
+ * EXAMPLE:
+ *
+ *     HGL_PROFILE_MEASURE(do_some_initializing());
+ *     hgl_profile_report(0);
+ *     hgl_profile_reset();
+ *
+ *     hgl_profile_begin("loop"); 
+ *     for (int i = 0; i < 1000000; i++) {
+ *         HGL_PROFILE_MEASURE(do_some_heavy_work());
+ *         hgl_profile_begin("some-more-heavy-work");
+ *         do_some_more_heavy_work();
+ *         hgl_profile_end();
+ *         hgl_profile_report(HGL_PROFILE_TIME_LAST); // report time elapsed for measurements this iteration
+ *     }
+ *     hgl_profile_end("loop"); 
+ *     hgl_profile_report(HGL_PROFILE_EVERYTHING); // report everything (min, max, avg). If using HGL_PROFILE_DETAILED
+ *                                                 // then this will also report branch misses, cache misses, etc.
+ *
+ *
+ * AUTHOR: Henrik A. Glass
+ *
+ */
+ 
 #ifndef HGL_PROFILE_H
 #define HGL_PROFILE_H
 
@@ -81,6 +151,7 @@ typedef struct
 void hgl_profile_begin(const char *name);
 void hgl_profile_end(void);
 void hgl_profile_report(uint32_t flags);
+void hgl_profile_reset(void);
 HglProfStat *hgl_profile_get(const char *name);
 
 
@@ -115,7 +186,7 @@ HglProfStat *hgl_profile_get(const char *name);
     do {                                                                         \
         if ((da)->arr == NULL) {                                                 \
             (da)->length = 0;                                                    \
-            (da)->capacity = 2;                                                  \
+            (da)->capacity = 64;                                                 \
             (da)->arr = malloc((da)->capacity * sizeof(*(da)->arr));             \
         }                                                                        \
         if ((da)->capacity < ((da)->length + 1)) {                               \
@@ -290,6 +361,11 @@ HglProfStat *hgl_profile_get(const char *name)
     }
 
     return NULL;
+}
+
+void hgl_profile_reset(void)
+{
+    stats.length = 0;
 }
 
 #endif

@@ -40,8 +40,8 @@
  *
  * You can redefine the load factor threshold, hash seed, and the default allocator:
  *
- *     HGL_HTABLE_LOAD_FACTOR_THRESHOLD  (default: 0.5f)
- *     HGL_HTABLE_HASH_FUNC_SEED         (default: 0x1337)
+ *     HGL_HTABLE_LOAD_FACTOR_THRESH     (default: 0.5f)
+ *     HGL_HTABLE_HASH_SEED              (default: 0x1337)
  *     HGL_HTABLE_ALLOC                  (default: malloc)
  *     HGL_HTABLE_FREE                   (default: free)
  *
@@ -144,6 +144,7 @@ static inline HglHashTable hgl_htable_make(void (*hash_func)(const void *, size_
                                            uint32_t initial_capacity,
                                            bool growable);
 static inline void hgl_htable_insert(HglHashTable *htbl, void *key, void *value);
+static inline void hgl_htable_join(HglHashTable *htbl, HglHashTable *other);
 static inline void *hgl_htable_lookup(HglHashTable *htbl, void *key);
 static inline void hgl_htable_remove(HglHashTable *htbl, void *key);
 static inline void hgl_htable_destroy(HglHashTable *htbl);
@@ -253,8 +254,9 @@ static inline void hgl_htable_destroy(HglHashTable *htbl)
 static inline void hgl_htable_insert(HglHashTable *htbl, void *key, void *value)
 {
     /* rehash if needed */
+    const float EPSILON = 0.0001f;
     float load_factor = (float) htbl->n_occupied_buckets / (float) htbl->capacity;
-    if (htbl->growable && (load_factor > HGL_HTABLE_LOAD_FACTOR_THRESH)) {
+    if (htbl->growable && (load_factor > (HGL_HTABLE_LOAD_FACTOR_THRESH - EPSILON))) {
         hgl_htable_grow_and_rehash_(htbl);
     }
 
@@ -311,6 +313,16 @@ static inline void hgl_htable_insert(HglHashTable *htbl, void *key, void *value)
 
     fprintf(stderr, "[hgl_htable_insert] Hash table is full. Aborting...\n");
     abort();
+}
+
+static inline void hgl_htable_join(HglHashTable *htbl, HglHashTable *other)
+{
+    for (uint32_t i = 0; i < other->capacity; i++) {
+        HglHashTableBucket *bucket = &other->buckets[i];
+        if (bucket->psl != -1) {
+            hgl_htable_insert(htbl, bucket->key, bucket->value);
+        }
+    }
 }
 
 static inline void *hgl_htable_lookup(HglHashTable *htbl, void *key)
@@ -383,6 +395,7 @@ static inline void hgl_htable_remove(HglHashTable *htbl, void *key)
 
                 /* next slot is empty (psl = -1) or contains bucket with optimal position (psl = 0): return */
                 if (next_bucket_in_tbl->psl < 1) {
+                    htbl->n_occupied_buckets--;
                     return;
                 }
 
@@ -396,7 +409,7 @@ static inline void hgl_htable_remove(HglHashTable *htbl, void *key)
             }
 
             /* should never happen */
-            assert(0 && "Bug in *_hash_table_remove");
+            assert(0 && "Bug in hgl_htable_remove");
         }
 
         /* go to next slot */

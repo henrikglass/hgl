@@ -1,32 +1,30 @@
-#include <stdio.h>
 
-#define HGL_FLAGS_IMPLEMENTATION
+#include "hgl_test.h"
+
+#undef HGL_FLAGS_IMPLEMENTATION /* NOTE: hgl_test.h depends on hgl_flags.h, we don't need 
+                                         the implementation. */
 #include "hgl_flags.h"
 
-int main(int argc, char *argv[])
+TEST(test_flags1)
 {
+    char *argv[] = {"test_flags1", "-a", "--bee", "-d"};
+    int argc = 4;
+    bool *opt_a = hgl_flags_add_bool("-a,--aye", "description...", false, 0);
+    bool *opt_b = hgl_flags_add_bool("-b,--bee", "description...", false, 0);
+    bool *opt_c = hgl_flags_add_bool("-c,--cee", "description...", false, 0);
+    bool *opt_d = hgl_flags_add_bool("-d,--dee", "description...", false, 0);
+    ASSERT(0 == hgl_flags_parse(argc, argv));
+    ASSERT(*opt_a);
+    ASSERT(*opt_b);
+    ASSERT(!*opt_c);
+    ASSERT(*opt_d);
+}
 
-    bool *a            = hgl_flags_add_bool("-a", "option a", false, 0);
-    bool *b            = hgl_flags_add_bool("-b,--bee", "option b", false, HGL_FLAG_OPT_MANDATORY);
-    int64_t *c         = hgl_flags_add_i64("-c", "int c", 123456, 0);
-    int64_t *d         = hgl_flags_add_i64("-d", "looong d", 0xFF, 0);
-    uint64_t *u        = hgl_flags_add_u64("-u", "uulooong d", 0xFFFFF0FFFFFFFFFF, 0);
-    double *f          = hgl_flags_add_f64_range("-f,--float", "float f hello", 103.1415926535f, 0, 10.0, DBL_MAX);
-    const char **o     = hgl_flags_add_str("-o,--output", "output file path", "a.out", 0);
-    bool *gen_cmpl_cmd = hgl_flags_add_bool("-c,--gen-cmpl-cmd", "generate a completion command on stdout and exit", false, 0);
-
-    int err = hgl_flags_parse(argc, argv);
-    if (err != 0) {
-        printf("Usage: %s [Options]\n", argv[0]);
-        hgl_flags_print();
-        return 1;
-    }
-
-    if (*gen_cmpl_cmd) {
-        hgl_flags_generate_completion_cmd(stdout, argv[0]);
-        return 0;
-    }
-    
-    printf("a = %d, b = %d, c = %ld, d = %ld, u = %lu, f = %f, o = %s\n", *a, *b, *c, *d, *u, *f, *o);
-
+TEST(test_flags2, .expect_output = "Hejsan hoppsan\n")
+{
+    char *argv[] = {"test_flags1", "--aye", "Hejsan hoppsan"};
+    int argc = 3;
+    const char **opt_a = hgl_flags_add_str("-a,--aye", "description...", false, 0);
+    ASSERT(0 == hgl_flags_parse(argc, argv));
+    printf("%s\n", *opt_a);
 }

@@ -1,79 +1,48 @@
 
-#define HGL_PROCESS_IMPLEMENTATION
-#include "hgl_process.h"
+#include "hgl_test.h"
 
-int main()
+typedef struct {
+    int i;
+    const char *str;
+} MyData;
+
+#define HGL_CMD_IMPLEMENTATION
+#define HGL_CMD_PRIVATE_DATA_T MyData
+
+#include "hgl_cmd.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+static const HglCommand cmd_tree[] =
 {
-    char buf[4096];
-    size_t n_read = 0;
-    (void) n_read;
+    {HGL_CMD_NODE, "say", "say something", .sub_tree = (HglCommand[]) {
+        {HGL_CMD_LEAF, "hello", "prints \"Hello World!\""},
+        {HGL_CMD_LEAF, "goodbye", "prints \"Goodbye folks!\""},
+        {HGL_CMD_NONE}
+    }},
+    {HGL_CMD_NODE, "data", "description", .sub_tree = (HglCommand[]) {
+        {HGL_CMD_LEAF, "a", "description", .private_data = {.i = 6, .str = "A"}},
+        {HGL_CMD_LEAF, "b", "description", .private_data = {.i = 7, .str = "B"}},
+        {HGL_CMD_LEAF, "c", "description", .private_data = {.i = 8, .str = "C"}},
+        {HGL_CMD_NONE}
+    }},
+    {HGL_CMD_NONE}
+};
+#pragma GCC diagnostic pop
 
-    /* ========================== example 1 ======================== */
+TEST(test_say_hello, .input = "say hello 123\n")
+{
+    const char *args;
+    const HglCommand *cmd = hgl_cmd_input(cmd_tree, ">>> ", &args);
+    ASSERT(cmd == hgl_cmd_tree_at(cmd_tree, "say", "hello"));
+    ASSERT_CSTR_EQ(args, "123");
+}
 
-    int return_code = hgl_process_run_sync("cowsay", "-e", "><", "Hello I'm a cow");
-
-    printf("returned with exit code %d\n", return_code);
-
-    //printf("%s\n", buf);
-    //memset(buf, 0, n_read);
-
-    /* ========================== example 2 ======================== */
-
-    HglProcess p2 = hgl_process_make("ls", "hgl_da.h", "hgl_cmd.h", "hgl_process.h");
-    hgl_process_append_args(&p2, "-a");
-    hgl_process_append_args(&p2, "-l", "-h");
-    hgl_process_redir_output_to_stdout(&p2);
-    printf("1:\n");
-    hgl_process_spawn(&p2);
-    hgl_process_wait(&p2);
-    printf("2:\n");
-    hgl_process_spawn(&p2);
-    hgl_process_wait(&p2);
-    printf("3:\n");
-    hgl_process_spawn(&p2);
-    hgl_process_wait(&p2);
-
-    //n_read = read(p2.output, buf, 4096);
-    //printf("%s\n", buf);
-    //memset(buf, 0, n_read);
-
-    /* ========================== example 3 ======================== */
-
-    HglProcess ps[] = {
-        hgl_process_make("echo", "en\n"
-                                 "ball\n"
-                                 "groda\n"
-                                 "groda\n"
-                                 "groda\n"
-                                 "dansar\n"
-                                 "aldrig\n"
-                                 "Ensam\n"),
-        hgl_process_make("uniq"),
-        hgl_process_make("sort"),
-        hgl_process_make("cowsay", "-e", "^^"),
-    };
-    size_t n_ps = sizeof(ps)/sizeof(ps[0]);
-
-    
-    /* run #1 */
-    hgl_process_chain(ps, n_ps);
-    hgl_process_spawn_n(ps, n_ps);
-    n_read = read(ps[n_ps - 1].output, buf, 4096);
-    printf("%s\n", buf);
-    hgl_process_wait_n(ps, n_ps);
-    memset(buf, 0, n_read);
-
-    /* run #2 */
-    ps[0].argv[1] = "The\nquick\nbrown\nfox\njumped\nover\nthe\nlazy\ndog.";
-    ps[3].argv[2] = "--";
-    hgl_process_repipe_n(ps, n_ps);
-    hgl_process_chain(ps, n_ps);
-    hgl_process_spawn_n(ps, n_ps);
-    n_read = read(ps[n_ps - 1].output, buf, 4096);
-    printf("%s\n", buf);
-    hgl_process_wait_n(ps, n_ps);
-
-    hgl_process_destroy_n(ps, n_ps);
-
-    return 0;
+TEST(test_get_data, .input = "data b\n")
+{
+    const char *args;
+    const HglCommand *cmd = hgl_cmd_input(cmd_tree, ">>> ", &args);
+    ASSERT(cmd == hgl_cmd_tree_at(cmd_tree, "data", "b"));
+    ASSERT(cmd->private_data.i == 7);
+    ASSERT_CSTR_EQ(cmd->private_data.str, "B");
 }

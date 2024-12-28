@@ -246,7 +246,7 @@ void hgl_fs_destroy(HglFsAllocator *allocator)
 void *hgl_fs_alloc(HglFsAllocator *allocator, size_t size)
 {
     if (size == 0) {
-        return 0;
+        return NULL;
     }
 
     size_t total_size = HGL_FS_ALLOC_ALIGNMENT +  // header + padding

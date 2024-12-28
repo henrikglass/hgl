@@ -1,74 +1,76 @@
-#include <stdio.h>
 
-#define HGL_MEMDBG_IMPLEMENTATION
-#include "hgl_memdbg.h"
+#include "hgl_test.h"
 
-#define HGL_POOL_ALIGNMENT 1024
+#define HGL_POOL_ALIGNMENT 64
 #define HGL_POOL_ALLOC_IMPLEMENTATION
 #include "hgl_pool_alloc.h"
 
-static uint8_t memory_chunk[64];
+static HglPool pool;
 
-static HglPool s_pool;
-
-void *pool_alloc()
-{
-    return hgl_pool_alloc(&s_pool);
+GLOBAL_SETUP {
+    pool = hgl_pool_make(16, 50); // 16 chunks of 50 bytes
 }
 
-void pool_free(void *ptr)
-{
-    hgl_pool_free(&s_pool, ptr);
+GLOBAL_TEARDOWN {
+    hgl_pool_destroy(&pool);
 }
 
-int main()
-{
-    s_pool = hgl_pool_make(8, sizeof(int));
+TEST(test_simple_alloc) {
+    void *p0 = hgl_pool_alloc(&pool); 
+    void *p1 = hgl_pool_alloc(&pool); 
+    void *p2 = hgl_pool_alloc(&pool); 
 
-    int *i0 = pool_alloc();
-    int *i1 = pool_alloc();
-    int *i2 = pool_alloc();
-    int *i3 = pool_alloc();
-    int *i4 = pool_alloc();
-    int *i5 = pool_alloc();
-    int *i6 = pool_alloc();
-    int *i7 = pool_alloc();
+    ASSERT(p0 != NULL);
+    ASSERT(p1 != NULL);
+    ASSERT(p2 != NULL);
 
-    pool_free(i3);
+    ASSERT(p1 - p0 == 50);
+    ASSERT(p2 - p1 == 50);
 
-    int *i8 = pool_alloc();
+}
 
-    printf("%p\n", (void *) i0);
-    printf("%p\n", (void *) i1);
-    printf("%p\n", (void *) i2);
-    printf("%p\n", (void *) i3);
-    printf("%p\n", (void *) i4);
-    printf("%p\n", (void *) i5);
-    printf("%p\n", (void *) i6);
-    printf("%p\n", (void *) i7);
-    printf("%p\n", (void *) i8);
+TEST(test_alignment) {
+    ASSERT((((intptr_t)pool.memory) & (HGL_POOL_ALIGNMENT - 1)) == 0);
+}
 
-    hgl_pool_destroy(&s_pool);
+TEST(test_free_chunk) {
+    void *p0 = hgl_pool_alloc(&pool); 
+    void *p1 = hgl_pool_alloc(&pool); 
+    void *p2 = hgl_pool_alloc(&pool); 
 
-    s_pool = hgl_pool_make_from_buffer(memory_chunk, sizeof(memory_chunk), sizeof(int));
-    printf("pool n chunks: %zu\n", s_pool.n_chunks);
+    ASSERT(p0 != NULL);
+    ASSERT(p1 != NULL);
+    ASSERT(p2 != NULL);
 
+    hgl_pool_free(&pool, p1);
 
-    i0 = pool_alloc();
-    i1 = pool_alloc();
-    i2 = pool_alloc();
-    i3 = pool_alloc();
-    i4 = pool_alloc();
+    void *p3 = hgl_pool_alloc(&pool);
 
-    pool_free(i3);
-    i5 = pool_alloc();
+    ASSERT(p1 == p3);
+}
 
-    printf("%p\n", (void *) i0);
-    printf("%p\n", (void *) i1);
-    printf("%p\n", (void *) i2);
-    printf("%p\n", (void *) i3);
-    printf("%p\n", (void *) i4);
-    printf("%p\n", (void *) i5);
+TEST(test_free_all) {
+    void *p0 = hgl_pool_alloc(&pool); 
+    void *p1 = hgl_pool_alloc(&pool); 
+    void *p2 = hgl_pool_alloc(&pool); 
 
-    hgl_memdbg_report();
+    ASSERT(p0 != NULL);
+    ASSERT(p1 != NULL);
+    ASSERT(p2 != NULL);
+
+    hgl_pool_free_all(&pool);
+
+    void *p3 = hgl_pool_alloc(&pool);
+
+    ASSERT(p0 == p3);
+}
+
+TEST(test_too_many_allocs) {
+    void *p0;
+    for (int i = 0; i < 16; i++) {
+        p0 = hgl_pool_alloc(&pool); 
+    }
+    ASSERT(p0 != NULL);
+    p0 = hgl_pool_alloc(&pool); 
+    ASSERT(p0 == NULL);
 }

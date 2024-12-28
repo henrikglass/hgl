@@ -45,7 +45,7 @@
  *     HGL_RBTREE_FREE
  *
  * example:
-
+ *
  *     #define HGL_RBTREE_ALLOC my_pool_alloc
  *     #define HGL_RBTREE_FREE my_pool_free
  *     #define HGL_RBTREE_IMPLEMENTATION
@@ -416,7 +416,6 @@ int hgl_rbtree_insert(HglRbTree *tree, void *item)
 
     /* Special case: inserting root node. No violations, return immediately */
     if (p == tree->NIL) {
-        printf("insert root: %d\n", *(int*)item);
         tree->root = hgl_rbtree_make_node_(tree, tree->NIL, item, HGL_RBTREE_BLACK);
         return 0;
     }

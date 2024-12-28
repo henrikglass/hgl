@@ -1,3 +1,71 @@
+/**
+ * LICENSE:
+ *
+ * MIT License
+ *
+ * Copyright (c) 2024 Henrik A. Glass
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ * MIT License
+ *
+ *
+ * ABOUT:
+ *
+ * hglm.h is a (mostly) vector math library (with some SIMD support).
+ *
+ * hglm_aliases.h contains aliases for types and functions inside hglm.h that
+ * omit the `Hglm` and `hglm_` prefixes.
+ *
+ *
+ * USAGE:
+ *
+ * Include `hglm.h` like this:
+ *
+ *     #include "hglm.h"
+ *
+ * Optionally include `hglm_aliases.h`:
+ *
+ *     #include "hglm_aliases.h"
+ *
+ *
+ * EXAMPLE:
+ *
+ * project vector a onto b (using aliases!):
+ *
+ *     Vec2 a = vec2_make(10, 5);
+ *     Vec2 b = vec2_make(20, 0);
+ *     Vec2 projb_a = vec2_mul_scalar(b, (vec2_dot(a, b) / vec2_dot(b, b)));
+ *     vec2_print(projb_a);
+ *
+ * spherical linear interpolation between a and b (using aliases!):
+ *
+ *     Vec2 a = vec2_make(10, 0);
+ *     Vec2 b = vec2_make(0, 10);
+ *     for (int i = 0; i <= 8; i++) {
+ *         vec2_print(vec2_slerp(a, b, (float)i/8));
+ *     }
+ *     
+ *
+ * AUTHOR: Henrik A. Glass
+ *
+ */
+ 
 #ifndef HGLM_ALIASES_H
 #define HGLM_ALIASES_H
 
@@ -24,6 +92,7 @@ typedef HglmMat  Mat;
 
 #define vec2_print               hglm_vec2_print
 #define vec2_make                hglm_vec2_make
+#define vec2_from_polar          hglm_vec2_from_polar
 #define vec2_add                 hglm_vec2_add
 #define vec2_sub                 hglm_vec2_sub
 #define vec2_distance            hglm_vec2_distance
@@ -34,10 +103,12 @@ typedef HglmMat  Mat;
 #define vec2_mul_scalar          hglm_vec2_mul_scalar
 #define vec2_reflect             hglm_vec2_reflect
 #define vec2_lerp                hglm_vec2_lerp
+#define vec2_slerp               hglm_vec2_slerp
 #define vec2_bezier3             hglm_vec2_bezier3
 
 #define vec3_print               hglm_vec3_print
 #define vec3_make                hglm_vec3_make
+#define vec3_from_spherical      hglm_vec3_from_spherical
 #define vec3_add                 hglm_vec3_add
 #define vec3_sub                 hglm_vec3_sub
 #define vec3_distance            hglm_vec3_distance
@@ -100,6 +171,7 @@ typedef HglmMat  Mat;
 #define mat_transpose_in_place   hglm_mat_transpose_in_place
 #define mat_transpose            hglm_mat_transpose
 
+#define pid                      hglm_pid
 #define lerp                     hglm_lerp
 #define ilerp                    hglm_ilerp
 #define clamp                    hglm_clamp

@@ -1,72 +1,95 @@
 
-#include <stdio.h>
-#include <assert.h>
+#include "hgl_test.h"
 
 #include "hgl_serialize.h"
 
-typedef struct __attribute__((__packed__)) {
-    uint8_t a;
-    uint8_t b;
-    uint16_t c;
-    //uint32_t d;
-    char str[4];
-    float ff;
-} MyStruct;
 
-typedef union {
-    float f;
-    uint8_t b[4];
-} MyUnion;
-
-char my_str[10];
-
-int main(void)
+#define STR_SIZE 24
+typedef struct __attribute__((__packed__))
 {
-    printf("Hello .E.L.FWorld!\n");
+    uint8_t a;
+    uint32_t b;
+    char str[STR_SIZE];
+    uint32_t c;
+} SomeDataType;
 
-    MyUnion u;
-    u.f = 123.456f;
-    uint8_t bytes[] = {0x00   , 0xAA   , 0xBB   , 0xCC     ,
-                       'h'    , 'g'    , 'l'    , '!'      ,
-                       0x00   , 'h'    , 'e'    , 'j'      ,
-                       u.b[0] , u.b[1] , u.b[2] , u.b[3]};
+static uint8_t scratch[4096];
 
-    MyStruct my_struct; 
-    memset(&my_struct, 0, sizeof(my_struct));
-    
-    //uint8_t *offset = hgl_binparse((uint8_t *) &my_struct, bytes, "[BE]:0x00AA:W:[BE]:.h.g.l:S:DW:");
-    //void *offset = hgl_binparse((void *) &my_struct, (void *) bytes, "[BE]BBW'hgl''!'#a0#BBB");
-    
+static SomeDataType my_data = {
+    .a = 255,
+    .b = 0xAABBCCDD,
+    .str = "fisk",
+    .c = 0xFF000000,
+};
 
-    void *offset = hgl_serialize((void *) &my_struct, (void *) bytes, "[BE]%{B}W'hgl!'#00#BBB+[LE]DW", 2);
-    float my_float;
-    void *result = hgl_serialize(&my_float, bytes, "[LE]#00AABBCC#<0C>DW");
-    printf("%s\n", (result != NULL) ? "OK": "FAILED");
-    //hgl_binparse((void *) &my_str, (void *) bytes, "4{-}'hgl!'-3{B}");
-
-    printf("my_float = %f\n", (double) my_float);
-    //printf("my_str = %s\n", my_str);
-
-    if (offset != NULL) {
-        printf("a = %X\n", my_struct.a);
-        printf("b = %X\n", my_struct.b);
-        printf("c = %X\n", my_struct.c);
-        printf("str = %s\n", my_struct.str);
-        printf("ff = %f\n", (double) my_struct.ff);
-        //printf("d = %X\n", my_struct.d);
-        printf("%ld\n", (uint8_t*)offset - bytes);
-    }
-
-
-    memset(my_str, 0, sizeof(my_str));
-    assert(NULL == hgl_serialize(&my_str, NULL, "[BE]^'HEJ :>'^#4848#"));
-    printf("%s\n", my_str);
-    
-    uint8_t buf[4] = {0};
-    uint32_t u32 = 0x12345678;
-    hgl_serialize(buf, &u32, "[BE]DW");
-    printf("{%02X, %02X, %02X, %02X}\n", buf[0], buf[1], buf[2], buf[3]);
-    hgl_serialize(&u32, buf, "[BE]DW^<00>^#AA#+^#BB#");
-    printf("0x%08X\n", u32);
-
+TEST(test_struct_size)
+{
+    ASSERT(sizeof(SomeDataType) == (1 + 4 + 4 + STR_SIZE));
 }
+
+TEST(test_serialize_unserialize)
+{
+    SomeDataType my_data_unserialized;
+
+    /* serialize data */
+    ASSERT(NULL != hgl_serialize(scratch, &my_data, "[BE] B DW %{B} [LE]DW", STR_SIZE));
+
+    /* unserialize data */
+    ASSERT(NULL != hgl_serialize(&my_data_unserialized, scratch, "[BE]BDW %{B} [LE] DW", STR_SIZE));
+
+    /* assert that the unserialized data is equal to the original data */
+    ASSERT(my_data.a == my_data_unserialized.a);
+    ASSERT(my_data.b == my_data_unserialized.b);
+    ASSERT_CSTR_EQ(my_data.str, my_data_unserialized.str);
+    ASSERT(my_data.c == my_data_unserialized.c);
+}
+
+TEST(test_endianness)
+{
+    /* serialize data */
+    ASSERT(NULL != hgl_serialize(scratch, &my_data, "[BE]-DW%{-}[LE]DW", STR_SIZE));
+
+    /* assert that the first u32 is stored in BE order */
+    ASSERT(scratch[0] == 0xAA);
+    ASSERT(scratch[1] == 0xBB);
+    ASSERT(scratch[2] == 0xCC);
+    ASSERT(scratch[3] == 0xDD);
+
+    /* assert that the second u32 is stored in LE order immediately afterwards */
+    ASSERT(scratch[4] == 0x00);
+    ASSERT(scratch[5] == 0x00);
+    ASSERT(scratch[6] == 0x00);
+    ASSERT(scratch[7] == 0xFF);
+}
+
+TEST(test_offset)
+{
+    uint32_t word;
+
+    ASSERT(NULL != hgl_serialize(scratch, &my_data, "[BE]-+++DW"));
+    ASSERT(NULL != hgl_serialize(&word, scratch, "---[BE]DW"));
+    
+    ASSERT(word == 0xAABBCCDD);
+
+    ASSERT(NULL != hgl_serialize(&word, scratch, "<03>[LE]DW"));
+    
+    ASSERT(word == 0xDDCCBBAA);
+}
+
+
+TEST(test_expect)
+{
+    ASSERT(NULL != hgl_serialize(scratch, &my_data, "#FF#4{-}'fisk'"));
+    ASSERT(NULL == hgl_serialize(scratch, &my_data, "#FF#4{-}'pisk'"));
+    ASSERT(NULL == hgl_serialize(scratch, &my_data, "#00#4{-}'fisk'"));
+}
+
+#define TEST_STR "Hejsan Hoppsan"
+TEST(test_write, .expect_output = TEST_STR)
+{ 
+    ASSERT(NULL != hgl_serialize(scratch, &my_data, "^'" TEST_STR "'^#00#"));
+    ASSERT_CSTR_EQ((char *)scratch, TEST_STR);
+    printf("%s", (char *) scratch);
+} 
+
+

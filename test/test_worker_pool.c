@@ -1,91 +1,113 @@
-//#include <stdio.h>
+
+#include "hgl_test.h"
 
 #define HGL_WORKER_POOL_IMPLEMENTATION
 #include "hgl_worker_pool.h"
 
-#include "hgl.h"
+static HglWorkerPool *wp;
 
-#include <stdio.h>
-
-void debug_print_job_queue(HglWorkerPool *wp);
-void debug_print_job_queue(HglWorkerPool *wp)
+typedef struct
 {
-    pthread_mutex_lock(&wp->mutex);
+    int input;
+    int result;
+    const char *str;
+} TaskData;
 
-    uint32_t my_read_idx = wp->jq_read_idx;
-    while (my_read_idx != wp->jq_write_idx) {
-        HglWorkerPoolJob job = wp->job_queue[my_read_idx];
-        printf("job_queue[%u] = {func = ?, arg = %s}\n",
-               my_read_idx, (const char *) job.arg);
-        my_read_idx = (my_read_idx + 1) & (wp->jq_capacity - 1);
+void square(void *arg)
+{
+    TaskData *task = (TaskData *) arg;
+    task->result = task->input * task->input;
+}
+
+void do_nothing_fast(void *arg)
+{
+    (void) arg;
+}
+
+void setup()
+{
+    wp = hgl_worker_pool_init(8, 4);
+}
+
+void teardown()
+{
+    hgl_worker_pool_destroy(wp);
+}
+
+TEST(test_work1, .setup = setup, .teardown = teardown)
+{
+    LOG("This test should not halt.\n");
+    TaskData tasks[] = {
+        (TaskData) {.input = 1},
+        (TaskData) {.input = 2},
+        (TaskData) {.input = 3},
+        (TaskData) {.input = 4},
+        (TaskData) {.input = 5},
+    };
+
+    for (size_t i = 0; i < sizeof(tasks)/sizeof(tasks[0]); i++) {
+        hgl_worker_pool_add_job(wp, square, (void *) &tasks[i]);
     }
 
-    pthread_mutex_unlock(&wp->mutex);
+    hgl_worker_pool_wait(wp);
+
+    int sum = 0;
+    for (size_t i = 0; i < sizeof(tasks)/sizeof(tasks[0]); i++) {
+        sum += tasks[i].result;
+    }
+
+    ASSERT(sum == (1 + 4 + 9 + 16 + 25));
+
+    hgl_worker_pool_wait(wp);
 }
 
-void my_func(void *arg);
-void my_func(void *arg)
+TEST(test_do_nothing_fast, .setup = setup, .teardown = teardown)
 {
-    char *str = (char *) arg;
-
-    /* wait between 0 and 0.5 seconds */
-    srand((unsigned int)((uintptr_t)arg & 0xFFFFFFFFu));
-    float sleep_time = (rand() % 100) / 200.0f;
-    hgl_sleep_s(sleep_time);
-
-    printf("%s\n", str);
-    fflush(stdout);
-
+    LOG("This test should not halt.\n");
+    for (size_t i = 0; i < 5; i++) {
+        hgl_worker_pool_add_job(wp, do_nothing_fast, NULL);
+    }
 }
 
-int main(void)
+TEST(test_workers_alive_after_init)
 {
-    printf("Hello World!\n");
+    LOG("This test should not halt.\n");
+    for (size_t i = 0; i < 1000; i++) {
+        wp = hgl_worker_pool_init(8, 4);
+        ASSERT(wp->n_alive_workers == 8);
+        ASSERT(wp->n_workers == 8);
+        ASSERT(wp->n_busy_workers == 0);
+        hgl_worker_pool_destroy(wp);
+    }
+}
 
-    HglWorkerPool *wp = hgl_worker_pool_init(24, 256);
+TEST(test_workers_waitable)
+{
+    LOG("This test should not halt.\n");
+    for (size_t i = 0; i < 1000; i++) {
+        wp = hgl_worker_pool_init(8, 4);
+        ASSERT(wp->n_alive_workers == 8);
+        ASSERT(wp->n_workers == 8);
+        ASSERT(wp->n_busy_workers == 0);
+        for (size_t i = 0; i < 5; i++) {
+            hgl_worker_pool_add_job(wp, do_nothing_fast, NULL);
+        }
+        hgl_worker_pool_wait(wp);
+        hgl_worker_pool_destroy(wp);
+    }
+}
 
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job  0");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job  1");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job  2");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job  3");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job  4");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job  5");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job  6");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job  7");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job  8");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job  9");
-    hgl_worker_pool_wait(wp);
-    printf("---------------\n");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 10");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 11");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 12");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 13");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 14");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 15");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 16");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 17");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 18");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 19");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 20");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 21");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 22");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 23");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 24");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 25");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 26");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 27");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 28");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 29");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 30");
-    hgl_worker_pool_add_job(wp, my_func, (void *)"This is job 31");
-    hgl_worker_pool_wait(wp);
-    printf("---------------\n");
-
-    hgl_worker_pool_destroy(wp);
-    printf("main: done destroying\n");
-
-    //printf("sleeping\n");
-    //hgl_sleep_s(100.0f);
-
-    return 0;
+TEST(test_workers_killable)
+{
+    LOG("This test should not halt.\n");
+    for (size_t i = 0; i < 1000; i++) {
+        wp = hgl_worker_pool_init(8, 4);
+        ASSERT(wp->n_alive_workers == 8);
+        ASSERT(wp->n_workers == 8);
+        ASSERT(wp->n_busy_workers == 0);
+        for (size_t i = 0; i < 5; i++) {
+            hgl_worker_pool_add_job(wp, do_nothing_fast, NULL);
+        }
+        hgl_worker_pool_destroy(wp);
+    }
 }

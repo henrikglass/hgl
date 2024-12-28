@@ -111,7 +111,9 @@ void ifft(float complex in[], float complex out[], int n);
 #   include <immintrin.h>
 #endif
 
+#ifndef PI
 #define PI 3.14159265358979
+#endif
 
 void fft_(float in[], float complex out[], int n, int stride);
 void ifft_(float complex in[], float complex out[], int n, int stride);

@@ -59,7 +59,7 @@
  * of the word "glass" on each line:
  *
  *     HglStringBuilder sb = hgl_sb_make("", 0);
- *     hgl_sb_append_file(&sb, "test/data/glassigt_lyrics.txt");
+ *     hgl_sb_append_file(&sb, "data/glassigt_lyrics.txt");
  *     HglStringView sv = hgl_sv_from_sb(&sb);
  *
  *     int line_nr = 1;
@@ -77,7 +77,7 @@
  *
  *     hgl_sb_destroy(&sb);
  *
- * See test/test_string.c for more examples.
+ * See examples/test_string.c for more examples.
  *
  *
  * TODO:
@@ -387,6 +387,11 @@ void hgl_sb_ltrim(HglStringBuilder *sb);
  * Trims all whitespace from both the right and the left.
  */
 void hgl_sb_trim(HglStringBuilder *sb);
+
+/**
+ * Remove's `n` characters from the end of the string.
+ */
+void hgl_sb_rchop(HglStringBuilder *sb, size_t n);
 
 #endif /* HGL_STRING_H */
 
@@ -1049,6 +1054,15 @@ void hgl_sb_trim(HglStringBuilder *sb)
 {
     hgl_sb_rtrim(sb); 
     hgl_sb_ltrim(sb); 
+}
+
+void hgl_sb_rchop(HglStringBuilder *sb, size_t n)
+{
+    if (n > sb->length) {
+        n = sb->length;
+    }
+    sb->length -= n;
+    sb->cstr[sb->length + 1] = '\0';
 }
 
 

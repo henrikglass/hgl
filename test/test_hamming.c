@@ -1,64 +1,72 @@
 
+#include "hgl_test.h"
+
+#define HGL_HAMMING_DEBUG_PRINTS
 #define HGL_HAMMING_IMPLEMENTATION
 #include "hgl_hamming.h"
 
-#include <stdlib.h>
-
-int main()
+TEST(test_encode_decode, .expect_output = "Hello World!\n")
 {
-
-    /* =========== ENCODE =========== */
-
-    // message to encode
-    uint8_t data[110] = "Hello world! :)";
-
-    // allocate memory for encoded message
+    uint8_t data[22] = "Hello World!";
     size_t encoded_size = HGL_HAMMING_16_11_ENDCODED_SIZE(sizeof(data));
-    HglHamming16_11 *encoded = malloc(encoded_size);
-
-    // encode message
-    int err = hgl_hamming_encode_16_11(encoded, encoded_size, data, sizeof(data));
-    if (err != 0) {
-        printf("Encode error: Invalid argument(s).\n");
-        return 1;
-    }
-
-    /* ==== DAMAGE ENCODED DATA ===== */
-
-    encoded[0] ^= 0x0001;
-    encoded[1] ^= 0x0800;
-    encoded[2] ^= 0x0010;
-    encoded[3] ^= 0x4000;
-    encoded[4] ^= 0x0001;
-
-    // flipping the block parity bit should be fine if the rest of the block
-    // has no parity errors.
-    encoded[5] ^= 0x8000;
-
-    /* =========== DECODE =========== */
-
-    // allocate memory for decoded message
     size_t decoded_size = HGL_HAMMING_16_11_DECODED_SIZE(encoded_size);
-    uint8_t *decoded = malloc(decoded_size);
+    HglHamming16_11 *encoded = malloc(encoded_size);
+    uint8_t *decoded = malloc(encoded_size);
+    ASSERT(encoded != NULL);
+    ASSERT(decoded != NULL);
 
-    // decode message
-    int ret = hgl_hamming_decode_16_11(decoded, decoded_size, encoded, encoded_size);
-    if (ret < 0) {
-        if (errno == EINVAL) {
-            printf("Decode error: Invalid argument(s).\n");
-        } else {
-            printf("Decode error: Found %d corrupted blocks.\n", -ret);
-        }
-        return 1;
-    }
+    int err = hgl_hamming_encode_16_11(encoded, encoded_size, data, sizeof(data));
+    ASSERT(err == 0);
 
-    printf("Decode succeeded. %d/%zu bits needed correcting.\n", ret, 8*decoded_size);
+    err = hgl_hamming_decode_16_11(decoded, decoded_size, encoded, encoded_size);
+    ASSERT(err == 0);
 
-    /* ============================== */
+    printf("%s\n", decoded);
+}
 
-    printf("Decoded message = \"%s\"\n", decoded);
+TEST(test_encode_decode_single_bit_errors, .expect_output = "Hello World!\n")
+{
+    uint8_t data[22] = "Hello World!";
+    size_t encoded_size = HGL_HAMMING_16_11_ENDCODED_SIZE(sizeof(data));
+    size_t decoded_size = HGL_HAMMING_16_11_DECODED_SIZE(encoded_size);
+    HglHamming16_11 *encoded = malloc(encoded_size);
+    uint8_t *decoded = malloc(encoded_size);
+    ASSERT(encoded != NULL);
+    ASSERT(decoded != NULL);
 
-    free(encoded);
-    free(decoded);
-    return 0;
+    int err = hgl_hamming_encode_16_11(encoded, encoded_size, data, sizeof(data));
+    ASSERT(err == 0);
+
+    encoded[0] ^= 0x0200;
+    encoded[1] ^= 0x4000;
+    encoded[2] ^= 0x2000;
+    encoded[3] ^= 0x0002;
+    encoded[4] ^= 0x0040;
+
+    err = hgl_hamming_decode_16_11(decoded, decoded_size, encoded, encoded_size);
+    ASSERT(err == 5);
+
+    printf("%s\n", decoded);
+}
+
+TEST(test_encode_decode_double_bit_errors)
+{
+    uint8_t data[22] = "Hello World!";
+    size_t encoded_size = HGL_HAMMING_16_11_ENDCODED_SIZE(sizeof(data));
+    size_t decoded_size = HGL_HAMMING_16_11_DECODED_SIZE(encoded_size);
+    HglHamming16_11 *encoded = malloc(encoded_size);
+    uint8_t *decoded = malloc(encoded_size);
+    ASSERT(encoded != NULL);
+    ASSERT(decoded != NULL);
+
+    int err = hgl_hamming_encode_16_11(encoded, encoded_size, data, sizeof(data));
+    ASSERT(err == 0);
+
+    encoded[1] ^= 0x4010;
+    encoded[4] ^= 0x0140;
+
+    err = hgl_hamming_decode_16_11(decoded, decoded_size, encoded, encoded_size);
+    ASSERT(err == -2);
+
+    LOG("%s\n", decoded);
 }

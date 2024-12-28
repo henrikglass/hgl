@@ -1,3 +1,126 @@
+/**
+ * LICENSE:
+ *
+ * MIT License
+ *
+ * Copyright (c) 2024 Henrik A. Glass
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ * MIT License
+ *
+ *
+ * ABOUT:
+ *
+ * hgl_process.h implements a set of utility functions for spawning, chaining 
+ * together, and running processes. Basically execvp minus the headache.
+ *
+ *
+ * USAGE:
+ *
+ * Include hgl_hotload.h file like this:
+ *
+ *     #define HGL_PROCESS_IMPLEMENTATION
+ *     #include "hgl_process.h"
+ *
+ *
+ * EXAMPLE:
+ *
+ * Running a program as a subprocess synchronously (block until completion):
+ *
+ *     int return_code = hgl_process_run_sync("cowsay", "-e", "><", "Hello, I'm a cow");
+ *
+ * Running a program as a subprocess asynchronously:
+ *
+ *     HglProcess p = hgl_process_run_async("cowsay", "-e", "oo", "Hello, I say moo");
+ *     int return_code = hgl_process_wait(&p);
+ *     hgl_process_destroy(&p);
+ *
+ * Running a program as a subprocess asynchronously and read the output:
+ *
+ *     HglProcess p = hgl_process_make("cowsay", "-e", "oo", "Hello, I say moo");
+ *     hgl_process_spawn(&p);
+ *     int return_code = hgl_process_wait(&p);
+ *     read(p.output, buffer, 4096); // read output
+ *     hgl_process_destroy(&p);
+ *
+ * Chain together many programs (i.e. propagate input/output using pipes) and read the output:
+ *
+ *     HglProcess ps[4] = {
+ *         hgl_process_make("echo", "en\n"
+ *                                  "ball\n"
+ *                                  "groda\n"),
+ *         hgl_process_make("uniq"),
+ *         hgl_process_make("sort"),
+ *         hgl_process_make("cowsay", "-e", "^^"),
+ *     };
+ *     hgl_process_chain(ps, 4);
+ *     hgl_process_spawn_n(ps, 4);
+ *     hgl_process_wait_n(ps, 4);
+ *     read(ps[3].output, buffer, 4096);
+ *     hgl_process_destroy_n(ps, 4);
+ *
+ * Chain together many programs, supply your own input, then read the output:
+ *
+ *     const char *input = "en\nball\ngroda\ndansar\n";
+ *     HglProcess ps[3] = {
+ *         hgl_process_make("uniq"),
+ *         hgl_process_make("sort"),
+ *         hgl_process_make("cowsay", "-e", "^^"),
+ *     };
+ *     hgl_process_chain(ps, 3);
+ *     write(ps[0].input, input, strlen(input));
+ *     hgl_process_close_input(&ps[0]);
+ *     hgl_process_spawn_n(ps, 3);
+ *     hgl_process_wait_n(ps, 3);
+ *     read(ps[2].output, buf, 4096);
+ *     printf("out =\n %s\n", buf);
+ *     hgl_process_destroy_n(ps, 3);
+ *
+ * Reuse a chain:
+ *
+ *     const char *input1 = "en\nball\nball\ngroda\ndansar\n";
+ *     const char *input2 = "Ko\nsa\nvad\ndansar\n";
+ *     HglProcess ps[3] = {
+ *         hgl_process_make("uniq"),
+ *         hgl_process_make("sort"),
+ *         hgl_process_make("cowsay", "-e", "^^"),
+ *     };
+ *     hgl_process_chain(ps, 3);
+ *     write(ps[0].input, input1, strlen(input1));
+ *     hgl_process_close_input(&ps[0]);
+ *     hgl_process_spawn_n(ps, 3);
+ *     hgl_process_wait_n(ps, 3);
+ *     read(ps[2].output, buf, 4096);
+ *
+ *     hgl_process_repipe_n(ps, 3);
+ *     hgl_process_chain(ps, 3);
+ *     write(ps[0].input, input2, strlen(input2));
+ *     hgl_process_close_input(&ps[0]);
+ *     hgl_process_spawn_n(ps, 3);
+ *     read(ps[2].output, buf, 4096);
+ *     hgl_process_destroy_n(ps, 3);
+ *
+ *
+ * AUTHOR: Henrik A. Glass
+ *
+ */
+
 #ifndef HGL_PROCESS_H
 #define HGL_PROCESS_H
 
@@ -107,6 +230,11 @@ void hgl_process_redir_output_to_stdout(HglProcess *p);
 void hgl_process_chain(HglProcess *ps, size_t n);
 
 /**
+ * Closes the write end of the input pipe of process `p`;
+ */
+void hgl_process_close_input(HglProcess *p);
+
+/**
  * hgl_process_run:
  *     Spawns a process and waits until its execution has finished. Returns the 
  *     exit code of the process.
@@ -157,11 +285,13 @@ void hgl_process_signal(HglProcess *p, int signal);
 void hgl_process_signal_n(HglProcess *ps, size_t n, int signal);
 
 /**
- * hgl_process_wait:
- *     Sends signal `signal` to process `p`.
+ * hgl_process_destroy:
+ *     Destroys process object `p`. Kills the underlying process with SIGKILL 
+ *     if it's running.
  *
- * hgl_process_wait_n:
- *     Sends signal `signal` to all processes in `p`.
+ * hgl_process_destroy_n:
+ *     Destroys all process objects in `ps`. Kills all active underlying 
+ *     processes with SIGKILL.
  */
 void hgl_process_destroy(HglProcess *p);
 void hgl_process_destroy_n(HglProcess *ps, size_t n);
@@ -265,6 +395,12 @@ void hgl_process_chain(HglProcess *ps, size_t n)
     }
 }
 
+void hgl_process_close_input(HglProcess *p)
+{
+    close(p->input);
+    p->input = -1;
+}
+
 int hgl_process_run(HglProcess *p)
 {
     hgl_process_spawn(p); 
@@ -354,10 +490,10 @@ int hgl_process_repipe(HglProcess *p)
 {
     int err = 0;
 
-    close(p->pipes[0][0]);
-    close(p->pipes[0][1]);
-    close(p->pipes[1][0]);
-    close(p->pipes[1][1]);
+    if (p->pipes[0][0] != -1) close(p->pipes[0][0]);
+    if (p->pipes[0][1] != -1) close(p->pipes[0][1]);
+    if (p->pipes[1][0] != -1) close(p->pipes[1][0]);
+    if (p->pipes[1][1] != -1) close(p->pipes[1][1]);
     p->pipes[0][0] = -1;
     p->pipes[0][1] = -1;
     p->pipes[1][0] = -1;

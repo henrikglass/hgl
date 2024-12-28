@@ -54,7 +54,7 @@
  *
  *     hgl_ini_free(ini);
  *
- * See test/test_ini.c for more usage examples.
+ * See examples/test_ini.c for more usage examples.
  *
  *
  * AUTHOR: Henrik A. Glass
@@ -133,10 +133,10 @@ double hgl_ini_get_f64(HglIni *ini, const char *section_name, const char *key_na
 void hgl_ini_put(HglIni *ini, const char *section_name, const char *key_name, const char *raw_value);
 
 /**
- * Pretty-prints the contents of `ini`. The output is a valid *.ini file albeit
+ * Pretty-prints the contents of `ini` on `stream`. The output is a valid *.ini file albeit
  * without any comments.
  */
-void hgl_ini_print(HglIni *ini);
+void hgl_ini_fprint(FILE *stream, HglIni *ini);
 
 #endif /* HGL_INI_H */
 
@@ -551,18 +551,19 @@ void hgl_ini_put(HglIni *ini,
 
 }
 
-void hgl_ini_print(HglIni *ini)
+void hgl_ini_fprint(FILE *stream, HglIni *ini)
 {
     for (size_t i = 0; i < ini->count; i++) {
         HglIniSection *s = &ini->arr[i];
-        printf("[%s]\n", s->name);
+        fprintf(stream, "[%s]\n", s->name);
         for (size_t j = 0; j < s->kv_pairs.count; j++) {
             HglIniKVPair *kv = &s->kv_pairs.arr[j];
-            printf("%s = %s\n", kv->key, kv->val);
+            fprintf(stream, "%s = %s\n", kv->key, kv->val);
 
         }
-        printf("\n");
+        fprintf(stream, "\n");
     }
+    fflush(stream);
 }
 
 #endif

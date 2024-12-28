@@ -35,154 +35,197 @@
  *
  * Include hgl_chan.h file like this:
  *
- *     #define HGL_CHAN_TYPE char *
- *     #define HGL_CHAN_TYPE_ID charp
+ *     #define HGL_CHAN_IMPLEMENTATION
  *     #include "hgl_chan.h"
+ * 
  *
- * This will create an implementation of hgl_chan capable of holding an element of type char *.
- * "charp" is used as an infix in the identifiers exposed by the library. Below is a complete
- * list of the generated API:
+ * EXAMPLE:
+ * 
+ * See the examples directory.
  *
- *     void hgl_charp_chan_init(hgl_charp_chan_t *chan);
- *     void hgl_charp_chan_free(hgl_charp_chan_t *chan);
- *     void hgl_charp_chan_send(hgl_charp_chan_t *chan, char **item);
- *     void hgl_charp_chan_send_value(hgl_charp_chan_t *chan, char *item);
- *     char *hgl_charp_chan_recv(hgl_charp_chan_t *chan);
- *     hgl_charp_chan_t *hgl_charp_chan_select(int n_args, ...);
- *
- * HGL_CHAN_TYPE and HGL_CHAN_TYPE_ID may be redefined and hgl_chan.h included multiple times
- * to create implementations of hgl_chan for different types:
- *
- *     #define HGL_CHAN_TYPE char *
- *     #define HGL_CHAN_TYPE_ID charp
- *     #include "hgl_chan.h"
- *
- *     #undef HGL_CHAN_TYPE
- *     #undef HGL_CHAN_TYPE_ID
- *     #define HGL_CHAN_TYPE int
- *     #define HGL_CHAN_TYPE_ID int
- *     #include "hgl_chan.h"
- *
- * If HGL_CHAN_TYPE and HGL_CHAN_TYPE_ID are left undefined, the default element type of
- * hgl_chan will be void *, and the default element type identifier will be "voidp".
- *
- * hgl_chan allows the default allocator and corresponding free function to be overridden by
- * redefining the following defines before including hgl_chan.h. This is used only for the
- * select function:
- *
- *     #define HGL_CHAN_ALLOC                (malloc)
- *     #define HGL_CHAN_FREE                     (free)
  *
  * AUTHOR: Henrik A. Glass
  *
  */
 
-/*--- Helper macros ---------------------------------------------------------------------*/
-
-#define _CONCAT_NX3(a, b, c) a ## b ## c
-#define _CONCAT3(a, b, c) _CONCAT_NX3(a, b, c)
-
-/*--- channel-specific macros -----------------------------------------------------------*/
-
-/* CONFIGURABLE: HGL_CHAN_TYPE & HGL_CHAN_TYPE_ID */
-#ifndef HGL_CHAN_TYPE
-#define HGL_CHAN_TYPE void *
-#define HGL_CHAN_TYPE_ID voidp
-#endif /* HGL_CHAN_TYPE */
-
-/* CONFIGURABLE: HGL_CHAN_ALLOC, HGL_CHAN_FREE */
-#if !defined(HGL_CHAN_ALLOC) && !defined(HGL_CHAN_FREE)
-#include <stdlib.h>
-#define HGL_CHAN_ALLOC  malloc
-#define HGL_CHAN_FREE   free
-#endif
+#ifndef HGL_CHAN_H
 
 /*--- Include files ---------------------------------------------------------------------*/
 
 #include <stdbool.h>
 #include <pthread.h>
 #include <stdarg.h>
-#include <sys/eventfd.h>
-#include <unistd.h>
-#include <poll.h>
 
 /*--- Public type definitions -----------------------------------------------------------*/
 
-#define HGL_CHAN_STRUCT _CONCAT3(hgl_, HGL_CHAN_TYPE_ID, _chan_t)
 typedef struct
 {
-    HGL_CHAN_TYPE item;
+    void *item;
     pthread_mutex_t mutex;
     pthread_cond_t cvar_writable;
     pthread_cond_t cvar_readable;
     bool readable;
     int efd;
-} HGL_CHAN_STRUCT;
+} HglChan;
 
-/*--- Public variables ------------------------------------------------------------------*/
+/**
+ * Creates a channel.
+ */
+HglChan hgl_chan_make(void);
 
-/*--- Channel functions -----------------------------------------------------------------*/
+/**
+ * Destroys the channel `c`.
+ */
+void hgl_chan_destroy(HglChan *c);
 
-#define HGL_CHAN_FUNC_INIT _CONCAT3(hgl_, HGL_CHAN_TYPE_ID, _chan_init)
-static inline void HGL_CHAN_FUNC_INIT(HGL_CHAN_STRUCT *chan)
+/**
+ * Sends item `item` on the channel `c`. Will block if there already 
+ * is an item in `c`.
+ */
+void hgl_chan_send(HglChan *c, void *item);
+
+/**
+ * Tries to send the item `item` on the channel `c`. If there already is 
+ * an item on `c`, `item` will not be sent and -1 will be returned, otherwise,
+ * if `item` was successfully sent, 0 will be returned.
+ */
+int hgl_chan_try_send(HglChan *c, void *item);
+
+/**
+ * Recieve an item from the channel `c`. Will block until there is an item
+ * on `c`.
+ */
+void *hgl_chan_recv(HglChan *c);
+
+/**
+ * Recieve an item from the channel `c`. Will return immediately return NULL 
+ * if there is no item on `c`. If there is an item on `c`, it will be returned.
+ */
+void *hgl_chan_try_recv(HglChan *c);
+
+/**
+ * Wait on any number (<= 128) of channels simultaneously, until at least one
+ * of them becomes readable (i.e. something was sent on the channel). Returns
+ * a pointer to the first readable channel in the variadic arguments list.
+ */
+HglChan *hgl_chan_select(int n_args, ...);
+
+/**
+ * Returns a pointer to the first readable channel in the variadic arguments 
+ * list. If there are no readable channels NULL is returned.
+ */
+HglChan *hgl_chan_try_select(int n_args, ...);
+
+#endif
+
+#ifdef HGL_CHAN_IMPLEMENTATION
+
+#include <sys/eventfd.h>
+#include <unistd.h>
+#include <poll.h>
+#include <stdlib.h>
+
+HglChan hgl_chan_make()
 {
-    chan->readable = false;
-    pthread_mutex_init(&chan->mutex, NULL);
-    pthread_cond_init(&chan->cvar_writable, NULL);
-    pthread_cond_init(&chan->cvar_readable, NULL);
-    chan->efd = eventfd(0,0);
-}
-
-#define HGL_CHAN_FUNC_FREE _CONCAT3(hgl_, HGL_CHAN_TYPE_ID, _chan_free)
-static inline void HGL_CHAN_FUNC_FREE(HGL_CHAN_STRUCT *chan)
-{
-    pthread_mutex_destroy(&chan->mutex);
-    pthread_cond_destroy(&chan->cvar_writable);
-    pthread_cond_destroy(&chan->cvar_readable);
-    close(chan->efd);
-}
-
-#define HGL_CHAN_FUNC_SEND _CONCAT3(hgl_, HGL_CHAN_TYPE_ID, _chan_send)
-static inline void HGL_CHAN_FUNC_SEND(HGL_CHAN_STRUCT *chan, HGL_CHAN_TYPE *item)
-{
-    pthread_mutex_lock(&chan->mutex);
-    while(chan->readable /* impl. not writable */) {
-        pthread_cond_wait(&chan->cvar_writable, &chan->mutex);
+    int err;
+    HglChan c;
+    c.readable = false;
+    err  = pthread_mutex_init(&c.mutex, NULL);
+    err |= pthread_cond_init(&c.cvar_writable, NULL);
+    err |= pthread_cond_init(&c.cvar_readable, NULL);
+    c.efd = eventfd(0, 0);
+    if (err != 0) {
+        fprintf(stderr, "[hgl_chan.h]: Failed to create channel.\n");
     }
-    chan->item = *item;
-    chan->readable = true;
+    return c;
+}
+
+void hgl_chan_destroy(HglChan *c)
+{
+    pthread_mutex_destroy(&c->mutex);
+    pthread_cond_destroy(&c->cvar_writable);
+    pthread_cond_destroy(&c->cvar_readable);
+    close(c->efd);
+}
+
+void hgl_chan_send(HglChan *c, void *item)
+{
+    pthread_mutex_lock(&c->mutex);
+    while (c->readable /* implies not writable */) {
+        pthread_cond_wait(&c->cvar_writable, &c->mutex);
+    }
+    c->item = item;
+    c->readable = true;
     uint64_t efd_inc = 1;
-    write(chan->efd, &efd_inc, sizeof(uint64_t)); // increment counter
-    pthread_cond_signal(&chan->cvar_readable);
-    pthread_mutex_unlock(&chan->mutex);
-}
-
-#define HGL_CHAN_FUNC_SEND_VALUE _CONCAT3(hgl_, HGL_CHAN_TYPE_ID, _chan_send_value)
-static inline void HGL_CHAN_FUNC_SEND_VALUE(HGL_CHAN_STRUCT *chan, HGL_CHAN_TYPE item)
-{
-    HGL_CHAN_FUNC_SEND(chan, &item);
-}
-
-#define HGL_CHAN_FUNC_RECV _CONCAT3(hgl_, HGL_CHAN_TYPE_ID, _chan_recv)
-static inline HGL_CHAN_TYPE HGL_CHAN_FUNC_RECV(HGL_CHAN_STRUCT *chan)
-{
-    pthread_mutex_lock(&chan->mutex);
-    while(!chan->readable) {
-        pthread_cond_wait(&chan->cvar_readable, &chan->mutex);
+    ssize_t n_bytes_written = write(c->efd, &efd_inc, sizeof(uint64_t)); // increment counter
+    if (n_bytes_written != sizeof(uint64_t)) {
+        fprintf(stderr, "[hgl_chan.h]: Aborted <%s, %d>\n", __FILE__, __LINE__);
+        abort(); // Temporary, TODO handle this properly
     }
-    HGL_CHAN_TYPE item = chan->item;
-    chan->readable = false;
+    pthread_cond_signal(&c->cvar_readable);
+    pthread_mutex_unlock(&c->mutex);
+}
+
+int hgl_chan_try_send(HglChan *c, void *item)
+{
+    pthread_mutex_lock(&c->mutex);
+    if (c->readable /* impl. not writable */) {
+        pthread_mutex_unlock(&c->mutex);
+        return -1;
+    }
+    c->item = item;
+    c->readable = true;
+    uint64_t efd_inc = 1;
+    ssize_t n_bytes_written = write(c->efd, &efd_inc, sizeof(uint64_t)); // increment counter
+    if (n_bytes_written != sizeof(uint64_t)) {
+        fprintf(stderr, "[hgl_chan.h]: Aborted <%s, %d>\n", __FILE__, __LINE__);
+        abort(); // Temporary, TODO handle this properly
+    }
+    pthread_cond_signal(&c->cvar_readable);
+    pthread_mutex_unlock(&c->mutex);
+    return 0;
+}
+
+void *hgl_chan_recv(HglChan *c)
+{
+    pthread_mutex_lock(&c->mutex);
+    while (!c->readable) {
+        pthread_cond_wait(&c->cvar_readable, &c->mutex);
+    }
+    void *item = c->item;
+    c->readable = false;
     uint64_t efd_counter;
-    read(chan->efd, &efd_counter, 8); // resets counter to zero
-    pthread_cond_signal(&chan->cvar_writable);
-    pthread_mutex_unlock(&chan->mutex);
+    read(c->efd, &efd_counter, sizeof(uint64_t)); // resets counter to zero
+    pthread_cond_signal(&c->cvar_writable);
+    pthread_mutex_unlock(&c->mutex);
     return item;
 }
 
-#define HGL_CHAN_FUNC_SELECT _CONCAT3(hgl_, HGL_CHAN_TYPE_ID, _chan_select)
-static inline HGL_CHAN_STRUCT *HGL_CHAN_FUNC_SELECT(int n_args, ...)
+void *hgl_chan_try_recv(HglChan *c)
 {
-    HGL_CHAN_STRUCT *ret = NULL;
+    pthread_mutex_lock(&c->mutex);
+    if (!c->readable) {
+        pthread_mutex_unlock(&c->mutex);
+        return NULL;
+    }
+    void *item = c->item;
+    c->readable = false;
+    uint64_t efd_counter;
+    read(c->efd, &efd_counter, sizeof(uint64_t)); // resets counter to zero
+    pthread_cond_signal(&c->cvar_writable);
+    pthread_mutex_unlock(&c->mutex);
+    return item;
+}
+
+HglChan *hgl_chan_select(int n_args, ...)
+{
+    HglChan *ret = NULL;
+    static struct pollfd pfds[128]; // 128 should be more than enough
+
+    if (n_args > 128) {
+        fprintf(stderr, "[hgl_chan.h] Error: too many (> 128) channels passed to `hgl_chan_select`.\n");
+        return NULL;
+    }
 
     /* setup va_list */
     va_list args1, args2;    
@@ -190,12 +233,8 @@ static inline HGL_CHAN_STRUCT *HGL_CHAN_FUNC_SELECT(int n_args, ...)
     va_copy(args2, args1);
 
     /* populate pfds */
-    struct pollfd *pfds = HGL_CHAN_ALLOC(n_args * sizeof(struct pollfd));
-    if (pfds == NULL) {
-        goto out;
-    }
     for (int i = 0; i < n_args; i++) {
-        HGL_CHAN_STRUCT *c = va_arg(args1, HGL_CHAN_STRUCT *);
+        HglChan *c = va_arg(args1, HglChan *);
         pfds[i].fd = c->efd;
         pfds[i].events = POLLIN;
     }
@@ -205,16 +244,37 @@ static inline HGL_CHAN_STRUCT *HGL_CHAN_FUNC_SELECT(int n_args, ...)
 
     /* find the first readable channel */
     for (int i = 0; i < n_args; i++) {
-        HGL_CHAN_STRUCT *c = va_arg(args2, HGL_CHAN_STRUCT *);
+        HglChan *c = va_arg(args2, HglChan *);
         if (c->readable) {
             ret = c;
             break;
         }
     }
 
-    HGL_CHAN_FREE(pfds);
-out:
     va_end(args1);
     va_end(args2);
     return ret;
 }
+
+HglChan *hgl_chan_try_select(int n_args, ...)
+{
+    HglChan *ret = NULL;
+
+    /* setup va_list */
+    va_list args;    
+    va_start(args, n_args);
+
+    for (int i = 0; i < n_args; i++) {
+        HglChan *c = va_arg(args, HglChan *);
+        if (c->readable) {
+            ret = c;
+            break;
+        }  
+    }
+
+    va_end(args);
+    return ret;
+}
+
+#endif
+

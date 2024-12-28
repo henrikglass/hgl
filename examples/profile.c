@@ -1,7 +1,7 @@
 
 #define _GNU_SOURCE
 
-#define HGL_PROFILE_DETAILED
+//#define HGL_PROFILE_DETAILED
 #define HGL_PROFILE_IMPLEMENTATION
 #include "hgl_profile.h"
 
@@ -29,6 +29,8 @@ int main()
     int max;
     HGL_PROFILE_MEASURE(max = dummy());
     printf("max = %d\n", max);
+    hgl_profile_report(0);
+    hgl_profile_reset();
 
     hgl_profile_begin(__FILE__);
     for (int i = 0; i < 10; i++) {

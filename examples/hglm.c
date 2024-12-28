@@ -12,6 +12,23 @@ int main()
     printf("Not using simd.\n");
 #endif
 
+#if 0
+    Vec2 a = vec2_make(10, 5);
+    Vec2 b = vec2_make(20, 0);
+    Vec2 projb_a = vec2_mul_scalar(b, (vec2_dot(a, b) / vec2_dot(b, b)));
+    vec2_print(projb_a);
+    return 0;
+#endif
+
+#if 1
+    Vec2 a = vec2_from_polar(10, 0);
+    Vec2 b = vec2_from_polar(10, PI/2);
+    for (int i = 0; i <= 8; i++) {
+        vec2_print(vec2_slerp(a, b, (float)i/8));
+    }
+    return 0;
+#endif
+
     //printf("Hello!\n");
     //printf("lerp(5.0f, 20.0f, 0.0f) = %f\n", lerp(5.0f, 20.0f, 0.0f));
     //printf("lerp(5.0f, 20.0f, 0.5f) = %f\n", lerp(5.0f, 20.0f, 0.5f));

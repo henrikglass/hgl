@@ -1,3 +1,71 @@
+/**
+ * LICENSE:
+ *
+ * MIT License
+ *
+ * Copyright (c) 2024 Henrik A. Glass
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ * MIT License
+ *
+ *
+ * ABOUT:
+ *
+ * hglm.h is a (mostly) vector math library (with some SIMD support).
+ *
+ * hglm_aliases.h contains aliases for types and functions inside hglm.h that
+ * omit the `Hglm` and `hglm_` prefixes.
+ *
+ *
+ * USAGE:
+ *
+ * Include `hglm.h` like this:
+ *
+ *     #include "hglm.h"
+ *
+ * Optionally include `hglm_aliases.h`:
+ *
+ *     #include "hglm_aliases.h"
+ *
+ *
+ * EXAMPLE:
+ *
+ * project vector a onto b (using aliases!):
+ *
+ *     Vec2 a = vec2_make(10, 5);
+ *     Vec2 b = vec2_make(20, 0);
+ *     Vec2 projb_a = vec2_mul_scalar(b, (vec2_dot(a, b) / vec2_dot(b, b)));
+ *     vec2_print(projb_a);
+ *
+ * spherical linear interpolation between a and b (using aliases!):
+ *
+ *     Vec2 a = vec2_make(10, 0);
+ *     Vec2 b = vec2_make(0, 10);
+ *     for (int i = 0; i <= 8; i++) {
+ *         vec2_print(vec2_slerp(a, b, (float)i/8));
+ *     }
+ *     
+ *
+ * AUTHOR: Henrik A. Glass
+ *
+ */
+
 #ifndef HGLM_H
 #define HGLM_H
 
@@ -117,6 +185,7 @@ typedef struct
 } HglmMat;
 
 static HGL_INLINE HglmVec2 hglm_vec2_make(float x, float y);
+static HGL_INLINE HglmVec2 hglm_vec2_from_polar(float r, float phi);
 static HGL_INLINE HglmVec2 hglm_vec2_add(HglmVec2 a, HglmVec2 b);
 static HGL_INLINE HglmVec2 hglm_vec2_sub(HglmVec2 a, HglmVec2 b);
 static HGL_INLINE float hglm_vec2_distance(HglmVec2 a, HglmVec2 b);
@@ -126,10 +195,12 @@ static HGL_INLINE float hglm_vec2_dot(HglmVec2 a, HglmVec2 b);
 static HGL_INLINE HglmVec2 hglm_vec2_hadamard(HglmVec2 a, HglmVec2 b);
 static HGL_INLINE HglmVec2 hglm_vec2_mul_scalar(HglmVec2 v, float s);
 static HGL_INLINE HglmVec2 hglm_vec2_reflect(HglmVec2 v, HglmVec2 normal);
-static HGL_INLINE HglmVec2 hglm_vec2_lerp(HglmVec2 a, HglmVec2 b, float amount);
+static HGL_INLINE HglmVec2 hglm_vec2_lerp(HglmVec2 a, HglmVec2 b, float t);
+static HGL_INLINE HglmVec2 hglm_vec2_slerp(HglmVec2 a, HglmVec2 b, float t);
 static HGL_INLINE HglmVec2 hglm_vec2_bezier3(HglmVec2 v0, HglmVec2 v1, HglmVec2 v2, HglmVec2 v3, float t);
 
 static HGL_INLINE HglmVec3 hglm_vec3_make(float x, float y, float z);
+static HGL_INLINE HglmVec3 hglm_vec3_from_spherical(float r, float phi, float theta);
 static HGL_INLINE HglmVec3 hglm_vec3_add(HglmVec3 a, HglmVec3 b);
 static HGL_INLINE HglmVec3 hglm_vec3_sub(HglmVec3 a, HglmVec3 b);
 static HGL_INLINE float hglm_vec3_distance(HglmVec3 a, HglmVec3 b);
@@ -140,7 +211,7 @@ static HGL_INLINE HglmVec3 hglm_vec3_cross(HglmVec3 a, HglmVec3 b);
 static HGL_INLINE HglmVec3 hglm_vec3_hadamard(HglmVec3 a, HglmVec3 b);
 static HGL_INLINE HglmVec3 hglm_vec3_mul_scalar(HglmVec3 v, float s);
 static HGL_INLINE HglmVec3 hglm_vec3_reflect(HglmVec3 v, HglmVec3 normal);
-static HGL_INLINE HglmVec3 hglm_vec3_lerp(HglmVec3 a, HglmVec3 b, float amount);
+static HGL_INLINE HglmVec3 hglm_vec3_lerp(HglmVec3 a, HglmVec3 b, float t);
 static HGL_INLINE HglmVec3 hglm_vec3_slerp(HglmVec3 a, HglmVec3 b, float t);
 static HGL_INLINE HglmVec3 hglm_vec3_bezier3(HglmVec3 v0, HglmVec3 v1, HglmVec3 v2, HglmVec3 v3, float t);
 
@@ -154,7 +225,7 @@ static HGL_INLINE float hglm_vec4_dot(HglmVec4 a, HglmVec4 b);
 static HGL_INLINE HglmVec4 hglm_vec4_hadamard(HglmVec4 a, HglmVec4 b);
 static HGL_INLINE HglmVec4 hglm_vec4_mul_scalar(HglmVec4 v, float s);
 static HGL_INLINE HglmVec4 hglm_vec4_perspective_divide(HglmVec4 v);
-static HGL_INLINE HglmVec4 hglm_vec4_lerp(HglmVec4 a, HglmVec4 b, float amount);
+static HGL_INLINE HglmVec4 hglm_vec4_lerp(HglmVec4 a, HglmVec4 b, float t);
 static HGL_INLINE HglmVec4 hglm_vec4_bezier3(HglmVec4 v0, HglmVec4 v1, HglmVec4 v2, HglmVec4 v3, float t);
 
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make(HglmVec4 c0, HglmVec4 c1, HglmVec4 c2, HglmVec4 c3);
@@ -187,7 +258,9 @@ static HGL_INLINE void hglm_mat_mul_mat(HglmMat res, HglmMat a, HglmMat b);
 static HGL_INLINE void hglm_mat_transpose_in_place(HglmMat m);
 static HGL_INLINE void hglm_mat_transpose(HglmMat res, HglmMat m);
 
-static HGL_INLINE float hglm_lerp(float a, float b, float amount);
+static HGL_INLINE float hglm_pid(float error, float last_error, float *i, 
+                                 float Kp, float Ki, float Kd, float dt);
+static HGL_INLINE float hglm_lerp(float a, float b, float t);
 static HGL_INLINE float hglm_ilerp(float a, float b, float value);
 static HGL_INLINE float hglm_clamp(float min, float max, float value);
 static HGL_INLINE float hglm_remap(float in_min, float in_max, float out_min, float out_max, float value);
@@ -203,6 +276,14 @@ static HGL_INLINE HglmVec4 hglm_bezier3(float t);
 static HGL_INLINE HglmVec2 hglm_vec2_make(float x, float y)
 {
     return (HglmVec2){.x = x, .y = y};
+}
+
+static HGL_INLINE HglmVec2 hglm_vec2_from_polar(float r, float phi)
+{
+    return (HglmVec2) {
+        .x = r * cosf(phi),
+        .y = r * sinf(phi),
+    };
 }
 
 static HGL_INLINE HglmVec2 hglm_vec2_add(HglmVec2 a, HglmVec2 b)
@@ -253,11 +334,20 @@ static HGL_INLINE HglmVec2 hglm_vec2_reflect(HglmVec2 v, HglmVec2 normal)
     return hglm_vec2_sub(v, hglm_vec2_mul_scalar(normal, 2*hglm_vec2_dot(v, normal)));
 }
 
-static HGL_INLINE HglmVec2 hglm_vec2_lerp(HglmVec2 a, HglmVec2 b, float amount)
+static HGL_INLINE HglmVec2 hglm_vec2_lerp(HglmVec2 a, HglmVec2 b, float t)
 {
     return hglm_vec2_add(
-        hglm_vec2_mul_scalar(a, 1.0f - amount),
-        hglm_vec2_mul_scalar(b, amount)
+        hglm_vec2_mul_scalar(a, 1.0f - t),
+        hglm_vec2_mul_scalar(b, t)
+    );
+}
+
+static HGL_INLINE HglmVec2 hglm_vec2_slerp(HglmVec2 a, HglmVec2 b, float t)
+{
+    float omega = acosf(hglm_vec2_dot(a, b));
+    return hglm_vec2_add(
+        hglm_vec2_mul_scalar(a, sinf((1.0f - t)*omega)/sinf(omega)),
+        hglm_vec2_mul_scalar(b, sinf(t*omega)/sinf(omega))
     );
 }
 
@@ -284,6 +374,15 @@ static HGL_INLINE HglmVec2 hglm_vec2_bezier3(HglmVec2 v0, HglmVec2 v1, HglmVec2 
 static HGL_INLINE HglmVec3 hglm_vec3_make(float x, float y, float z)
 {
     return (HglmVec3){.x = x, .y = y, .z = z};
+}
+
+static HGL_INLINE HglmVec3 hglm_vec3_from_spherical(float r, float phi, float theta)
+{
+    return (HglmVec3) {
+        .x = r * cosf(theta) * sinf(phi), 
+        .y = r * sinf(theta) * sinf(phi), 
+        .z = r * cosf(phi),
+    };
 }
 
 static HGL_INLINE HglmVec3 hglm_vec3_add(HglmVec3 a, HglmVec3 b)
@@ -344,11 +443,11 @@ static HGL_INLINE HglmVec3 hglm_vec3_reflect(HglmVec3 v, HglmVec3 normal)
     return hglm_vec3_sub(v, hglm_vec3_mul_scalar(normal, 2*hglm_vec3_dot(v, normal)));
 }
 
-static HGL_INLINE HglmVec3 hglm_vec3_lerp(HglmVec3 a, HglmVec3 b, float amount)
+static HGL_INLINE HglmVec3 hglm_vec3_lerp(HglmVec3 a, HglmVec3 b, float t)
 {
     return hglm_vec3_add(
-        hglm_vec3_mul_scalar(a, 1.0f - amount),
-        hglm_vec3_mul_scalar(b, amount)
+        hglm_vec3_mul_scalar(a, 1.0f - t),
+        hglm_vec3_mul_scalar(b, t)
     );
 }
 
@@ -505,11 +604,11 @@ static HGL_INLINE HglmVec4 hglm_vec4_perspective_divide(HglmVec4 v)
     return u;
 }
 
-static HGL_INLINE HglmVec4 hglm_vec4_lerp(HglmVec4 a, HglmVec4 b, float amount)
+static HGL_INLINE HglmVec4 hglm_vec4_lerp(HglmVec4 a, HglmVec4 b, float t)
 {
     return hglm_vec4_add(
-        hglm_vec4_mul_scalar(a, 1.0f - amount),
-        hglm_vec4_mul_scalar(b, amount)
+        hglm_vec4_mul_scalar(a, 1.0f - t),
+        hglm_vec4_mul_scalar(b, t)
     );
 }
 
@@ -1060,14 +1159,24 @@ static HGL_INLINE void hglm_mat_transpose(HglmMat res, HglmMat m)
 
 /* ========== scalar & misc. math functions ==================================*/
 
-static HGL_INLINE float hglm_lerp(float a, float b, float amount)
+static HGL_INLINE float hglm_pid(float error, float last_error, float *i, 
+                                 float Kp, float Ki, float Kd, float dt)
 {
-    return (1.0f - amount) * a + amount * b; // value
+    *i += error * dt;
+    float d = (error - last_error) / dt;
+    float p = error;
+
+    return Kp*p + Ki*(*i) + Kd*d;
+}
+
+static HGL_INLINE float hglm_lerp(float a, float b, float t)
+{
+    return (1.0f - t) * a + t * b; // value
 }
 
 static HGL_INLINE float hglm_ilerp(float a, float b, float value)
 {
-    return (value - a) / (b - a); // amount
+    return (value - a) / (b - a); // t
 }
 
 static HGL_INLINE float hglm_clamp(float min, float max, float value)

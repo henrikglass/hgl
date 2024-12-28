@@ -71,7 +71,7 @@
  *
  *         '^'' Ascii+ '''   |           # write ascii string.
  *         '^#' HexByte+ '#' |           # write bytes.
- *         '^<' HexByte+ '>' |           # move write pointer to offset inside 'src'
+ *         '^<' HexByte+ '>' |           # move write pointer to offset inside 'dst'
  *         '+'               |           # skip byte in 'dst' (increment write pointer by 1).
  *
  *         'B'               |           # copy "byte" (8 bits)

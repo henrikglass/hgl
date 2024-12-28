@@ -98,6 +98,10 @@
 
 #define hgl_da_pop(da) ((da)->arr[--(da)->length])
 
+#define hgl_da_at(da, i)                                                             \
+    int res__ = (i) % (int)((da)->length);                                           \
+    (da)->arr[(res__ >= 0) ? res__ : res__ + (int)((da)->length)]
+
 #define hgl_da_extend(da, items, n)                                                  \
     do {                                                                             \
         if ((da)->arr == NULL) {                                                     \
@@ -149,6 +153,12 @@
     } while (0)
 
 #ifndef HGL_ISO_C
+
+#define hgl_da_get(da, i)                                                            \
+    ({                                                                               \
+        int res__ = (i) % (int)((da)->length);                                       \
+        (da)->arr[(res__ >= 0) ? res__ : res__ + (int)((da)->length)];               \
+    })
 
 #define hgl_da_remove(da, index)                                                     \
     ({                                                                               \

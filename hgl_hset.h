@@ -1,3 +1,53 @@
+
+/**
+ * LICENSE:
+ *
+ * MIT License
+ *
+ * Copyright (c) 2024 Henrik A. Glass
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ * MIT License
+ *
+ *
+ * ABOUT:
+ *
+ * hgl_hset.h implements a simple to use robin hood hash set. 
+ *
+ *
+ * USAGE:
+ *
+ * Include hgl_htable.h file like this:
+ *
+ *     #define HGL_HSET_IMPLEMENTATION
+ *     #include "hgl_hset.h"
+ *
+ *
+ * Example:
+ *
+ *     TODO.. See the examples/ directory or the tests in the test/ directory for now.
+ *
+ *
+ * AUTHOR: Henrik A. Glass
+ *
+ */
+
 #ifndef HGL_HSET_H
 #define HGL_HSET_H
 
@@ -45,6 +95,7 @@ static inline HglHashSet hgl_hset_make(void (*hash_func)(const void *, size_t, u
                                        uint32_t initial_capacity,
                                        bool growable);
 static inline void hgl_hset_insert(HglHashSet *hset, void *key);
+static inline void hgl_hset_join(HglHashSet *hset, HglHashSet *other);
 static inline bool hgl_hset_contains(HglHashSet *hset, void *key);
 static inline void hgl_hset_remove(HglHashSet *hset, void *key);
 static inline void hgl_hset_destroy(HglHashSet *hset);
@@ -152,8 +203,9 @@ static inline void hgl_hset_destroy(HglHashSet *hset)
 static inline void hgl_hset_insert(HglHashSet *hset, void *key)
 {
     /* rehash if needed */
+    const float EPSILON = 0.0001f;
     float load_factor = (float) hset->n_occupied_buckets / (float) hset->capacity;
-    if (hset->growable && (load_factor > HGL_HSET_LOAD_FACTOR_THRESH)) {
+    if (hset->growable && (load_factor > (HGL_HSET_LOAD_FACTOR_THRESH - EPSILON))) {
         hgl_hset_grow_and_rehash_(hset);
     }
 
@@ -162,8 +214,6 @@ static inline void hgl_hset_insert(HglHashSet *hset, void *key)
     uint32_t index;
     hset->hash(key, hset->keysize(key), HGL_HSET_HASH_SEED, &hash);
     index = hash & (hset->capacity - 1);
-
-    //printf("inserting %s at %u?\n", (char *) key, index);
 
     /* construct bucket */
     HglHashSetBucket temp;
@@ -208,6 +258,16 @@ static inline void hgl_hset_insert(HglHashSet *hset, void *key)
 
     fprintf(stderr, "[hgl_hset_insert] Hash set is full. Aborting...\n");
     abort();
+}
+
+static inline void hgl_hset_join(HglHashSet *hset, HglHashSet *other)
+{
+    for (uint32_t i = 0; i < other->capacity; i++) {
+        HglHashSetBucket *bucket = &other->buckets[i];
+        if (bucket->psl != -1) {
+            hgl_hset_insert(hset, bucket->key);
+        }
+    }
 }
 
 static inline bool hgl_hset_contains(HglHashSet *hset, void *key)
@@ -282,6 +342,7 @@ static inline void hgl_hset_remove(HglHashSet *hset, void *key)
 
                 /* next slot is empty (psl = -1) or contains bucket with optimal position (psl = 0): return */
                 if (next_bucket_in_tbl->psl < 1) {
+                    hset->n_occupied_buckets--;
                     return;
                 }
 
@@ -295,7 +356,7 @@ static inline void hgl_hset_remove(HglHashSet *hset, void *key)
             }
 
             /* should never happen */
-            assert(0 && "Bug in *_hash_table_remove");
+            assert(0 && "Bug in hgl_hset_remove");
         }
 
         /* go to next slot */
@@ -307,3 +368,6 @@ static inline void hgl_hset_remove(HglHashSet *hset, void *key)
 }
 
 #endif
+
+// TODO set join/union
+

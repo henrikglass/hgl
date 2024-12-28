@@ -1,189 +1,121 @@
 
-#define HGL_FS_ALLOC_ALIGNMENT 16
+#include "hgl_test.h"
+
+#define HGL_FS_ALLOC_ALIGNMENT 128
 #define HGL_FS_ALLOC_IMPLEMENTATION
 #include "hgl_fs_alloc.h"
 
-#include <stdio.h>
-#include <stdbool.h>
+static HglFsAllocator fs_allocator;
 
-static HglFsAllocator allocator;
-
-void *my_alloc(size_t size);
-void my_free(void *ptr);
-void my_free_all(void);
-
-void *my_alloc(size_t size) {
-    void *ptr = hgl_fs_alloc(&allocator, size);
-    printf("0x%lX\n", (uint8_t *)ptr - allocator.memory);
-    return ptr;
+GLOBAL_SETUP {
+    fs_allocator = hgl_fs_make(64*1024, 16);
 }
 
-void *my_realloc(void *ptr, size_t size) {
-    void *retptr = hgl_fs_realloc(&allocator, ptr, size);
-    printf("0x%lX\n", (uint8_t *)retptr - allocator.memory);
-    return retptr;
+GLOBAL_TEARDOWN {
+    hgl_fs_destroy(&fs_allocator);
 }
 
-void my_free(void *ptr) {
-    printf("FREE\n");
-    hgl_fs_free(&allocator, ptr);
+TEST(test_simple_alloc) {
+    void *p0 = hgl_fs_alloc(&fs_allocator, 100); 
+    void *p1 = hgl_fs_alloc(&fs_allocator, 1000); 
+    void *p2 = hgl_fs_alloc(&fs_allocator, 10000); 
+
+    ASSERT(p0 != NULL);
+    ASSERT(p1 != NULL);
+    ASSERT(p2 != NULL);
+
+    ASSERT(hgl_fs_alloc(&fs_allocator, 0) == NULL);
 }
 
-void my_free_all(void) {
-    hgl_fs_free_all(&allocator);
+TEST(test_free_all_behavior) {
+    void *p0 = hgl_fs_alloc(&fs_allocator, 100); 
+    void *p1 = hgl_fs_alloc(&fs_allocator, 1000); 
+    void *p2 = hgl_fs_alloc(&fs_allocator, 10000); 
+
+    ASSERT(p0 != NULL);
+    ASSERT(p1 != NULL);
+    ASSERT(p2 != NULL);
+
+    hgl_fs_free_all(&fs_allocator);
+
+    void *p3 = hgl_fs_alloc(&fs_allocator, 100);
+
+    ASSERT(p0 == p3);
 }
 
-#define PRINT_EVERYTHING \
-    do {\
-        printf("\n"); \
-        printf("======================================================================\n"); \
-        memset(vis, 'X', 0x40); \
-        for (int idx = 0; idx < allocator.free_count; idx++) { \
-            printf("{0x%lX, 0x%lX} ", allocator.free_stack[idx].start - allocator.memory, \
-                                      allocator.free_stack[idx].end - allocator.memory); \
-            memset(vis + ((allocator.free_stack[idx].start - allocator.memory) >> 4), '_', \
-                   (allocator.free_stack[idx].end - allocator.free_stack[idx].start) >> 4); \
-        } \
-        printf("\n"); \
-        printf("%s\n", vis); \
-        printf("======================================================================\n"); \
-        printf("\n"); \
-    } while (0)
+TEST(test_free_single_1) {
+    void *p0 = hgl_fs_alloc(&fs_allocator, 100); 
+    void *p1 = hgl_fs_alloc(&fs_allocator, 1000); 
+    void *p2 = hgl_fs_alloc(&fs_allocator, 10000); 
 
-static uint8_t buffer[2048];
+    ASSERT(p0 != NULL);
+    ASSERT(p1 != NULL);
+    ASSERT(p2 != NULL);
 
-int main(void)
-{
-    printf("Hello World!\n");
+    hgl_fs_free(&fs_allocator, p0);
 
-    bool malloced = false;
+    void *p3 = hgl_fs_alloc(&fs_allocator, 500);
 
-#if 0
-    allocator = hgl_fs_make(2048, 8);
-    malloced = true;
-#else
-    allocator = hgl_fs_make_from_buffer((void *) buffer, 2048, 4);
-#endif
+    ASSERT(p0 != p3);
 
-    char vis[0x81];
-    vis[0x80] = '\0';
+    void *p4 = hgl_fs_alloc(&fs_allocator, 50);
 
-#if 1
-    int *a = my_alloc(1);
-    int *b = my_alloc(4);
-    int *c = my_alloc(16);
-    my_alloc(16);
-    PRINT_EVERYTHING;
-    
-    int *k = my_alloc(0x80);
-    PRINT_EVERYTHING;
-    my_free(a);
-    my_free(b);
-    my_free(c);
-    PRINT_EVERYTHING;
+    ASSERT(p0 == p4);
 
-    int *d = my_alloc(0x20);
-    PRINT_EVERYTHING;
-    int *d2 = my_alloc(0x20);
-    PRINT_EVERYTHING;
-    int *d3 = my_alloc(0x20);
-    PRINT_EVERYTHING;
+}
 
-    my_alloc(0x200);
-    PRINT_EVERYTHING;
-    my_alloc(0x80);
-    PRINT_EVERYTHING;
-    my_alloc(0x80);
-    PRINT_EVERYTHING;
+TEST(test_free_single_2) {
+    void *p0 = hgl_fs_alloc(&fs_allocator, 100); 
+    void *p1 = hgl_fs_alloc(&fs_allocator, 1000); 
+    void *p2 = hgl_fs_alloc(&fs_allocator, 10000); 
 
-    my_free(d);
-    my_free(d2);
-    my_free(d3);
-    //my_free(k);
+    ASSERT(p0 != NULL);
+    ASSERT(p1 != NULL);
+    ASSERT(p2 != NULL);
 
-    my_alloc(0x80);
-    PRINT_EVERYTHING;
+    hgl_fs_free(&fs_allocator, p1);
 
-    my_free(k);
-    PRINT_EVERYTHING;
+    void *p3 = hgl_fs_alloc(&fs_allocator, 5000);
 
-    int * asd = my_alloc(0x80);
-    PRINT_EVERYTHING;
-    
-    my_realloc(asd, 0x80);
-    PRINT_EVERYTHING;
-#endif
+    ASSERT(p1 != p3);
+    ASSERT(p0 != p3);
 
-#if 0
-    PRINT_EVERYTHING;
+    void *p4 = hgl_fs_alloc(&fs_allocator, 500);
 
-    int *a = my_alloc(24);
-    int *b = my_alloc(24);
-    int *c = my_alloc(24);
-    int *d = my_alloc(128);
-    int *e = my_alloc(4);
-    int *f = my_alloc(4);
+    ASSERT(p1 == p4);
+}
 
-    printf("%lX\n", (uint8_t *)a - allocator.memory);
-    printf("%lX\n", (uint8_t *)b - allocator.memory);
-    printf("%lX\n", (uint8_t *)c - allocator.memory);
-    printf("%lX\n", (uint8_t *)d - allocator.memory);
-    printf("%lX\n", (uint8_t *)e - allocator.memory);
-    printf("%lX\n", (uint8_t *)f - allocator.memory);
+TEST(test_free_multiple) {
+    void *p0 = hgl_fs_alloc(&fs_allocator, 100); 
+    void *p1 = hgl_fs_alloc(&fs_allocator, 100); 
+    void *p2 = hgl_fs_alloc(&fs_allocator, 100); 
+    void *p3 = hgl_fs_alloc(&fs_allocator, 100); 
+    void *p4 = hgl_fs_alloc(&fs_allocator, 100); 
+    void *p5 = hgl_fs_alloc(&fs_allocator, 100); 
+    void *p6 = hgl_fs_alloc(&fs_allocator, 100); 
+    void *p7 = hgl_fs_alloc(&fs_allocator, 100); 
+    void *p8 = hgl_fs_alloc(&fs_allocator, 100); 
+    void *p9 = hgl_fs_alloc(&fs_allocator, 100); 
 
+    hgl_fs_free(&fs_allocator, p1);
+    hgl_fs_free(&fs_allocator, p3);
+    hgl_fs_free(&fs_allocator, p5);
+    hgl_fs_free(&fs_allocator, p7);
+    hgl_fs_free(&fs_allocator, p9);
 
-    PRINT_EVERYTHING;
+    ASSERT(hgl_fs_alloc(&fs_allocator, 100) <= p9);
+    ASSERT(hgl_fs_alloc(&fs_allocator, 100) <= p9);
+    ASSERT(hgl_fs_alloc(&fs_allocator, 100) <= p9);
+    ASSERT(hgl_fs_alloc(&fs_allocator, 100) <= p9);
+    ASSERT(hgl_fs_alloc(&fs_allocator, 100) <= p9);
+    ASSERT(hgl_fs_alloc(&fs_allocator, 100) > p9);
+}
 
-
-    my_free(d);
-
-    PRINT_EVERYTHING;
-
-    int *g = my_alloc(4);
-    int *h = my_alloc(4);
-
-    printf("%lX\n", (uint8_t *)a - allocator.memory);
-    printf("%lX\n", (uint8_t *)b - allocator.memory);
-    printf("%lX\n", (uint8_t *)c - allocator.memory);
-    printf("%lX\n", (uint8_t *)d - allocator.memory);
-    printf("%lX\n", (uint8_t *)e - allocator.memory);
-    printf("%lX\n", (uint8_t *)f - allocator.memory);
-    printf("%lX\n", (uint8_t *)g - allocator.memory);
-    printf("%lX\n", (uint8_t *)h - allocator.memory);
-
-    PRINT_EVERYTHING;
-
-    int *i = my_alloc(0x40);
-    int *j = my_alloc(0x40);
-    printf("%lX\n", (uint8_t *)i - allocator.memory);
-    printf("%lX\n", (uint8_t *)j - allocator.memory);
-
-    PRINT_EVERYTHING;
-
-    my_free(c);
-
-    PRINT_EVERYTHING;
-
-    my_free(b);
-
-    PRINT_EVERYTHING;
-
-    int *k = my_alloc(8);
-    printf("%lX\n", (uint8_t *)k - allocator.memory);
-
-    PRINT_EVERYTHING;
-
-    my_free_all();
-
-    PRINT_EVERYTHING;
-
-#endif
-
-    if (malloced) {
-        hgl_fs_destroy(&allocator);
-    }
-
-    printf("END\n");
-
-    return 0;
+TEST(test_too_big_alloc) {
+    void *p0 = hgl_fs_alloc(&fs_allocator, 32*1024); 
+    ASSERT(p0 != NULL);
+    void *p1 = hgl_fs_alloc(&fs_allocator, 24*1024); 
+    ASSERT(p1 != NULL);
+    void *p2 = hgl_fs_alloc(&fs_allocator, 24*1024); 
+    ASSERT(p2 == NULL);
 }

@@ -281,8 +281,8 @@ HglFile hgl_io_file_mmap(const char *filepath)
 
     /* get file size */
     struct stat sb;
-    fstat(fd, &sb);
-    if (fd == -1) {
+    int err = fstat(fd, &sb);
+    if (err == -1) {
         fprintf(stderr, "[hgl_io_file_mmap] Error: errno=%s\n", strerror(errno));
         goto out_close;
     }

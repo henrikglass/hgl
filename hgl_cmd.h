@@ -84,7 +84,7 @@
  * with a certain path in the command tree (`hgl_cmd_input` returns a pointer to
  * this command).
  *
- * See the test/ directory for a more complete example.
+ * See the examples/ directory for a more complete example.
  *
  *
  * AUTHOR: Henrik A. Glass

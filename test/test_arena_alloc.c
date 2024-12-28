@@ -1,45 +1,57 @@
-#include <stdio.h>
 
-#define HGL_ARENA_ALIGNMENT 64
+#include "hgl_test.h"
+
+#define HGL_ARENA_ALIGNMENT 1024
 #define HGL_ARENA_ALLOC_IMPLEMENTATION
 #include "hgl_arena_alloc.h"
 
-static uint8_t memory_chunk[128 * 1024];
+static HglArena arena;
 
-static HglArena s_arena;
-
-void *arena_alloc(size_t size)
-{
-    return hgl_arena_alloc(&s_arena, size);
+GLOBAL_SETUP {
+    arena = hgl_arena_make(128 * 1024); // 128 KiB
 }
 
-int main()
-{
-    //s_arena = hgl_arena_make(128 * 1024);  // 128 KiB
-    s_arena = hgl_arena_make_from_buffer(memory_chunk, sizeof(memory_chunk));
-    //s_arena = hgl_arena_make(1024);  // 1 KiB
+GLOBAL_TEARDOWN {
+    hgl_arena_destroy(&arena);
+}
 
+TEST(test_simple_alloc) {
+    void *p0 = hgl_arena_alloc(&arena, 100); 
+    void *p1 = hgl_arena_alloc(&arena, 1000); 
+    void *p2 = hgl_arena_alloc(&arena, 10000); 
 
-    void *a = arena_alloc(32);
-    void *b = arena_alloc(128);
-    void *c = arena_alloc(512);
-    void *d = arena_alloc(4096);
+    ASSERT(p0 != NULL);
+    ASSERT(p1 != NULL);
+    ASSERT(p2 != NULL);
 
-    printf("%p\n", a);
-    printf("%p\n", b);
-    printf("%p\n", c);
-    printf("%p\n", d);
+    ASSERT(hgl_arena_alloc(&arena, 0) == NULL);
+}
 
-    printf("%08lX\n", (uint8_t*)a - s_arena.memory);
-    printf("%08lX\n", (uint8_t*)b - s_arena.memory);
-    printf("%08lX\n", (uint8_t*)c - s_arena.memory);
-    printf("%08lX\n", (uint8_t*)d - s_arena.memory);
+TEST(test_free_all_behavior) {
+    void *p0 = hgl_arena_alloc(&arena, 100); 
+    void *p1 = hgl_arena_alloc(&arena, 1000); 
+    void *p2 = hgl_arena_alloc(&arena, 10000); 
 
-    hgl_arena_free_all(&s_arena);
+    ASSERT(p0 != NULL);
+    ASSERT(p1 != NULL);
+    ASSERT(p2 != NULL);
 
-    a = arena_alloc(128 * 1024);
+    hgl_arena_free_all(&arena);
 
-    printf("%08lX\n", (uint8_t*)a - s_arena.memory);
+    void *p3 = hgl_arena_alloc(&arena, 100);
 
-    //hgl_arena_destroy(&s_arena);
+    ASSERT(p0 == p3);
+}
+
+TEST(test_too_big_allocation) {
+    void *p0 = hgl_arena_alloc(&arena, 128*1024 + 4); 
+
+    ASSERT(p0 == NULL);
+}
+
+TEST(test_alignment) {
+    void *p0 = hgl_arena_alloc(&arena, 1); 
+    void *p1 = hgl_arena_alloc(&arena, 1); 
+
+    ASSERT(p1 - p0 == HGL_ARENA_ALIGNMENT);
 }

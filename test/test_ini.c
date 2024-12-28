@@ -1,81 +1,64 @@
-//#include <stdio.h>
 
-//#define HGL_MEMDBG_IMPLEMENTATION
-//#include "hgl_memdbg.h"
+#include "hgl_test.h"
 
-#define HGL_FS_ALLOC_IMPLEMENTATION
-#include "hgl_fs_alloc.h"
-
-
-static HglFsAllocator fs_allocator;
-
-void *fs_alloc(size_t size);
-void fs_free(void *ptr);
-void fs_free_all(void);
-
-void *fs_alloc(size_t size) {
-    printf("<ALLOC>\n");
-    return hgl_fs_alloc(&fs_allocator, size);
-}
-
-void *fs_realloc(void *ptr, size_t size) {
-    printf("<REALLOC>\n");
-    return hgl_fs_realloc(&fs_allocator, ptr, size);
-}
-
-void fs_free(void *ptr) {
-    printf("<FREE>\n");
-    hgl_fs_free(&fs_allocator, ptr);
-}
-
-void fs_free_all(void) {
-    hgl_fs_free_all(&fs_allocator);
-}
-
-#define HGL_INI_ALLOC fs_alloc
-#define HGL_INI_REALLOC fs_realloc
-#define HGL_INI_FREE fs_free
 #define HGL_INI_IMPLEMENTATION
 #include "hgl_ini.h"
 
+static HglIni *ini;
 
-int main(void)
-{
+GLOBAL_SETUP {
+    ini = hgl_ini_parse("data/test.ini");
+}
 
-    fs_allocator = hgl_fs_make(2*1024, 4);
+GLOBAL_TEARDOWN {
+    hgl_ini_free(ini);
+}
 
-    HglIni *ini = hgl_ini_parse("test/data/test.ini");
-    if (ini == NULL) {
-        return 1;
-    }
+TEST(test_read) {
+    uint64_t my_u64 = hgl_ini_get_u64(ini, "Things", "my_u64");
+    ASSERT(my_u64 == 0xDEADBEEF);
+}
 
-    printf("my_f64 got:        %f\n", hgl_ini_get_f64(ini, "Things", "my_f64"));
-    printf("my_i64 got:        %ld\n", hgl_ini_get_i64(ini, "Things", "my_i64"));
-    printf("my_u64 got:        0x%lX\n", hgl_ini_get_u64(ini, "Things", "my_u64"));
-    printf("my_bool got:       %d\n", hgl_ini_get_bool(ini, "Things", "my_bool"));
-    printf("my_other_bool got: %d\n", hgl_ini_get_bool(ini, "Things", "my_other_bool"));
-    printf("my_other_bool got: %s\n", hgl_ini_get(ini, "Things", "my_other_bool"));
+TEST(test_put) {
+    hgl_ini_put(ini, "MySecion", "Hello", "hi");
+    hgl_ini_put(ini, "MyEntirelyNewSecion", "Goodbye", "bye");
+    ASSERT(0xDEADBEEF == hgl_ini_get_u64(ini, "Things", "my_u64"));
+    ASSERT_CSTR_EQ(hgl_ini_get(ini, "MySecion", "Hello"), "hi");
+    ASSERT_CSTR_EQ(hgl_ini_get(ini, "MyEntirelyNewSecion", "Goodbye"), "bye");
+}
 
-    printf("###################################\n");
-    hgl_ini_print(ini);
-    printf("###################################\n");
+TEST(test_print, .expect_output = 
+        "[Things]\n"
+        "my_f64 = 123.456\n"
+        "my_i64 = 1337\n"
+        "my_u64 = 0xDEADBEEF\n"
+        "my_bool = True\n"
+        "my_other_bool = True\n"
+        "\n"
+        "[MySection]\n"
+        "\n"
+        "[MyOtherSection]\n"
+        "kr i nk o = pl i nko\n"
+        "\n"
+        "[MySectionAtEnd]\n"
+        "\n"
+        "[MySecion]\n"
+        "Hello = hi\n"
+        "\n"
+        "[MyEntirelyNewSecion]\n"
+        "Goodbye = bye\n"
+        "\n") {
+    hgl_ini_put(ini, "MySecion", "Hello", "hi");
+    hgl_ini_put(ini, "MyEntirelyNewSecion", "Goodbye", "bye");
+    hgl_ini_fprint(stdout, ini);
+}
 
-    hgl_ini_put(ini, "Things", "added_bool", "true");
-    hgl_ini_put(ini, "Things", "added_bool", "false");
-    hgl_ini_put(ini, "Things2", "added_thing", "127.0.0.1");
-    hgl_ini_put(ini, "Things2", "added_thing_again", "127.0.0.1");
-
-    printf("###################################\n");
-    hgl_ini_print(ini);
-    printf("###################################\n");
-
-    //hgl_ini_free(ini);
-    //
-    fs_free_all();
-
-    printf("{%zu -- %zu}\n", fs_allocator.free_stack[fs_allocator.free_count - 1].start - fs_allocator.memory,
-                             fs_allocator.free_stack[fs_allocator.free_count - 1].end - fs_allocator.memory);
-
-    //hgl_memdbg_report();
-    return 0;
+TEST(test_print2) {
+    char buf[4096];
+    memset(buf, '\0', 4096);
+    hgl_ini_put(ini, "MySecion", "Hello", "hi");
+    hgl_ini_put(ini, "MyEntirelyNewSecion", "Goodbye", "bye");
+    FILE *stream = fmemopen(buf, 4096 - 1, "wb");
+    hgl_ini_fprint(stream, ini);
+    ASSERT_CSTR_EQ(FILE_CONTENTS("data/test.ini.with_changes"), buf);
 }

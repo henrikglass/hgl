@@ -1,157 +1,178 @@
-.PHONY: test_hotload_mylib
+
+.PHONY: hotload_mylib test
+
+SHELL := /bin/bash
 
 MAKEFLAGS := --jobs=$(shell nproc)
 
-SRCDIR := test
+EXAMPLES_DIR := examples
+TEST_DIR := test
+EXAMPLES_BUILD_DIR := build/examples
+TEST_BUILD_DIR := build/test
 
-all: test_vec         \
-     test_rbuf        \
-     test_chan        \
-     test_rhashtbl    \
-     test_htable      \
-     test_hset        \
-     test_stack_alloc \
-     test_arena_alloc \
-     test_pool_alloc  \
-     test_fs_alloc    \
-     test_hgl         \
-     test_hotload     \
-     test_serialize   \
-     test_memdbg      \
-     test_flags       \
-     test_string      \
-     test_hamming     \
-     test_cmd         \
-     test_io          \
-     test_process     \
-     test_profile     \
-     test_math        \
-     test_fft         \
-     test_ini         \
-     test_worker_pool \
-     test_rbtree 	  \
-     test_queue
+all: examples test
 
-test_hgl:
-	gcc -I. -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L $(SRCDIR)/test_hgl.c -o test_hgl
+examples: vec         \
+          rbuf        \
+          chan        \
+          rhashtbl    \
+          htable      \
+          hset        \
+          stack_alloc \
+          arena_alloc \
+          pool_alloc  \
+          fs_alloc    \
+          hgl         \
+          hotload     \
+          serialize   \
+          memdbg      \
+          flags       \
+          string      \
+          hamming     \
+          cmd         \
+          io          \
+          process     \
+          profile     \
+          hglm        \
+          fft         \
+          ini         \
+          rle         \
+          worker_pool \
+          rbtree 	  \
+          sockets 	  \
+          queue
 
-test_vec:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_vec.c -o test_vec
+hgl:
+	gcc -I. -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L $(EXAMPLES_DIR)/hgl.c -o $(EXAMPLES_BUILD_DIR)/hgl
 
-test_rbuf:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_rbuf.c -o test_rbuf
+vec:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/vec.c -o $(EXAMPLES_BUILD_DIR)/vec
 
-test_chan:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_chan.c -o test_chan
+rbuf:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rbuf.c -o $(EXAMPLES_BUILD_DIR)/rbuf
 
-test_rhashtbl:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_rhashtbl.c -o test_rhashtbl
+chan:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/chan.c -o $(EXAMPLES_BUILD_DIR)/chan
 
-test_htable:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_htable.c -o test_htable
+rhashtbl:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rhashtbl.c -o $(EXAMPLES_BUILD_DIR)/rhashtbl
 
-test_hset:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_hset.c -o test_hset
+htable:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/htable.c -o $(EXAMPLES_BUILD_DIR)/htable
 
-test_stack_alloc:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_stack_alloc.c -o test_stack_alloc
+hset:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/hset.c -o $(EXAMPLES_BUILD_DIR)/hset
 
-test_arena_alloc:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_arena_alloc.c -o test_arena_alloc
+stack_alloc:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/stack_alloc.c -o $(EXAMPLES_BUILD_DIR)/stack_alloc
 
-test_pool_alloc:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_pool_alloc.c -o test_pool_alloc
+arena_alloc:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/arena_alloc.c -o $(EXAMPLES_BUILD_DIR)/arena_alloc
 
-test_fs_alloc:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_fs_alloc.c -o test_fs_alloc
+pool_alloc:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/pool_alloc.c -o $(EXAMPLES_BUILD_DIR)/pool_alloc
 
-test_hotload: test_hotload_mylib
-	gcc -I. -D_POSIX_C_SOURCE=200809L -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 -Wl,-rpath="./" $(SRCDIR)/test_hotload.c -o test_hotload -ldl
+fs_alloc:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/fs_alloc.c -o $(EXAMPLES_BUILD_DIR)/fs_alloc
 
-test_hotload_mylib:
-	gcc -I. -fPIE -shared -Wall -Wextra -Wpedantic -Wstrict-prototypes -Wmissing-declarations -Wmissing-prototypes -ggdb3 $(SRCDIR)/mylib.c -o libmylib.so
+hotload: hotload_mylib
+	gcc -I. -D_POSIX_C_SOURCE=200809L -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 -Wl,-rpath="./" $(EXAMPLES_DIR)/hotload.c -o $(EXAMPLES_BUILD_DIR)/hotload -ldl
 
-test_serialize:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_serialize.c -o test_serialize
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(SRCDIR)/test_serialize_elfinfo.c -o test_serialize_elfinfo
+hotload_mylib:
+	gcc -I. -fPIE -shared -Wall -Wextra -Wpedantic -Wstrict-prototypes -Wmissing-declarations -Wmissing-prototypes -ggdb3 $(EXAMPLES_DIR)/mylib.c -o $(EXAMPLES_BUILD_DIR)/libmylib.so
 
-test_memdbg:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_memdbg.c -o test_memdbg
+serialize:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/serialize.c -o $(EXAMPLES_BUILD_DIR)/serialize
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/serialize_elfinfo.c -o $(EXAMPLES_BUILD_DIR)/serialize_elfinfo
 
-test_flags:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_flags.c -o test_flags -lm
+memdbg:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/memdbg.c -o $(EXAMPLES_BUILD_DIR)/memdbg
 
-test_string:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_string.c -o test_string
+flags:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/flags.c -o $(EXAMPLES_BUILD_DIR)/flags -lm
 
-test_fft:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -march=native -ffast-math $(SRCDIR)/test_fft.c -o test_fft -lm
+string:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/string.c -o $(EXAMPLES_BUILD_DIR)/string
 
-test_hamming:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_hamming.c -o test_hamming
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(SRCDIR)/test_hamming_encode.c -o test_hamming_encode
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(SRCDIR)/test_hamming_decode.c -o test_hamming_decode
+fft:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -march=native -ffast-math $(EXAMPLES_DIR)/fft.c -o $(EXAMPLES_BUILD_DIR)/fft -lm
 
-test_io:
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(SRCDIR)/test_io.c -o test_io
+hamming:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/hamming.c -o $(EXAMPLES_BUILD_DIR)/hamming
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(EXAMPLES_DIR)/hamming_encode.c -o $(EXAMPLES_BUILD_DIR)/hamming_encode
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(EXAMPLES_DIR)/hamming_decode.c -o $(EXAMPLES_BUILD_DIR)/hamming_decode
 
-test_process:
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(SRCDIR)/test_process.c -o test_process
+io:
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(EXAMPLES_DIR)/io.c -o $(EXAMPLES_BUILD_DIR)/io
 
-test_cmd:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(SRCDIR)/test_cmd.c -o test_cmd
+process:
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(EXAMPLES_DIR)/process.c -o $(EXAMPLES_BUILD_DIR)/process
 
-test_profile:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(SRCDIR)/test_profile.c -o test_profile
+cmd:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(EXAMPLES_DIR)/cmd.c -o $(EXAMPLES_BUILD_DIR)/cmd
 
-test_math:
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -ggdb3 $(SRCDIR)/test_math.c -o test_math -lm
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -DHGLM_USE_SIMD -mavx -ggdb3 $(SRCDIR)/test_math.c -o test_math_simd -lm
+profile:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -D_POSIX_C_SOURCE -ggdb3 $(EXAMPLES_DIR)/profile.c -o $(EXAMPLES_BUILD_DIR)/profile
 
-test_queue:
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(SRCDIR)/test_queue.c -o test_queue
+hglm:
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -ggdb3 $(EXAMPLES_DIR)/hglm.c -o $(EXAMPLES_BUILD_DIR)/hglm -lm
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -DHGLM_USE_SIMD -mavx -ggdb3 $(EXAMPLES_DIR)/hglm.c -o $(EXAMPLES_BUILD_DIR)/hglm_simd -lm
 
-test_ini:
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_ini.c -o test_ini
+queue:
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(EXAMPLES_DIR)/queue.c -o $(EXAMPLES_BUILD_DIR)/queue
 
-test_worker_pool:
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L -fsanitize=thread $(SRCDIR)/test_worker_pool.c -o test_worker_pool -lpthread
+ini:
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/ini.c -o $(EXAMPLES_BUILD_DIR)/ini
 
-test_rbtree:
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(SRCDIR)/test_rbtree.c -o test_rbtree
+rle:
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rle.c -o $(EXAMPLES_BUILD_DIR)/rle
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rle_hglzip.c -o $(EXAMPLES_BUILD_DIR)/hglzip
+
+worker_pool:
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L -fsanitize=thread $(EXAMPLES_DIR)/worker_pool.c -o $(EXAMPLES_BUILD_DIR)/worker_pool -lpthread
+
+rbtree:
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rbtree.c -o $(EXAMPLES_BUILD_DIR)/rbtree
+
+sockets:
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=200809L $(EXAMPLES_DIR)/sockets.c -o $(EXAMPLES_BUILD_DIR)/sockets
+
+
+## Unit tests
+test:
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_arena_alloc.c -o $(TEST_BUILD_DIR)/test_arena_alloc
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_stack_alloc.c -o $(TEST_BUILD_DIR)/test_stack_alloc
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_pool_alloc.c -o $(TEST_BUILD_DIR)/test_pool_alloc
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_fs_alloc.c -o $(TEST_BUILD_DIR)/test_fs_alloc
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_memdbg.c -o $(TEST_BUILD_DIR)/test_memdbg
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_chan.c -o $(TEST_BUILD_DIR)/test_chan
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_buffered_chan.c -o $(TEST_BUILD_DIR)/test_buffered_chan
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_string.c -o $(TEST_BUILD_DIR)/test_string
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_da.c -o $(TEST_BUILD_DIR)/test_da
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_q.c -o $(TEST_BUILD_DIR)/test_q
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_htable.c -o $(TEST_BUILD_DIR)/test_htable
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_hset.c -o $(TEST_BUILD_DIR)/test_hset
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_ini.c -o $(TEST_BUILD_DIR)/test_ini
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_worker_pool.c -o $(TEST_BUILD_DIR)/test_worker_pool -lpthread
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_fft.c -o $(TEST_BUILD_DIR)/test_fft -lm
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_fft_simd.c -o $(TEST_BUILD_DIR)/test_fft_simd -lm
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_serialize.c -o $(TEST_BUILD_DIR)/test_serialize
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_rbtree.c -o $(TEST_BUILD_DIR)/test_rbtree
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_hamming.c -o $(TEST_BUILD_DIR)/test_hamming
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_flags.c -o $(TEST_BUILD_DIR)/test_flags
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_hglm.c -o $(TEST_BUILD_DIR)/test_hglm -lm
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_cmd.c -o $(TEST_BUILD_DIR)/test_cmd -lm
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_sockets.c -o $(TEST_BUILD_DIR)/test_sockets -lpthread
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_rle.c -o $(TEST_BUILD_DIR)/test_rle
+	-rm run_tests.sh
+	echo "#!/bin/bash" >> run_tests.sh
+	find $(shell pwd)/build/test/ -type f -executable | sed "s/$$/ \&\&/">> run_tests.sh
+	echo "exit 0;" >> run_tests.sh
+	chmod +x run_tests.sh
+	./run_tests.sh
 
 
 clean:
-	-rm test_hgl
-	-rm test_vec
-	-rm test_rbuf
-	-rm test_chan
-	-rm test_rhashtbl
-	-rm test_htable
-	-rm test_hset
-	-rm test_stack_alloc
-	-rm test_arena_alloc
-	-rm test_pool_alloc
-	-rm test_fs_alloc
-	-rm test_hotload
-	-rm libmylib.so
-	-rm test_serialize
-	-rm test_serialize_elfinfo
-	-rm test_memdbg
-	-rm test_flags
-	-rm test_string
-	-rm test_fft
-	-rm test_hamming
-	-rm test_hamming_encode
-	-rm test_hamming_decode
-	-rm test_io
-	-rm test_cmd
-	-rm test_process
-	-rm test_profile
-	-rm test_math
-	-rm test_math_simd
-	-rm test_queue
-	-rm test_ini
-	-rm test_worker_pool
-	-rm test_rbtree
-	-rm testfil_*
+	-rm $(EXAMPLES_BUILD_DIR)/*
+	-rm $(TEST_BUILD_DIR)/*
+	-rm run_tests.sh

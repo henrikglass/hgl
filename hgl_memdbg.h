@@ -137,6 +137,11 @@ HglAllocationHeader *hgl_allocation_header_head_ = NULL;
 
 void *hgl_memdbg_internal_malloc_(size_t size, const char *file, int line)
 {
+
+    if (size == 0) {
+        return NULL;
+    }
+
     HglAllocationHeader *header = malloc(HGL_MEMDBG_PADDED_HEADER_SIZE + size);
 
     /* Return NULL if malloc failed. */

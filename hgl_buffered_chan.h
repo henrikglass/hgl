@@ -28,76 +28,113 @@
  *
  * ABOUT:
  *
- * hgl_buffered_chan.h implements a thread-safe buffered message queue similar to buffered go channels.
+ * hgl_buffered_chan.h implements a thread-safe buffered message queue (FIFO) 
+ * similar to buffered channels in go.
  *
  *
  * USAGE:
  *
  * Include hgl_buffered_chan.h file like this:
  *
- *     #define HGL_BUFFERED_CHAN_TYPE char *
- *     #define HGL_BUFFERED_CHAN_TYPE_ID charp
+ *     #define HGL_BUFFERED_CHAN_IMPLEMENTATION
  *     #include "hgl_buffered_chan.h"
  *
- * This will create an implementation of hgl_buffered_chan capable of holding an element of type char *.
- * "charp" is used as an infix in the identifiers exposed by the library. Below is a complete
- * list of the generated API:
+ * The following macros may be redefined if you wish to supply your own allocator:
  *
- *     void hgl_charp_buffered_chan_init(hgl_charp_buffered_chan_t *chan, size_t capacity);
- *     void hgl_charp_buffered_chan_free(hgl_charp_buffered_chan_t *chan);
- *     void hgl_charp_buffered_chan_send(hgl_charp_buffered_chan_t *chan, char **item);
- *     void hgl_charp_buffered_chan_send_value(hgl_charp_buffered_chan_t *chan, char *item);
- *     char *hgl_charp_buffered_chan_recv(hgl_charp_buffered_chan_t *chan);
+ *     #define HGL_BUFFERED_CHAN_ALLOC   malloc
+ *     #define HGL_BUFFERED_CHAN_FREE    free
  *
- * HGL_BUFFERED_CHAN_TYPE and HGL_BUFFERED_CHAN_TYPE_ID may be redefined and hgl_buffered_chan.h included multiple times
- * to create implementations of hgl_buffered_chan for different types:
  *
- *     #define HGL_BUFFERED_CHAN_TYPE char *
- *     #define HGL_BUFFERED_CHAN_TYPE_ID charp
- *     #include "hgl_buffered_chan.h"
- *
- *     #undef HGL_BUFFERED_CHAN_TYPE
- *     #undef HGL_BUFFERED_CHAN_TYPE_ID
- *     #define HGL_BUFFERED_CHAN_TYPE int
- *     #define HGL_BUFFERED_CHAN_TYPE_ID int
- *     #include "hgl_buffered_chan.h"
- *
- * If HGL_BUFFERED_CHAN_TYPE and HGL_BUFFERED_CHAN_TYPE_ID are left undefined, the default element type of
- * hgl_buffered_chan will be void *, and the default element type identifier will be "voidp".
- *
- * hgl_buffered_chan allows the default allocator and corresponding free function to be overridden by
- * redefining the following defines before including hgl_buffered_chan.h:
- *
- *     #define HGL_BUFFERED_CHAN_ALLOC      malloc
- *     #define HGL_BUFFERED_CHAN_FREE       free
+ * EXAMPLE:
+ * 
+ * See the examples directory.
  *
  *
  * AUTHOR: Henrik A. Glass
  *
  */
 
-/*--- Helper macros ---------------------------------------------------------------------*/
+#ifndef HGL_BUFFERED_CHAN_H
 
-#define _CONCAT_NX3(a, b, c) a ## b ## c
-#define _CONCAT3(a, b, c) _CONCAT_NX3(a, b, c)
+/*--- Include files ---------------------------------------------------------------------*/
 
-#ifdef NDEBUG
-#define HGL_ASSERT(expr, msg) do {                       \
-    if (!(expr)) {                                       \
-        fprintf(stderr, "HGL_ASSERT fail: %s\n", (msg)); \
-    }                                                    \
-} while(0)
-#else
-#define HGL_ASSERT(expr, msg) assert((expr) && (msg))
+#include <stdbool.h>
+#include <stdint.h>
+#include <pthread.h>
+#include <stdarg.h>
+
+typedef struct
+{
+    void **items;
+    bool dynamically_allocated_items;
+    uint32_t read_offset;
+    uint32_t write_offset;
+    uint32_t capacity;
+    pthread_mutex_t mutex;
+    pthread_cond_t cvar_writable;
+    pthread_cond_t cvar_readable;
+    int efd;
+} HglBufferedChan;
+
+/**
+ * Creates a buffered channel with capacity `capacity`.
+ */
+HglBufferedChan hgl_buffered_chan_make(size_t capacity);
+
+/**
+ * Creates a buffered channel from a user-supplied buffer `buf` of size `size`.
+ */
+HglBufferedChan hgl_buffered_chan_make_from_buffer(void *buf, size_t size);
+
+/**
+ * Destroys the buffered channel `c`.
+ */
+void hgl_buffered_chan_destroy(HglBufferedChan *c);
+
+/**
+ * Sends item `item` on the buffered channel `c`. Will block if the queue in `c` is full.
+ */
+void hgl_buffered_chan_send(HglBufferedChan *c, void *item);
+
+/**
+ * Tries to send item `item` on the buffered channel `c`. If the internal queue of `c` is
+ * full then `item` will not be sent and -1 will be returned. Otherwise, the item is sent,
+ * and 0 is returned.
+ */
+int hgl_buffered_chan_try_send(HglBufferedChan *c, void *item);
+
+/**
+ * Recieve an item from the channel `c`. Will block until there is at
+ * least one item on `c`.
+ */
+void *hgl_buffered_chan_recv(HglBufferedChan *c);
+
+/**
+ * Tries to receive an item from the channel `c`. If the internal queue of `c` is empty
+ * then NULL will be returned. Otherwise, the next item will be returned.
+ */
+void *hgl_buffered_chan_try_recv(HglBufferedChan *c);
+
+/**
+ * Wait on any number (<= 128) of channels simultaneously, until at least one
+ * of them becomes readable (i.e. something was sent on the channel). Returns
+ * a pointer to the first readable channel in the variadic arguments list.
+ */
+HglBufferedChan *hgl_buffered_chan_select(int n_args, ...);
+
+/**
+ * Returns a pointer to the first readable channel in the variadic arguments 
+ * list. If there are no readable channels NULL is returned.
+ */
+HglBufferedChan *hgl_buffered_chan_try_select(int n_args, ...);
+
 #endif
 
-/*--- buffered channel-specific macros --------------------------------------------------*/
+/*--- Public variables ------------------------------------------------------------------*/
 
-/* CONFIGURABLE: HGL_BUFFERED_CHAN_TYPE & HGL_BUFFERED_CHAN_TYPE_ID */
-#ifndef HGL_BUFFERED_CHAN_TYPE
-#define HGL_BUFFERED_CHAN_TYPE void *
-#define HGL_BUFFERED_CHAN_TYPE_ID voidp
-#endif /* HGL_BUFFERED_CHAN_TYPE */
+/*--- Channel functions -----------------------------------------------------------------*/
+
+#ifdef HGL_BUFFERED_CHAN_IMPLEMENTATION
 
 /* CONFIGURABLE: HGL_BUFFERED_CHAN_ALLOC, HGL_BUFFERED_CHAN_FREE */
 #if !defined(HGL_BUFFERED_CHAN_ALLOC) && !defined(HGL_BUFFERED_CHAN_FREE)
@@ -106,104 +143,144 @@
 #define HGL_BUFFERED_CHAN_FREE   free
 #endif
 
-/*--- Include files ---------------------------------------------------------------------*/
-
-#include <stdbool.h>
-#include <stdint.h>
 #include <assert.h>
-#include <stdarg.h>
 #include <sys/eventfd.h>
 #include <unistd.h>
 #include <poll.h>
 
-/*--- Public type definitions -----------------------------------------------------------*/
-
-#define HGL_BUFFERED_CHAN_STRUCT _CONCAT3(hgl_, HGL_BUFFERED_CHAN_TYPE_ID, _buffered_chan_t)
-typedef struct
+HglBufferedChan hgl_buffered_chan_make(size_t capacity)
 {
-    HGL_BUFFERED_CHAN_TYPE *buf;
-    uint32_t read_offset;
-    uint32_t write_offset;
-    uint32_t capacity;
-    pthread_mutex_t mutex;
-    pthread_cond_t cvar_writable;
-    pthread_cond_t cvar_readable;
-    int efd;
-} HGL_BUFFERED_CHAN_STRUCT;
-
-/*--- Public variables ------------------------------------------------------------------*/
-
-/*--- Channel functions -----------------------------------------------------------------*/
-
-#define HGL_BUFFERED_CHAN_FUNC_INIT _CONCAT3(hgl_, HGL_BUFFERED_CHAN_TYPE_ID, _buffered_chan_init)
-static inline void HGL_BUFFERED_CHAN_FUNC_INIT(HGL_BUFFERED_CHAN_STRUCT *chan, size_t capacity)
-{
-    HGL_ASSERT((capacity & (capacity -1)) == 0, "buffered chan capacity must be a power of 2");
-    chan->buf = HGL_BUFFERED_CHAN_ALLOC(sizeof(HGL_BUFFERED_CHAN_TYPE) * capacity);
-    chan->read_offset = 0;
-    chan->write_offset = 0;
-    chan->capacity = capacity;
-    pthread_mutex_init(&chan->mutex, NULL);
-    pthread_cond_init(&chan->cvar_writable, NULL);
-    pthread_cond_init(&chan->cvar_readable, NULL);
-    chan->efd = eventfd(0, EFD_SEMAPHORE);
+    int err;
+    HglBufferedChan c = (HglBufferedChan) {.items = NULL, .capacity = 0};
+    if ((capacity & (capacity -1)) != 0) {
+        fprintf(stderr, "[hgl_buffered_chan.h] Error: buffered chan capacity must be a power of 2\n");
+        return c;
+    }
+    c.items = HGL_BUFFERED_CHAN_ALLOC(sizeof(c.items) * capacity);
+    if (c.items == NULL) {
+        fprintf(stderr, "[hgl_chan.h]: Failed to create channel.\n");
+        return c;
+    }
+    c.dynamically_allocated_items = true;
+    c.read_offset = 0;
+    c.write_offset = 0;
+    c.capacity = capacity;
+    err  = pthread_mutex_init(&c.mutex, NULL);
+    err |= pthread_cond_init(&c.cvar_writable, NULL);
+    err |= pthread_cond_init(&c.cvar_readable, NULL);
+    c.efd = eventfd(0, EFD_SEMAPHORE);
+    if (err != 0) {
+        fprintf(stderr, "[hgl_chan.h]: Failed to create channel.\n");
+        HGL_BUFFERED_CHAN_FREE(c.items);
+    }
+    return c;
 }
 
-#define HGL_BUFFERED_CHAN_FUNC_FREE _CONCAT3(hgl_, HGL_BUFFERED_CHAN_TYPE_ID, _buffered_chan_free)
-static inline void HGL_BUFFERED_CHAN_FUNC_FREE(HGL_BUFFERED_CHAN_STRUCT *chan)
+HglBufferedChan hgl_buffered_chan_make_from_buffer(void *buf, size_t size)
 {
-    pthread_mutex_destroy(&chan->mutex);
-    pthread_cond_destroy(&chan->cvar_writable);
-    pthread_cond_destroy(&chan->cvar_readable);
-    HGL_BUFFERED_CHAN_FREE(chan->buf);
-    close(chan->efd);
+    int err;
+    HglBufferedChan c = (HglBufferedChan) {.items = NULL, .capacity = 0};
+    uint32_t capacity = size / sizeof(void *);
+    if ((capacity & (capacity -1)) != 0) {
+        fprintf(stderr, "[hgl_buffered_chan.h] Error: buffered chan capacity must be a power of 2\n");
+        return c;
+    }
+    c.items = buf;
+    c.dynamically_allocated_items = false;
+    c.read_offset = 0;
+    c.write_offset = 0;
+    c.capacity = capacity;
+    err  = pthread_mutex_init(&c.mutex, NULL);
+    err |= pthread_cond_init(&c.cvar_writable, NULL);
+    err |= pthread_cond_init(&c.cvar_readable, NULL);
+    c.efd = eventfd(0, EFD_SEMAPHORE);
+    if (err != 0) {
+        fprintf(stderr, "[hgl_chan.h]: Failed to create channel.\n");
+        HGL_BUFFERED_CHAN_FREE(c.items);
+    }
+    return c;
 }
 
-#define HGL_BUFFERED_CHAN_FUNC_SEND _CONCAT3(hgl_, HGL_BUFFERED_CHAN_TYPE_ID, _buffered_chan_send)
-static inline void HGL_BUFFERED_CHAN_FUNC_SEND(HGL_BUFFERED_CHAN_STRUCT *chan, 
-                                               HGL_BUFFERED_CHAN_TYPE *item)
+void hgl_buffered_chan_destroy(HglBufferedChan *c)
 {
-    pthread_mutex_lock(&chan->mutex);
+    pthread_mutex_destroy(&c->mutex);
+    pthread_cond_destroy(&c->cvar_writable);
+    pthread_cond_destroy(&c->cvar_readable);
+    if (c->dynamically_allocated_items) {
+        HGL_BUFFERED_CHAN_FREE(c->items);
+    }
+    close(c->efd);
+}
+
+void hgl_buffered_chan_send(HglBufferedChan *c, void *item)
+{
+    pthread_mutex_lock(&c->mutex);
     /* while not writable... */
-    while(((chan->write_offset + 1) & (chan->capacity - 1)) == chan->read_offset) {
-        pthread_cond_wait(&chan->cvar_writable, &chan->mutex);
+    while(((c->write_offset + 1) & (c->capacity - 1)) == c->read_offset) {
+        pthread_cond_wait(&c->cvar_writable, &c->mutex);
     }
-    chan->buf[chan->write_offset] = *item;
-    chan->write_offset = (chan->write_offset + 1) & (chan->capacity - 1);
+    c->items[c->write_offset] = item;
+    c->write_offset = (c->write_offset + 1) & (c->capacity - 1);
     uint64_t efd_inc = 1;
-    write(chan->efd, &efd_inc, sizeof(uint64_t)); // increment counter
-    pthread_cond_signal(&chan->cvar_readable);
-    pthread_mutex_unlock(&chan->mutex);
+    write(c->efd, &efd_inc, sizeof(uint64_t)); // increment counter
+    pthread_cond_signal(&c->cvar_readable);
+    pthread_mutex_unlock(&c->mutex);
 }
 
-#define HGL_BUFFERED_CHAN_FUNC_SEND_VALUE _CONCAT3(hgl_, HGL_BUFFERED_CHAN_TYPE_ID, _buffered_chan_send_value)
-static inline void HGL_BUFFERED_CHAN_FUNC_SEND_VALUE(HGL_BUFFERED_CHAN_STRUCT *chan, 
-                                                     HGL_BUFFERED_CHAN_TYPE item)
+int hgl_buffered_chan_try_send(HglBufferedChan *c, void *item)
 {
-    HGL_BUFFERED_CHAN_FUNC_SEND(chan, &item);
-}
-
-#define HGL_BUFFERED_CHAN_FUNC_RECV _CONCAT3(hgl_, HGL_BUFFERED_CHAN_TYPE_ID, _buffered_chan_recv)
-static inline HGL_BUFFERED_CHAN_TYPE HGL_BUFFERED_CHAN_FUNC_RECV(HGL_BUFFERED_CHAN_STRUCT *chan)
-{
-    pthread_mutex_lock(&chan->mutex);
-    /* while not readable... */
-    while(chan->write_offset == chan->read_offset) {
-        pthread_cond_wait(&chan->cvar_readable, &chan->mutex);
+    pthread_mutex_lock(&c->mutex);
+    /* while not writable... */
+    while(((c->write_offset + 1) & (c->capacity - 1)) == c->read_offset) {
+        pthread_mutex_unlock(&c->mutex);
+        return -1;
     }
-    HGL_BUFFERED_CHAN_TYPE item = chan->buf[chan->read_offset];
-    chan->read_offset = (chan->read_offset + 1) & (chan->capacity - 1);
+    c->items[c->write_offset] = item;
+    c->write_offset = (c->write_offset + 1) & (c->capacity - 1);
+    uint64_t efd_inc = 1;
+    write(c->efd, &efd_inc, sizeof(uint64_t)); // increment counter
+    pthread_cond_signal(&c->cvar_readable);
+    pthread_mutex_unlock(&c->mutex);
+    return 0;
+}
+
+void *hgl_buffered_chan_recv(HglBufferedChan *c)
+{
+    pthread_mutex_lock(&c->mutex);
+    /* while not readable... */
+    while(c->write_offset == c->read_offset) {
+        pthread_cond_wait(&c->cvar_readable, &c->mutex);
+    }
+    void *item = c->items[c->read_offset];
+    c->read_offset = (c->read_offset + 1) & (c->capacity - 1);
     uint64_t efd_counter;
-    read(chan->efd, &efd_counter, sizeof(uint64_t)); // decrement counter
-    pthread_cond_signal(&chan->cvar_writable);
-    pthread_mutex_unlock(&chan->mutex);
+    read(c->efd, &efd_counter, sizeof(uint64_t)); // decrement counter
+    pthread_cond_signal(&c->cvar_writable);
+    pthread_mutex_unlock(&c->mutex);
     return item;
 }
 
-#define HGL_BUFFERED_CHAN_FUNC_SELECT _CONCAT3(hgl_, HGL_BUFFERED_CHAN_TYPE_ID, _buffered_chan_select)
-static inline HGL_BUFFERED_CHAN_STRUCT *HGL_BUFFERED_CHAN_FUNC_SELECT(int n_args, ...)
+void *hgl_buffered_chan_try_recv(HglBufferedChan *c)
 {
-    HGL_BUFFERED_CHAN_STRUCT *ret = NULL;
+    pthread_mutex_lock(&c->mutex);
+    /* while not readable... */
+    while(c->write_offset == c->read_offset) {
+        pthread_mutex_unlock(&c->mutex);
+        return NULL;
+    }
+    void *item = c->items[c->read_offset];
+    c->read_offset = (c->read_offset + 1) & (c->capacity - 1);
+    uint64_t efd_counter;
+    read(c->efd, &efd_counter, sizeof(uint64_t)); // decrement counter
+    pthread_cond_signal(&c->cvar_writable);
+    pthread_mutex_unlock(&c->mutex);
+    return item;
+}
+
+HglBufferedChan *hgl_buffered_chan_select(int n_args, ...)
+{
+    HglBufferedChan *ret = NULL;
+    static struct pollfd pfds[128]; // 128 should be more than enough
 
     /* setup va_list */
     va_list args1, args2;    
@@ -211,12 +288,8 @@ static inline HGL_BUFFERED_CHAN_STRUCT *HGL_BUFFERED_CHAN_FUNC_SELECT(int n_args
     va_copy(args2, args1);
 
     /* populate pfds */
-    struct pollfd *pfds = HGL_BUFFERED_CHAN_ALLOC(n_args * sizeof(struct pollfd));
-    if (pfds == NULL) {
-        goto out;
-    }
     for (int i = 0; i < n_args; i++) {
-        HGL_BUFFERED_CHAN_STRUCT *c = va_arg(args1, HGL_BUFFERED_CHAN_STRUCT *);
+        HglBufferedChan *c = va_arg(args1, HglBufferedChan *);
         pfds[i].fd = c->efd;
         pfds[i].events = POLLIN;
     }
@@ -226,17 +299,37 @@ static inline HGL_BUFFERED_CHAN_STRUCT *HGL_BUFFERED_CHAN_FUNC_SELECT(int n_args
 
     /* find the first readable channel */
     for (int i = 0; i < n_args; i++) {
-        HGL_BUFFERED_CHAN_STRUCT *c = va_arg(args2, HGL_BUFFERED_CHAN_STRUCT *);
+        HglBufferedChan *c = va_arg(args2, HglBufferedChan *);
         if (c->write_offset != c->read_offset /* readble */) {
             ret = c;
             break;
         }
     }
     
-    HGL_BUFFERED_CHAN_FREE(pfds);
-out:
     va_end(args1);
     va_end(args2);
     return ret;
 }
+
+HglBufferedChan *hgl_buffered_chan_try_select(int n_args, ...)
+{
+    HglBufferedChan *ret = NULL;
+
+    /* setup va_list */
+    va_list args;    
+    va_start(args, n_args);
+
+    for (int i = 0; i < n_args; i++) {
+        HglBufferedChan *c = va_arg(args, HglBufferedChan *);
+        if (c->write_offset != c->read_offset /* readble */) {
+            ret = c;
+            break;
+        }  
+    }
+
+    va_end(args);
+    return ret;
+}
+
+#endif
 
