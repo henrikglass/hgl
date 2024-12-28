@@ -171,6 +171,24 @@
         item;                                                                        \
     })
 
+#define hgl_da_remove_backswap(da, index)                                            \
+    ({                                                                               \
+        assert((ssize_t)(index) >= 0 && (index) < (da)->length);                     \
+        __typeof__(*(da)->arr) item = (da)->arr[(index)];                            \
+        (da)->arr[(index)] = (da)->arr[--(da)->length];                              \
+        item;                                                                        \
+    })
+
+//#define hgl_da_remove_backswap(da, index)                                          
+//    ({                                                                             
+//        assert((ssize_t)(index) >= 0 && (index) < (da)->length);                   
+//        __typeof__(*(da)->arr) item = (da)->arr[(index)];                          
+//        __typeof__(*(da)->arr) item_at_end = (da)->arr[(da)->length - 1];          
+//        (da)->arr[(index)] =  item_at_end;                                         
+//        (da)->length--;                                                            
+//        item;                                                                      
+//    })
+
 #endif
 
 /* helper for hgl_da_extend */

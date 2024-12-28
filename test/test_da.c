@@ -3,12 +3,21 @@
 
 #include "hgl_da.h"
 
+typedef struct
+{
+    int a;
+    int b;
+} MyStruct;
+
 typedef HglDynamicArray(int) DaInt;
+typedef HglDynamicArray(MyStruct) DaMyStruct;
 
 static DaInt da = {0};
+static DaMyStruct das = {0};
 
 GLOBAL_TEARDOWN {
     hgl_da_free(&da);
+    hgl_da_free(&das);
 }
 
 TEST(test_push) {
@@ -101,7 +110,33 @@ TEST(test_remove) {
     ASSERT(da.arr[1] == 2);
     ASSERT(da.arr[2] == 1337);
     ASSERT(da.arr[3] == 3);
-    hgl_da_remove(&da, 2);
+    ASSERT(1337 == hgl_da_remove(&da, 2));
     ASSERT(da.arr[1] == 2);
     ASSERT(da.arr[2] == 3);
+}
+
+TEST(test_remove_backswap) {
+    hgl_da_push(&da, 1);
+    hgl_da_push(&da, 2);
+    hgl_da_push(&da, 3);
+    hgl_da_push(&da, 4);
+    hgl_da_push(&da, 5);
+    ASSERT(da.length == 5);
+    ASSERT(da.arr[2] == 3);
+    ASSERT(hgl_da_remove_backswap(&da, 2) == 3);
+    ASSERT(da.arr[2] == 5);
+    ASSERT(da.arr[3] == 4);
+}
+
+TEST(test_nonprimitive_types) {
+    hgl_da_push(&das, ((MyStruct){1, 2}));
+    hgl_da_push(&das, ((MyStruct){2, 3}));
+    hgl_da_push(&das, ((MyStruct){3, 3}));
+    hgl_da_push(&das, ((MyStruct){4, 3}));
+    hgl_da_push(&das, ((MyStruct){5, 3}));
+    ASSERT(das.length == 5);
+    MyStruct item = hgl_da_remove_backswap(&das, 2);
+    ASSERT(item.a == 3 && item.b == 3);
+    item = hgl_da_get(&das, -2);
+    ASSERT(item.a == 5 && item.b == 3);
 }
