@@ -74,7 +74,7 @@
     }
 
 #ifndef HGL_DA_INITIAL_CAPACITY
-#define HGL_DA_INITIAL_CAPACITY 64
+#define HGL_DA_INITIAL_CAPACITY 16
 #endif
 
 #ifndef HGL_DA_GROWTH_RATE
@@ -122,6 +122,19 @@
     } while (0)
 
 #define hgl_da_reserve(da, new_capacity)                                             \
+    do {                                                                             \
+        if ((da)->arr == NULL) {                                                     \
+            (da)->length = 0;                                                        \
+            (da)->capacity = max(HGL_DA_INITIAL_CAPACITY,                            \
+                                 (int) hgl_da_next_pow2_(new_capacity));             \
+            (da)->arr = HGL_ALLOC((da)->capacity * sizeof(*(da)->arr));              \
+        }                                                                            \
+        if ((da)->capacity >= (new_capacity)) break;                                 \
+        (da)->capacity = hgl_da_next_pow2_((int)new_capacity);                       \
+        (da)->arr = HGL_REALLOC((da)->arr, (da)->capacity * sizeof(*(da)->arr));     \
+    } while (0)
+
+#define hgl_da_reserve_exact(da, new_capacity)                                       \
     do {                                                                             \
         if ((da)->arr == NULL) {                                                     \
             (da)->length = 0;                                                        \

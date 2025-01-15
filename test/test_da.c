@@ -38,6 +38,13 @@ TEST(test_reserve) {
     hgl_da_reserve(&da,  6071);
     ASSERT(da.length == 0);
     ASSERT(da.capacity >= 6071);
+    ASSERT((da.capacity & (da.capacity - 1)) == 0);
+}
+
+TEST(test_reserve_exact) {
+    hgl_da_reserve_exact(&da,  6071);
+    ASSERT(da.length == 0);
+    ASSERT(da.capacity == 6071);
 }
 
 TEST(test_extend) {

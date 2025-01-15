@@ -21,6 +21,7 @@ A collection of small easy-to-use header only libraries written in C.
 | hgl\_string.h         | Data Strucutre/Utility        | Dynamic string builder, sized strings, and easy-to-use string operations.                               |
 | hgl\_sockets.h        | Networking/Utility            | A simple to use wrapper around Linux sockets (TCP/UDP)                                                  |
 | hgl\_worker\_pool.h   | Multithreading/Utility        | Thread/Worker pool.                                                                                     |
+| hgl\_barrier.h        | Multithreading/Utility        | Barrier synchronization primitive.                                                                      |
 | hgl\_hotload.h        | Utility                       | Quick and easy hotloading.                                                                              |
 | hgl\_profile.h        | Utility                       | Quick and dirty profiling.                                                                              |
 | hgl\_process.h        | Utility                       | Utility for spawning, running, and chaining together subprocesses. Basically execvp minus the headache. |

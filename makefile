@@ -38,6 +38,7 @@ examples: vec         \
           ini         \
           rle         \
           worker_pool \
+          barrier 	  \
           rbtree 	  \
           sockets 	  \
           queue
@@ -131,6 +132,9 @@ rle:
 worker_pool:
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L -fsanitize=thread $(EXAMPLES_DIR)/worker_pool.c -o $(EXAMPLES_BUILD_DIR)/worker_pool -lpthread
 
+barrier:
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L -fsanitize=thread $(EXAMPLES_DIR)/barrier.c -o $(EXAMPLES_BUILD_DIR)/barrier -lpthread
+
 rbtree:
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rbtree.c -o $(EXAMPLES_BUILD_DIR)/rbtree
 
@@ -154,6 +158,7 @@ test:
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_hset.c -o $(TEST_BUILD_DIR)/test_hset
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_ini.c -o $(TEST_BUILD_DIR)/test_ini
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_worker_pool.c -o $(TEST_BUILD_DIR)/test_worker_pool -lpthread
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_barrier.c -o $(TEST_BUILD_DIR)/test_barrier -lpthread
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_fft.c -o $(TEST_BUILD_DIR)/test_fft -lm
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_fft_simd.c -o $(TEST_BUILD_DIR)/test_fft_simd -lm
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_serialize.c -o $(TEST_BUILD_DIR)/test_serialize

@@ -42,13 +42,29 @@
  * that keep track of which allocations are made where in the code. To use hgl_memdbg,
  * simply include the header, as shown above, and call 'hgl_memdbg_report' on exit.
  *
- * Optionally, you can define:
+ * hgl_memdbg.h keeps track of memory by maintaining a doubly linked list of all
+ * allocations. Each linked list node is allocated together with the memory requested
+ * in a call to `malloc` (or `realloc`). I.e., if the user requests 8 bytes of memory
+ * then the internal hgl_memdbg implementation will request 16 + 8 bytes, store the
+ * linked list node in the top 16 bytes, and return a pointer to the remaining 8.
+ *
+ * To ensure that the linked list is maintained in a safe manner in a multithreaded
+ * program, the user should define the following before including `hgl_memdbg.h`:
+ *
+ *     #define HGL_MEMDBG_ENABLE_MULTITHREAD
+ *
+ * `HGL_MEMDBG_ENABLE_MULTITHREAD` adds a global mutex to the program which is used
+ * to ensure mutual exclusion of the entire linked list when accessed from different
+ * threads.
+ *
+ * Optionally, you can define the following:
  *
  *     #define HGL_MEMDBG_ENABLE_STACKTRACES
  *
  * HGL_MEMDBG_ENABLE_STACKTRACES will store generate a stack trace for each call to
  * malloc and realloc that will be printed in case of a memory leak. Note that this
  * will cause some overhead for calls to malloc, realloc, and free.
+ *
  *
  * EXAMPLE:
  *
@@ -135,6 +151,11 @@ int hgl_memdbg_report(void);
 
 HglAllocationHeader *hgl_allocation_header_head_ = NULL;
 
+#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
+#include <pthread.h>
+static pthread_mutex_t hgl_memdbg_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
 void *hgl_memdbg_internal_malloc_(size_t size, const char *file, int line)
 {
 
@@ -148,6 +169,10 @@ void *hgl_memdbg_internal_malloc_(size_t size, const char *file, int line)
     if (header == NULL) {
         return NULL;
     }
+
+#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
+    pthread_mutex_lock(&hgl_memdbg_mutex_);
+#endif
 
     /* Construct header and insert into circular doubly-linked list */
     header->file = file;
@@ -172,6 +197,10 @@ void *hgl_memdbg_internal_malloc_(size_t size, const char *file, int line)
     header->stack_trace = backtrace_symbols(tmp, header->stack_trace_depth);
 #endif
 
+#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
+    pthread_mutex_unlock(&hgl_memdbg_mutex_);
+#endif
+
     /* Return memory after header */
     return (void *)((uint8_t *)(header) + HGL_MEMDBG_PADDED_HEADER_SIZE);
 }
@@ -182,6 +211,10 @@ void *hgl_memdbg_internal_realloc_(void *ptr, size_t size, const char *file, int
         return hgl_memdbg_internal_malloc_(size, file, line);
     }
 
+#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
+    pthread_mutex_lock(&hgl_memdbg_mutex_);
+#endif
+
     uint8_t *ptr8 = (uint8_t *) ptr;
     HglAllocationHeader *header = (HglAllocationHeader *) (ptr8 - HGL_MEMDBG_PADDED_HEADER_SIZE);
     HglAllocationHeader *prev = header->prev;
@@ -190,6 +223,9 @@ void *hgl_memdbg_internal_realloc_(void *ptr, size_t size, const char *file, int
     bool is_only_node = (header == next) && (header == prev);
     header = realloc((void *) header, size + HGL_MEMDBG_PADDED_HEADER_SIZE);
     if (header == NULL) {
+#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
+        pthread_mutex_unlock(&hgl_memdbg_mutex_);
+#endif
         return NULL;
     }
 
@@ -220,6 +256,10 @@ void *hgl_memdbg_internal_realloc_(void *ptr, size_t size, const char *file, int
         hgl_allocation_header_head_ = header;
     }
 
+#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
+    pthread_mutex_unlock(&hgl_memdbg_mutex_);
+#endif
+
     return (void *)((uint8_t *)(header) + HGL_MEMDBG_PADDED_HEADER_SIZE);
 }
 
@@ -230,6 +270,10 @@ void hgl_memdbg_internal_free_(void *ptr)
     if (ptr == NULL) {
         return;
     }
+
+#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
+    pthread_mutex_lock(&hgl_memdbg_mutex_);
+#endif
 
     /* Remove allocation from linked list and free it. */
     HglAllocationHeader *header = (HglAllocationHeader *) (ptr8 - HGL_MEMDBG_PADDED_HEADER_SIZE);
@@ -253,6 +297,10 @@ void hgl_memdbg_internal_free_(void *ptr)
     if (hgl_allocation_header_head_ == header) {
         hgl_allocation_header_head_ = NULL;
     }
+
+#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
+    pthread_mutex_unlock(&hgl_memdbg_mutex_);
+#endif
 }
 
 int hgl_memdbg_report()
@@ -277,6 +325,9 @@ int hgl_memdbg_report()
            HGL_MAGENTA, HGL_NC);
     if (header != NULL) {
         printf("\n");
+#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
+        pthread_mutex_lock(&hgl_memdbg_mutex_);
+#endif
         do {
             printf("<%s:%d>: %sLEAKED%s %zu bytes of memory.\n",
                    header->file, header->line, HGL_RED, HGL_NC, header->size);
@@ -291,6 +342,9 @@ int hgl_memdbg_report()
             total_unfreed += header->size;
             header = header->next;
         } while (header != hgl_allocation_header_head_);
+#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
+        pthread_mutex_unlock(&hgl_memdbg_mutex_);
+#endif
     }
     printf("\nTOTAL:\t%zu bytes left unfreed.\n\n", total_unfreed);
     printf("=================================================================\n");
