@@ -65,6 +65,7 @@
 #ifndef HGL_INI_H
 #define HGL_INI_H
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <sys/types.h>
@@ -147,7 +148,6 @@ void hgl_ini_fprint(FILE *stream, HglIni *ini);
 
 #ifdef HGL_INI_IMPLEMENTATION
 
-#include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
