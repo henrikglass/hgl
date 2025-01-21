@@ -280,6 +280,7 @@ HglIni *hgl_ini_parse(const char *filepath)
         fprintf(stderr, "[hgl_ini_parse] Error: Buy more ram lol\n");
         goto out_error;
     }
+    memset(ini, 0, sizeof(*ini));
 
     /* open file in read binary mode */
     fd = open(filepath, O_RDWR);
