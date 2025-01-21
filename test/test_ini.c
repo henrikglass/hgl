@@ -19,6 +19,12 @@ TEST(test_read) {
     ASSERT(my_u64 == 0xDEADBEEF);
 }
 
+TEST(test_has) {
+    ASSERT(hgl_ini_has(ini, "Things", "my_u64"));
+    ASSERT(!hgl_ini_has(ini, "Kalas", "my_u64"));
+    ASSERT(!hgl_ini_has(ini, "Things", "struts"));
+}
+
 TEST(test_put) {
     hgl_ini_put(ini, "MySecion", "Hello", "hi");
     hgl_ini_put(ini, "MyEntirelyNewSecion", "Goodbye", "bye");

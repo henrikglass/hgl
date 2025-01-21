@@ -92,6 +92,11 @@ HglIni *hgl_ini_parse(const char *filepath);
 void hgl_ini_free(HglIni *ini);
 
 /**
+ * Returns true if the `section_name` `key_name` combination exists in `ini`.
+ */
+bool hgl_ini_has(HglIni *ini, const char *section_name, const char *key_name);
+
+/**
  * Gets a raw value from `ini`, i.e. a string representation of the value.
  */
 const char *hgl_ini_get(HglIni *ini, const char *section_name, const char *key_name);
@@ -417,6 +422,30 @@ void hgl_ini_free(HglIni *ini)
     }
     hgl_ini_da_free(ini);
     HGL_INI_FREE(ini);
+}
+
+bool hgl_ini_has(HglIni *ini, const char *section_name, const char *key_name)
+{
+    size_t section_name_len = strlen(section_name);
+    size_t key_name_len     = strlen(key_name);
+
+    for (size_t i = 0; i < ini->count; i++) {
+        HglIniSection *section = &ini->arr[i];
+
+        if (strncmp(section_name, section->name, section_name_len) != 0) {
+            continue;
+        }
+
+        for (size_t j = 0; j < section->kv_pairs.count; j++) {
+            HglIniKVPair *kv_pair = &section->kv_pairs.arr[j];
+            if (strncmp(key_name, kv_pair->key, key_name_len) == 0) {
+                return true;
+            }
+        }
+
+        return false; /* don't allow duplicate section names */
+    }
+    return false;
 }
 
 const char *hgl_ini_get(HglIni *ini, const char *section_name, const char *key_name)

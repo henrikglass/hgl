@@ -1,0 +1,27 @@
+#!/bin/bash
+/home/henrik/dev/hgl/build/test/test_htable &&
+/home/henrik/dev/hgl/build/test/test_barrier &&
+/home/henrik/dev/hgl/build/test/test_stack_alloc &&
+/home/henrik/dev/hgl/build/test/test_flags &&
+/home/henrik/dev/hgl/build/test/test_rbtree &&
+/home/henrik/dev/hgl/build/test/test_rle &&
+/home/henrik/dev/hgl/build/test/test_hamming &&
+/home/henrik/dev/hgl/build/test/test_serialize &&
+/home/henrik/dev/hgl/build/test/test_cmd &&
+/home/henrik/dev/hgl/build/test/test_hglm &&
+/home/henrik/dev/hgl/build/test/test_chan &&
+/home/henrik/dev/hgl/build/test/test_string &&
+/home/henrik/dev/hgl/build/test/test_memdbg &&
+/home/henrik/dev/hgl/build/test/test_arena_alloc &&
+/home/henrik/dev/hgl/build/test/test_fft_simd &&
+/home/henrik/dev/hgl/build/test/test_buffered_chan &&
+/home/henrik/dev/hgl/build/test/test_sockets &&
+/home/henrik/dev/hgl/build/test/test_ini &&
+/home/henrik/dev/hgl/build/test/test_fft &&
+/home/henrik/dev/hgl/build/test/test_q &&
+/home/henrik/dev/hgl/build/test/test_worker_pool &&
+/home/henrik/dev/hgl/build/test/test_pool_alloc &&
+/home/henrik/dev/hgl/build/test/test_hset &&
+/home/henrik/dev/hgl/build/test/test_fs_alloc &&
+/home/henrik/dev/hgl/build/test/test_da &&
+exit 0;
