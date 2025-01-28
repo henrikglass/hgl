@@ -87,6 +87,9 @@
 #ifndef HGL_FLAGS_MAX_N_FLAGS
 #define HGL_FLAGS_MAX_N_FLAGS 32
 #endif
+#ifndef HGL_FLAGS_PRINT_MARGIN
+#define HGL_FLAGS_PRINT_MARGIN 32
+#endif
 #define HGL_FLAGS_OPT_MANDATORY             (1 << 0)
 
 #define HGL_FLAGS_STATUS_PARSED             (1 << 0)
@@ -513,22 +516,22 @@ void hgl_flags_print()
         uint32_t opts = hgl_flags_[i].opts;
         switch (kind) {
             case HGL_FLAGS_KIND_BOOL: {
-                printf("  %-24s %s (default = %d)", names, desc, defv.b); break;
+                printf("  %-*s %s (default = %d)", HGL_FLAGS_PRINT_MARGIN, names, desc, defv.b); break;
             } break;
             case HGL_FLAGS_KIND_I64: {
-                printf("  %-24s %s (default = %ld, valid range = [%ld, %ld])",
-                       names, desc, defv.i64, rmin.i64, rmax.i64);
+                printf("  %-*s %s (default = %ld, valid range = [%ld, %ld])",
+                       -HGL_FLAGS_PRINT_MARGIN, names, desc, defv.i64, rmin.i64, rmax.i64);
             } break;
             case HGL_FLAGS_KIND_U64: {
-                printf("  %-24s %s (default = %lu, valid range = [%lu, %lu])",
-                       names, desc, defv.u64, rmin.u64, rmax.u64);
+                printf("  %-*s %s (default = %lu, valid range = [%lu, %lu])",
+                       -HGL_FLAGS_PRINT_MARGIN, names, desc, defv.u64, rmin.u64, rmax.u64);
             } break;
             case HGL_FLAGS_KIND_F64: {
-                printf("  %-24s %s (default = %.8g, valid range = [%.8g, %.8g])",
-                       names, desc, defv.f64, rmin.f64, rmax.f64);
+                printf("  %-*s %s (default = %.8g, valid range = [%.8g, %.8g])",
+                       -HGL_FLAGS_PRINT_MARGIN, names, desc, defv.f64, rmin.f64, rmax.f64);
             } break;
             case HGL_FLAGS_KIND_STR: {
-                printf("  %-24s %s (default = %s)", names, desc, defv.str); break;
+                printf("  %-*s %s (default = %s)", -HGL_FLAGS_PRINT_MARGIN, names, desc, defv.str); break;
             } break;
         }
 
