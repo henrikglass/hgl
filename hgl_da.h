@@ -202,7 +202,7 @@
 //        item;                                                                      
 //    })
 
-#endif
+#endif /* HGL_ISO_C */
 
 /* helper for hgl_da_extend */
 static inline uint32_t hgl_da_next_pow2_(uint32_t v)
@@ -217,4 +217,4 @@ static inline uint32_t hgl_da_next_pow2_(uint32_t v)
     return v;
 }
 
-#endif
+#endif /* HGL_DA_H */

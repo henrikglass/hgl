@@ -55,6 +55,7 @@
  */
 
 #ifndef HGL_BUFFERED_CHAN_H
+#define HGL_BUFFERED_CHAN_H
 
 /*--- Include files ---------------------------------------------------------------------*/
 
@@ -128,7 +129,7 @@ HglBufferedChan *hgl_buffered_chan_select(int n_args, ...);
  */
 HglBufferedChan *hgl_buffered_chan_try_select(int n_args, ...);
 
-#endif
+#endif /* HGL_BUFFERED_CHAN_H  */
 
 /*--- Public variables ------------------------------------------------------------------*/
 
