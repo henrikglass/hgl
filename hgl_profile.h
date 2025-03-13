@@ -153,7 +153,7 @@ void hgl_profile_end(void);
 void hgl_profile_report(uint32_t flags);
 void hgl_profile_reset(void);
 HglProfStat *hgl_profile_get(const char *name);
-
+void hgl_profile_cleanup(void);
 
 #endif /* HGL_PROFILE_H */
 
@@ -366,6 +366,15 @@ HglProfStat *hgl_profile_get(const char *name)
 void hgl_profile_reset(void)
 {
     stats.length = 0;
+}
+
+
+void hgl_profile_cleanup(void)
+{
+    free(stats.arr);
+    free(stack.arr);
+    stats.arr = NULL;
+    stack.arr = NULL;
 }
 
 #endif
