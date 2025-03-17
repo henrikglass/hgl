@@ -413,6 +413,8 @@ const HglCommand *hgl_cmd_input(const HglCommand *command_tree,
                 running = false;
             } break;
 
+            case ' ': break;
+            
             case '\t': {
                 if (current_subtree == NULL) {
                     break;
