@@ -41,8 +41,17 @@
  *
  *     #define HGL_PROFILE_DETAILED
  *
- * before including hgl_profile.h. NOTE: HGL_PROFILE_DETAILED is a 
- * work in progress and might not work at all.
+ * before including hgl_profile.h. NOTE: HGL_PROFILE_DETAILED is a work 
+ * in progress and might not work at all.
+ *
+ * Profiling may be disabled for statements or groups of statements
+ * passed as arguments HGL_PROFILE_MEASURE and HGL_PROFILE_MEASURE_NAMED
+ * by defining:
+ *
+ *     HGL_PROFILE_DISABLED
+ *
+ * This could be useful if you want to disable profiling for certain builds
+ * of your program.
  *
  *
  * EXAMPLE:
@@ -104,8 +113,13 @@
                                        HGL_PROFILE_BRANCH_MISSES_LAST)
 #define HGL_PROFILE_DEFAULT HGL_PROFILE_LAST
 
+#ifndef HGL_PROFILE_DISABLED
 #define HGL_PROFILE_MEASURE(stmt) do {hgl_profile_begin(#stmt); stmt; hgl_profile_end();} while(0)
 #define HGL_PROFILE_MEASURE_NAMED(name, stmt) do {hgl_profile_begin(name); stmt; hgl_profile_end();} while(0)
+#else
+#define HGL_PROFILE_MEASURE(stmt) stmt
+#define HGL_PROFILE_MEASURE_NAMED(name, stmt) stmt
+#endif
 
 typedef struct
 {
