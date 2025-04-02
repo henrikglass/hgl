@@ -28,7 +28,7 @@
  *
  * ABOUT:
  *
- * hgl_q.h implements a general purpose minimal macro-only synchronized queue.
+ * hgl_q.h implements a general purpose minimal macro-only synchronized (thread) queue.
  *
  *
  * USAGE:
@@ -76,7 +76,7 @@
         pthread_cond_t cvar_readable;       \
         uint16_t wp;                        \
         uint16_t rp;                        \
-        _Atomic bool idle; \
+        _Atomic int n_idle;                 \
     }
 
 #define hgl_tq_capacity(q) (sizeof((q)->arr) / sizeof((q)->arr[0]))
@@ -87,9 +87,19 @@
     do {                                                           \
         (q)->wp = 0;                                               \
         (q)->rp = 0;                                               \
-        pthread_mutex_init(&(q)->mutex, NULL);                     \
+        (q)->n_idle = 0;                                           \
+        assert(0 == pthread_mutex_init(&(q)->mutex, NULL));        \
         assert(0 == pthread_cond_init(&(q)->cvar_writable, NULL)); \
         assert(0 == pthread_cond_init(&(q)->cvar_readable, NULL)); \
+    } while (0)
+
+#define hgl_tq_destroy(q)                                          \
+    do {                                                           \
+        pthread_mutex_lock(&(q)->mutex);                           \
+        pthread_mutex_unlock(&(q)->mutex);                         \
+        assert(0 == pthread_mutex_destroy(&(q)->mutex));           \
+        assert(0 == pthread_cond_destroy(&(q)->cvar_writable));    \
+        assert(0 == pthread_cond_destroy(&(q)->cvar_readable));    \
     } while (0)
 
 #define hgl_tq_push(q, item)                                       \
@@ -108,8 +118,9 @@
     ({                                                             \
         pthread_mutex_lock(&(q)->mutex);                           \
         while(hgl_tq_is_empty(q)) {                                \
-            (q)->idle = true;                                      \
+            (q)->n_idle++;                                         \
             pthread_cond_wait(&(q)->cvar_readable, &(q)->mutex);   \
+            (q)->n_idle--;                                         \
         }                                                          \
         T item = (q)->arr[(q)->rp];                                \
         (q)->rp = ((q)->rp + 1) & (hgl_tq_capacity(q) - 1);        \
@@ -127,10 +138,10 @@
         pthread_mutex_unlock(&(q)->mutex);                         \
     } while (0)
 
-#define hgl_tq_wait_until_idle(q)                                  \
+#define hgl_tq_wait_until_idle(q, n)                               \
     do {                                                           \
         hgl_tq_wait_until_empty(q);                                \
-        while(!(q)->idle);                                         \
+        while((q)->n_idle < n);                                    \
     } while (0)
 
 #endif /* HGL_TQ_H */

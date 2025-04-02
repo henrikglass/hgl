@@ -41,7 +41,8 @@ examples: vec         \
           barrier 	  \
           rbtree 	  \
           sockets 	  \
-          queue
+          queue       \
+		  tqueue      
 
 hgl:
 	gcc -I. -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L $(EXAMPLES_DIR)/hgl.c -o $(EXAMPLES_BUILD_DIR)/hgl
@@ -122,6 +123,9 @@ hglm:
 queue:
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(EXAMPLES_DIR)/queue.c -o $(EXAMPLES_BUILD_DIR)/queue
 
+tqueue:
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE=199309L -ggdb3 $(EXAMPLES_DIR)/tq.c -o $(EXAMPLES_BUILD_DIR)/tq
+
 ini:
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/ini.c -o $(EXAMPLES_BUILD_DIR)/ini
 
@@ -169,6 +173,7 @@ test:
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_cmd.c -o $(TEST_BUILD_DIR)/test_cmd -lm
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_sockets.c -o $(TEST_BUILD_DIR)/test_sockets -lpthread
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_rle.c -o $(TEST_BUILD_DIR)/test_rle
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_tq.c -o $(TEST_BUILD_DIR)/test_tq
 	-rm run_tests.sh
 	echo "#!/bin/bash" >> run_tests.sh
 	find $(shell pwd)/build/test/ -type f -executable | sed "s/$$/ \&\&/">> run_tests.sh
