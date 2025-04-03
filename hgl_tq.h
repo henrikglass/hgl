@@ -67,17 +67,20 @@
 #include <stdbool.h>
 #include <assert.h>
 
-#define HglThreadQueue(T, N)                \
-    struct                                  \
-    {                                       \
-        T arr[N];                           \
-        pthread_mutex_t mutex;              \
-        pthread_cond_t cvar_writable;       \
-        pthread_cond_t cvar_readable;       \
-        uint16_t wp;                        \
-        uint16_t rp;                        \
-        _Atomic int n_idle;                 \
+#define HGL_TQ_ARR_DECL(T, N) T arr[(N > 1 && N <= UINT16_MAX) ? N : -1] // Assert that N is in the range [2, 2^16]
+
+#define HglThreadQueue(T, N)          \
+    struct                            \
+    {                                 \
+        HGL_TQ_ARR_DECL_ASSERT(T, N); \
+        pthread_mutex_t mutex;        \
+        pthread_cond_t cvar_writable; \
+        pthread_cond_t cvar_readable; \
+        uint16_t wp;                  \
+        uint16_t rp;                  \
+        int n_idle;                   \
     }
+
 
 #define hgl_tq_capacity(q) (sizeof((q)->arr) / sizeof((q)->arr[0]))
 #define hgl_tq_is_empty(q) ((q)->rp == (q)->wp)
