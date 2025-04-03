@@ -78,7 +78,7 @@
         pthread_cond_t cvar_readable; \
         uint16_t wp;                  \
         uint16_t rp;                  \
-        int n_idle;                   \
+        _Atomic int n_idle;           \
     }
 
 
