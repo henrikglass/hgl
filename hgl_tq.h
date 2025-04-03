@@ -67,7 +67,7 @@
 #include <stdbool.h>
 #include <assert.h>
 
-#define HGL_TQ_ARR_DECL(T, N) T arr[(N > 1 && N <= UINT16_MAX) ? N : -1] // Assert that N is in the range [2, 2^16]
+#define HGL_TQ_ARR_DECL_ASSERT(T, N) T arr[(N > 1 && N <= UINT16_MAX) ? N : -1] // Assert that N is in the range [2, 2^16]
 
 #define HglThreadQueue(T, N)          \
     struct                            \
