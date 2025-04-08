@@ -11,6 +11,7 @@ A collection of small easy-to-use header only libraries written in C.
 | hgl\_vector.h         | Data Structure                | Typed\* dynamic (resizable) array.                                                                      |
 | hgl\_da.h             | Data Structure                | Macro-only generic dynamic array implementation.                                                        |
 | hgl\_q.h              | Data Structure                | Macro-only generic queue (circular buffer) implementation.                                              |
+| hgl\_tq.h             | Data Structure/Thread Utility | Macro-only generic synchronized (thread) queue implementation.                                          |
 | hgl\_hash\_table.h    | Data Structure                | Typed\* Robin Hood style hash table/map.                                                                |
 | hgl\_htable.h         | Data Structure                | Basically hgl\_hash\_table.h, but without the type stuff.                                               |
 | hgl\_hset.h           | Data Structure                | Basically hgl\_htable.h, but without the value.                                                         |
@@ -31,6 +32,7 @@ A collection of small easy-to-use header only libraries written in C.
 | hgl\_ini.h            | Utility                       | Simple utility for parsing (and generating) \*.ini files                                                |
 | hgl\_io.h             | Utility                       | Simple file I/O.                                                                                        |
 | hgl\_fft.h            | Algorithm                     | An implementation of the Fast Fourier Transform (FFT) using SIMD.                                       |
+| hgl\_base64.h         | Algorithm                     | Base64 encoding and decoding.                                                                           |
 | hgl\_rle.h            | Algorithm                     | Run-length encoding and decoding. Supports multiple data and run-length block sizes.                    |
 | hgl\_hamming.h        | Algorithm                     | Hamming(16,11) encoding and decoding system.                                                            |
 | hglm.h                | Math                          | Vector math library with some SIMD support.                                                             |
