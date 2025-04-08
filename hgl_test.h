@@ -234,9 +234,9 @@
  *
  */
 #define TEST(name_, ...)                                                 \
-    void test_fn_##name_();                                              \
+    void test_fn_##name_(void);                                          \
     static const HglTest name_                                           \
-    __attribute__((__section__("hgl_test_vtable"))) = {                  \
+    __attribute__((used, __section__("hgl_test_vtable"))) = {            \
         .hidden.name    = __FILE__ ": " #name_,                          \
         .hidden.test_fn = test_fn_##name_,                               \
         .hidden.id      = __COUNTER__,                                   \
