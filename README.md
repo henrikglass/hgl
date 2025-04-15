@@ -71,6 +71,27 @@ To build and run all tests, run:
 $ make test
 ```
 
+## hgl_rita.h
+hgl_rita.h is a bit off an odd-one-out, since it's a quite bit larger and more complex than the rest of the libraries. Here's a couple images rendered using hgl_rita.h:
+
+![rita_castle_1](images/rita_1.png)
+High-polygon photogrammetry of Loarre Castle (rita_castle.c)
+
+![rita_castle_2](images/rita_2.png)
+High-polygon photogrammetry of Loarre Castle (rita_castle.c)
+
+![rita_pebbles](images/rita_3.png)
+Demo of vertex+normal displacement using texture maps (rita_pebbles.c)
+
+![rita_3d_1](images/rita_4.png)
+Demo of shader blit-ing with a 1BPP ordered dithering shader on a skull model (rita_3d.c)
+
+![rita_3d_2](images/rita_5.png)
+High-polygon photogrammetry of a statue of H.C. Andersen
+
+![rita_game_of_life](images/rita_6.png)
+Conway's Game of Life implemented using only shader blit-ing
+
 ## Note
 Some of the example programs contain relative paths into the `assets` directory. These must be run from
 the root directory. E.g.:
