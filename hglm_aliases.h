@@ -3,7 +3,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Henrik A. Glass
+ * Copyright (c) 2025 Henrik A. Glass
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -84,11 +84,22 @@
 #define MAT4_IDENTITY HGLM_MAT4_IDENTITY
 #endif
 
-typedef HglmVec2 Vec2;
-typedef HglmVec3 Vec3;
-typedef HglmVec4 Vec4;
-typedef HglmMat4 Mat4;
-typedef HglmMat  Mat;
+typedef HglmIVec2 IVec2;
+typedef HglmVec2   Vec2;
+typedef HglmVec3   Vec3;
+typedef HglmVec4   Vec4;
+typedef HglmMat3   Mat3;
+typedef HglmMat4   Mat4;
+typedef HglmMat    Mat;
+
+#define ivec2_print              hglm_ivec2_print
+#define ivec2_make               hglm_ivec2_make
+#define ivec2_add                hglm_ivec2_add
+#define ivec2_sub                hglm_ivec2_sub
+#define ivec2_distance           hglm_ivec2_distance
+#define ivec2_len                hglm_ivec2_len
+#define ivec2_mul_scalar         hglm_ivec2_mul_scalar
+#define ivec2_lerp               hglm_ivec2_lerp
 
 #define vec2_print               hglm_vec2_print
 #define vec2_make                hglm_vec2_make
@@ -138,6 +149,12 @@ typedef HglmMat  Mat;
 #define vec4_lerp                hglm_vec4_lerp
 #define vec4_bezier3             hglm_vec4_bezier3
 
+#define mat3_print               hglm_mat3_print
+#define mat3_make                hglm_mat3_make
+#define mat3_make_identity       hglm_mat3_make_identity
+#define mat3_make_from_mat4      hglm_mat3_make_from_mat4
+#define mat3_mul_vec3            hglm_mat3_mul_vec3
+
 #define mat4_print               hglm_mat4_print
 #define mat4_make                hglm_mat4_make
 #define mat4_make_zero           hglm_mat4_make_zero
@@ -147,6 +164,8 @@ typedef HglmMat  Mat;
 #define mat4_make_translation    hglm_mat4_make_translation
 #define mat4_make_ortho          hglm_mat4_make_ortho
 #define mat4_make_perspective    hglm_mat4_make_perspective
+#define mat4_look_at             hglm_mat4_look_at
+#define mat4_look_to             hglm_mat4_look_to
 #define mat4_add                 hglm_mat4_add
 #define mat4_sub                 hglm_mat4_sub
 #define mat4_transpose           hglm_mat4_transpose

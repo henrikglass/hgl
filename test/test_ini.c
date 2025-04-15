@@ -7,7 +7,7 @@
 static HglIni *ini;
 
 GLOBAL_SETUP {
-    ini = hgl_ini_parse("data/test.ini");
+    ini = hgl_ini_parse("assets/test.ini");
 }
 
 GLOBAL_TEARDOWN {
@@ -66,5 +66,5 @@ TEST(test_print2) {
     hgl_ini_put(ini, "MyEntirelyNewSecion", "Goodbye", "bye");
     FILE *stream = fmemopen(buf, 4096 - 1, "wb");
     hgl_ini_fprint(stream, ini);
-    ASSERT_CSTR_EQ(FILE_CONTENTS("data/test.ini.with_changes"), buf);
+    ASSERT_CSTR_EQ(FILE_CONTENTS("assets/test.ini.with_changes"), buf);
 }

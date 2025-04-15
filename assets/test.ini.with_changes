@@ -1,0 +1,20 @@
+[Things]
+my_f64 = 123.456
+my_i64 = 1337
+my_u64 = 0xDEADBEEF
+my_bool = True
+my_other_bool = True
+
+[MySection]
+
+[MyOtherSection]
+kr i nk o = pl i nko
+
+[MySectionAtEnd]
+
+[MySecion]
+Hello = hi
+
+[MyEntirelyNewSecion]
+Goodbye = bye
+

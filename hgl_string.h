@@ -59,7 +59,7 @@
  * of the word "glass" on each line:
  *
  *     HglStringBuilder sb = hgl_sb_make("", 0);
- *     hgl_sb_append_file(&sb, "data/glassigt_lyrics.txt");
+ *     hgl_sb_append_file(&sb, "assets/glassigt_lyrics.txt");
  *     HglStringView sv = hgl_sv_from_sb(&sb);
  *
  *     int line_nr = 1;

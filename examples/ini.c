@@ -44,7 +44,7 @@ int main(void)
 
     fs_allocator = hgl_fs_make(2*1024, 4);
 
-    HglIni *ini = hgl_ini_parse("data/test.ini");
+    HglIni *ini = hgl_ini_parse("assets/test.ini");
     if (ini == NULL) {
         return 1;
     }

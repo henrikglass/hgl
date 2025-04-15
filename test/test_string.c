@@ -103,7 +103,7 @@ TEST(sb_append_self, .expect_output = "Hejsan hoppsan! \n Hello World!\n 0x000A,
 
 TEST(sb_append_file, .expect_output = "fisk\n") {
     hgl_sb_clear(&sb); 
-    hgl_sb_append_file(&sb, "data/fisk.txt");
+    hgl_sb_append_file(&sb, "assets/fisk.txt");
     sv = hgl_sv_from_sb(&sb);
     printf(HGL_SV_FMT, HGL_SV_ARG(sv)); // string view is a view into the string 
                                         // owned by sb in this case.

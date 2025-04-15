@@ -1,5 +1,5 @@
 # hgl
-A collection of small easy-to-use header only libraries written in C.
+A collection of small (except maybe hgl\_rita.h) easy-to-use header only libraries written in C.
 
 | **library**           | **Category**                  | **Description**                                                                                         |
 |-----------------------|-------------------------------|---------------------------------------------------------------------------------------------------------|
@@ -39,6 +39,8 @@ A collection of small easy-to-use header only libraries written in C.
 | hglm\_aliases.h       | Math                          | Aliases for hglm.h without `hglm_` and `Hglm` prefixes, to make things less wordy.                      |
 | hgl\_test.h           | Unit Testing Framework.       | Simple but powerful unit testing framework.                                                             |
 | hgl.h                 | Utility/Misc.                 | Misc. typedefs and macros that I use from time to time.                                                 |
+| hgl\_rita.h           | 3D graphics/CPU rasterizer    | Multi-threaded (tiled) CPU-rasterizer and general purpose graphics library.                             |
+| hgl\_rita\_shaders.h  | 3D graphics/CPU rasterizer    | A collection of ready-made shaders for hgl\_rita.h                                                      |
 
 \* In this context "typed" means that the type of data that is held by the data
    structure can be set at compile time by defining one or two macros before including.
@@ -67,5 +69,13 @@ To build and run all tests, run:
 
 ```bash
 $ make test
+```
+
+## Note
+Some of the example programs contain relative paths into the `assets` directory. These must be run from
+the root directory. E.g.:
+
+```bash
+$ ./build/examples/rita_pebbles_optimized
 ```
 

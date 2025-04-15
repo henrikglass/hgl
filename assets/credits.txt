@@ -1,0 +1,12 @@
+Ganges River Pebbles (rita_pebbles.c) textures: Amal Kumar (Polyhaven)
+box texture: learnopengl.com
+Castle of Loarre (rita_castle.c) model: matousekfoto (sketchfab)
+Cavetroll (rita_3d.c) model: Ole Gunnar Isager (sketchfab)
+skybox: Chad Wolfe (KIIRA) (opengameart.com)
+hcandersen: Rigsters (sketchfab)
+penger: LainLayer and Max-Kawula (github)
+skull: Sorry, i forgot where I got this from. Please reach out if you want to be properly accredited.
+Utah Teapot: Martin Newell (Univeristy of Utah)
+times square image: Unknown (https://www.britannica.com/topic/Times-Square)
+
+Thank you!

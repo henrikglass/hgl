@@ -125,11 +125,11 @@ int main(void)
 
     printf("\n\n\n\nREAD FILE:\n");
     HglStringBuilder sb14 = hgl_sb_make("text: ", 0);
-    hgl_sb_append_file(&sb14, "data/text.txt");
-    hgl_sb_append_file(&sb14, "data/text.txt");
-    hgl_sb_append_file(&sb14, "data/text.txt");
-    hgl_sb_append_file(&sb14, "data/text.txt");
-    hgl_sb_append_file(&sb14, "data/text.txt");
+    hgl_sb_append_file(&sb14, "assets/text.txt");
+    hgl_sb_append_file(&sb14, "assets/text.txt");
+    hgl_sb_append_file(&sb14, "assets/text.txt");
+    hgl_sb_append_file(&sb14, "assets/text.txt");
+    hgl_sb_append_file(&sb14, "assets/text.txt");
     hgl_sb_replace(&sb14, ",", "");
     hgl_sb_replace_regex(&sb14, "( |\n)", "-");
     printf("\"%s\"\n", sb14.cstr);
@@ -147,7 +147,7 @@ int main(void)
 #if 0
     /* example from header library. */
     HglStringBuilder sb = hgl_sb_make("", 0);
-    hgl_sb_append_file(&sb, "data/glassigt_lyrics.txt");
+    hgl_sb_append_file(&sb, "assets/glassigt_lyrics.txt");
     HglStringView sv = hgl_sv_from_sb(&sb);
 
     int line_nr = 1;
