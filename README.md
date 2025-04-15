@@ -81,7 +81,7 @@ High-polygon photogrammetry of Loarre Castle (`examples/rita_castle.c`)
 High-polygon photogrammetry of Loarre Castle (`examples/rita_castle.c`)
 
 ![rita_pebbles](images/rita_3.png)
-Demo of vertex+normal displacement using texture maps (`examples/rita_pebbles.c`)
+Demo of vertex+normal displacement using texture maps + Phong shading (`examples/rita_pebbles.c`)
 
 ![rita_3d_1](images/rita_4.png)
 Demo of shader blit-ing with a 1BPP ordered dithering shader on a skull model (`examples/rita_3d.c`)
