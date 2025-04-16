@@ -46,8 +46,7 @@ int main()
     hgl_rita_bind_texture(HGL_RITA_TEX_DEPTH_BUFFER, &fb_depth);
 
     /* Setup the camera (the view matrix is created in the draw loop) */
-    Mat4 proj = mat4_make_perspective(3.1415f/3.0f, (float)WIDTH/(float)HEIGHT, 2.0f, 1000.0f);
-    hgl_rita_use_proj_matrix(proj);
+    hgl_rita_use_perspective_proj(3.1415f/3.0f, (float)WIDTH/(float)HEIGHT, 2.0f, 1000.0f);
 
     /* Specify the viewport (maps NDC:s to x \in [0,800], y \in [0,600]) */
     hgl_rita_use_viewport(WIDTH, HEIGHT);
@@ -70,7 +69,6 @@ int main()
     
     /* Load a texture for our skybox */
     skybox = load_texture("assets/skybox_cubemap.png");
-    hgl_rita_texture_flip_vertically(&skybox);
 
     /* Setup hgl_rita to use our custom shader */
     hgl_rita_bind_frag_shader(my_shader);
@@ -93,7 +91,7 @@ int main()
         /* Draw! */
         hgl_rita_clear(HGL_RITA_COLOR | HGL_RITA_DEPTH); // TODO don't need to clear color
         hgl_rita_draw(HGL_RITA_TRIANGLES);
-        hgl_rita_blit(0, 0, WIDTH, HEIGHT, skybox, 
+        hgl_rita_blit(0, 0, WIDTH, HEIGHT, &skybox, 
                       HGL_RITA_REPLACE_SKIP_ALPHA, 
                       HGL_RITA_DEPTH_INF, 
                       HGL_RITA_VIEW_DIR_CUBEMAP,
@@ -106,12 +104,11 @@ int main()
         camera_pos = vec3_make(d*cosf(frame*0.01f), 
                                h*sinf(frame*0.05f), 
                                d*sinf(frame*0.01f));
-        Mat4 view = mat4_look_at(
+        hgl_rita_use_camera_view(
             camera_pos, 
             vec3_make(0, 0, 0), 
             vec3_make(0, 1, 0)
         );
-        hgl_rita_use_view_matrix(view);
 
         /* raylib stuff: IGNORE */
         UpdateTexture(color_tex, color_image.data);

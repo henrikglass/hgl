@@ -56,6 +56,7 @@ examples: vec         					\
           rita_vertex_displacement      \
           rita_vertex_displacement_maps \
           rita_pebbles                  \
+          rita_mandelbulb               \
 		  tqueue      
 
 hgl:
@@ -213,6 +214,10 @@ rita_vertex_displacement_maps:
 rita_pebbles:
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_pebbles.c -o $(EXAMPLES_BUILD_DIR)/rita_pebbles -Llib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_pebbles.c -o $(EXAMPLES_BUILD_DIR)/rita_pebbles_optimized -Llib -lraylib -lm -ldl -lpthread
+
+rita_mandelbulb:
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_mandelbulb.c -o $(EXAMPLES_BUILD_DIR)/rita_mandelbulb -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_mandelbulb.c -o $(EXAMPLES_BUILD_DIR)/rita_mandelbulb_optimized -Llib -lraylib -lm -ldl -lpthread
 
 
 ## Unit tests

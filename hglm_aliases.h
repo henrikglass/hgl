@@ -153,6 +153,7 @@ typedef HglmMat    Mat;
 #define mat3_make                hglm_mat3_make
 #define mat3_make_identity       hglm_mat3_make_identity
 #define mat3_make_from_mat4      hglm_mat3_make_from_mat4
+#define mat3_transpose           hglm_mat3_transpose
 #define mat3_mul_vec3            hglm_mat3_mul_vec3
 
 #define mat4_print               hglm_mat4_print
@@ -199,9 +200,10 @@ typedef HglmMat    Mat;
 #define smootherstep             hglm_smootherstep
 #define sinstep                  hglm_sinstep
 #define lerpsmooth               hglm_lerpsmooth
+#define smoothmin_quadratic      hglm_smoothmin_quadratic
+#define smoothmin_sigmoid        hglm_smoothmin_sigmoid
 #define bezier3                  hglm_bezier3
 #define hermite3                 hglm_hermite3
-#define grad                     hglm_grad
 #define perlin3D                 hglm_perlin3D
 
 #endif /* HGLM_ALIASES_H */

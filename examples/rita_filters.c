@@ -176,13 +176,13 @@ int main()
         /* Draw! */
         hgl_rita_clear(HGL_RITA_COLOR);
         hgl_rita_blit(0, 0, WIDTH, HEIGHT,
-                      image,
+                      &image,
                       HGL_RITA_REPLACE,
                       HGL_RITA_EVERYWHERE,
                       (shaders[shader_in_use].func != NULL) ? HGL_RITA_SHADER : 
                                                               HGL_RITA_BOXCOORD,
                       shaders[shader_in_use].func);
-        hgl_rita_blit(10, 10, 1000, 80, image, 
+        hgl_rita_blit(10, 10, 1000, 80, NULL, 
                       HGL_RITA_MULTIPLY, 
                       HGL_RITA_EVERYWHERE, 
                       HGL_RITA_SHADER, 

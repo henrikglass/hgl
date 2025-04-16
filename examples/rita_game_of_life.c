@@ -112,7 +112,7 @@ int main()
 
         /* Draw! */
         hgl_rita_bind_texture(HGL_RITA_TEX_FRAME_BUFFER, dst);
-        hgl_rita_blit(0, 0, WIDTH, HEIGHT, *src,
+        hgl_rita_blit(0, 0, WIDTH, HEIGHT, src,
                       HGL_RITA_REPLACE,
                       HGL_RITA_EVERYWHERE,
                       HGL_RITA_SHADER,

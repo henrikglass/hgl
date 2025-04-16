@@ -84,7 +84,7 @@ int main()
          * color is the same as the background color.
          */
         hgl_rita_blit(0, 0, WIDTH, HEIGHT, 
-                      rainbow_texture, 
+                      &rainbow_texture, 
                       HGL_RITA_REPLACE,
                       HGL_RITA_CLEAR_COLOR,
                       HGL_RITA_SCREENCOORD,

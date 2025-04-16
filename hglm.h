@@ -273,6 +273,7 @@ static HGL_INLINE HglmVec4 hglm_vec4_bezier3(HglmVec4 v0, HglmVec4 v1, HglmVec4 
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_make(HglmVec3 c0, HglmVec3 c1, HglmVec3 c2);
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_make_identity(void);
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_make_from_mat4(HglmMat4 mat4);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_transpose(HglmMat3 m);
 __attribute__ ((const, unused)) static HGL_INLINE HglmVec3 hglm_mat3_mul_vec3(HglmMat3 m, HglmVec3 v);
 
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make(HglmVec4 c0, HglmVec4 c1, HglmVec4 c2, HglmVec4 c3);
@@ -316,7 +317,11 @@ static HGL_INLINE float hglm_remap(float in_min, float in_max, float out_min, fl
 static HGL_INLINE float hglm_smoothstep(float t);
 static HGL_INLINE float hglm_sinstep(float t);
 static HGL_INLINE float hglm_lerpsmooth(float a, float b, float dt, float omega);
+static HGL_INLINE float hglm_smoothmin_quadratic(float a, float b, float k);
+static HGL_INLINE float hglm_smoothmin_sigmoid(float a, float b, float k);
 static HGL_INLINE HglmVec4 hglm_bezier3(float t);
+static HGL_INLINE HglmVec4 hglm_hermite3(float t);
+static HGL_INLINE float hglm_perlin3D(float x, float y, float z);
 
 /* ========== HglmIVec2 ======================================================*/
 
@@ -748,6 +753,16 @@ __attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_make_from_m
 {
     return (HglmMat3){.c0 = mat4.c0.xyz, .c1 = mat4.c1.xyz, .c2 = mat4.c2.xyz};
 }
+
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_transpose(HglmMat3 m)
+{
+    return (HglmMat3) {
+        .c0 = {.x = m.c0.x, .y = m.c1.x, .z = m.c2.x},
+        .c1 = {.x = m.c0.y, .y = m.c1.y, .z = m.c2.y},
+        .c2 = {.x = m.c0.z, .y = m.c1.z, .z = m.c2.z},
+    };
+}
+
 __attribute__ ((const, unused)) static HGL_INLINE HglmVec3 hglm_mat3_mul_vec3(HglmMat3 m, HglmVec3 v)
 {
     return (HglmVec3) {
@@ -1415,6 +1430,20 @@ static HGL_INLINE float hglm_sinstep(float t)
 static HGL_INLINE float hglm_lerpsmooth(float a, float b, float dt, float omega)
 {
     return b + (a - b) * exp2f(-dt/omega);
+}
+
+static HGL_INLINE float hglm_smoothmin_quadratic(float a, float b, float k)
+{
+    k *= 4.0f;
+    float h = fmaxf(k - fabsf(a - b), 0.0) / k;
+    return fminf(a, b) - h*h*k*0.25f;
+}
+
+static HGL_INLINE float hglm_smoothmin_sigmoid(float a, float b, float k)
+{
+    k *= logf(2.0);
+    float x = b - a;
+    return a + x / (1.0f - exp2f(x / k));
 }
 
 static HGL_INLINE HglmVec4 hglm_bezier3(float t)

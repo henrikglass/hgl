@@ -56,6 +56,11 @@ static inline HglRitaColor HGL_RITA_UV_SHADER(const HglRitaContext *ctx, const H
 static inline HglRitaColor HGL_RITA_NORMAL_SHADER(const HglRitaContext *ctx, const HglRitaFragment *in);
 static inline HglRitaColor HGL_RITA_DEPTH_SHADER(const HglRitaContext *ctx, const HglRitaFragment *in);
 static inline HglRitaColor HGL_RITA_LAMBERT_DIFFUSE(const HglRitaContext *ctx, const HglRitaFragment *in);
+#ifndef HGL_RITA_SIMPLE
+static inline HglRitaColor HGL_RITA_PHONG(const HglRitaContext *ctx, const HglRitaFragment *in);
+static inline HglRitaColor HGL_RITA_BLINN_PHONG(const HglRitaContext *ctx, const HglRitaFragment *in);
+static inline HglRitaColor HGL_RITA_GOOCH(const HglRitaContext *ctx, const HglRitaFragment *in);
+#endif
 
 /* filter/post-processing fragment shaders */
 static inline HglRitaColor HGL_RITA_GRAY_SHADER(const HglRitaContext *ctx, const HglRitaFragment *in);
@@ -179,6 +184,78 @@ static inline HglRitaColor HGL_RITA_LAMBERT_DIFFUSE(const HglRitaContext *ctx, c
     return color;
 }
 
+#ifndef HGL_RITA_SIMPLE
+static inline HglRitaColor HGL_RITA_PHONG(const HglRitaContext *ctx, const HglRitaFragment *in)
+{
+    (void) ctx;
+    Vec3 L  = vec3_normalize(vec3_make(1,1,1)); // light vector
+    Vec3 IV = vec3_normalize(vec3_sub(in->world_pos, ctx->tform.camera.position)); // inverse view vector
+    Vec3 N  = in->world_normal;
+
+    float shinyness = 0.5f;
+    float specular_exponent = 25.0f;
+
+    HglRitaColor diffuse_color = in->color;
+    HglRitaColor specular_color = HGL_RITA_WHITE;
+
+    diffuse_color = hgl_rita_sample_unit_uv(HGL_RITA_TEX_DIFFUSE, in->uv);
+    float diffuse_light = clamp(0.1f, 1.0f, fmaxf(0, vec3_dot(N, L))); // Lambertian
+    float specular_light = powf(fmaxf(0, vec3_dot(vec3_reflect(IV, N), L)), specular_exponent); // Phong
+
+    diffuse_color.r *= diffuse_light;
+    diffuse_color.g *= diffuse_light;
+    diffuse_color.b *= diffuse_light;
+
+    specular_color.r *= shinyness * specular_light;
+    specular_color.g *= shinyness * specular_light;
+    specular_color.b *= shinyness * specular_light;
+
+    return hgl_rita_color_add(diffuse_color, specular_color);
+}
+
+static inline HglRitaColor HGL_RITA_BLINN_PHONG(const HglRitaContext *ctx, const HglRitaFragment *in)
+{
+    Vec3 L = vec3_normalize(vec3_make(1,1,1));
+    Vec3 V = vec3_normalize(vec3_sub(ctx->tform.camera.position, in->world_pos));
+    Vec3 N = in->world_normal;
+    Vec3 H = vec3_normalize(vec3_add(L, V)); // half vector (Blinn-Phong)
+
+    float shinyness = 0.5f;
+    float specular_exponent = 70.0f;
+
+    HglRitaColor diffuse_color = in->color;
+    HglRitaColor specular_color = HGL_RITA_WHITE;
+
+    diffuse_color = hgl_rita_sample_unit_uv(HGL_RITA_TEX_DIFFUSE, in->uv);
+    float diffuse_light = clamp(0.1f, 1.0f, fmaxf(0, vec3_dot(N, L))); // Lambertian
+    float specular_light = powf(fmaxf(0, vec3_dot(H, N)), specular_exponent); // Blinn-Phong
+
+    diffuse_color.r *= diffuse_light;
+    diffuse_color.g *= diffuse_light;
+    diffuse_color.b *= diffuse_light;
+
+    specular_color.r *= shinyness * specular_light;
+    specular_color.g *= shinyness * specular_light;
+    specular_color.b *= shinyness * specular_light;
+
+    return hgl_rita_color_add(diffuse_color, specular_color);
+}
+
+static inline HglRitaColor HGL_RITA_GOOCH(const HglRitaContext *ctx, const HglRitaFragment *in)
+{
+    Vec3 L  = vec3_normalize(vec3_make(1,1,1)); // light vector
+    Vec3 IV = vec3_normalize(vec3_sub(in->world_pos, ctx->tform.camera.position)); // inverse view vector
+    Vec3 N  = in->world_normal;
+
+    HglRitaColor cool_color = {  0,  60, 240, 255};
+    HglRitaColor warm_color = {250, 140,  20, 255};
+    float diffuse_light = vec3_dot(N, L) * 0.5 + 0.5; // Lambertian
+    float specular_light = powf(fmaxf(0, vec3_dot(vec3_reflect(IV, N), L)), 15.0f); // Phong
+    return hgl_rita_color_add(hgl_rita_color_lerp(cool_color, warm_color, diffuse_light),
+                              hgl_rita_color_mul_scalar(HGL_RITA_WHITE, specular_light));
+}
+#endif
+
 static inline HglRitaColor HGL_RITA_GRAY_SHADER(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
     (void) ctx;
@@ -208,7 +285,6 @@ static inline HglRitaColor HGL_RITA_FOG(const HglRitaContext *ctx, const HglRita
 
 static inline HglRitaColor HGL_RITA_DEPTH_BASED_BORDERS(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
-    (void) ctx;
     int spread = 2;
     int threshold = 2;
     int depth = 255*in->inv_z; 

@@ -176,7 +176,7 @@
 #define HGL_RITA_MORTEL_YELLOW      (HglRitaColor){.r = 0xE1, .g = 0xE1, .b = 0x1E, .a = 0xFF}
 
 #ifndef HGL_RITA_MAX_N_TILES
-#  define HGL_RITA_MAX_N_TILES                256
+#  define HGL_RITA_MAX_N_TILES               1024
 #endif
 
 #ifdef HGL_RITA_PRESET_128X64X64_SERIAL_VERTEX_PROCESSING
@@ -622,7 +622,7 @@ typedef HglRitaColor (*HglRitaFragShaderFunc)(const struct HglRitaContext *ctx, 
 typedef struct
 {
     HglRitaAABB aabb;
-    HglRitaTexture texture;
+    HglRitaTexture *texture;
     HglRitaBlendMethod blend_method;
     HglRitaBlitFBMask mask;
     HglRitaBlitFBSampler sampler;
@@ -698,6 +698,16 @@ typedef struct HglRitaContext
         Mat4 mvp;
         Mat4 viewport;
         Mat3 normals;
+        Mat3 iview;
+        struct {
+            Vec3 position;
+            Vec3 target;
+            Vec3 up;
+            float fov;
+            float aspect;
+            float znear;
+            float zfar;
+        } camera;
     } tform;
 
     HglRitaTexture *tex_unit[HGL_RITA_N_TEXTURE_UNITS];
@@ -733,6 +743,12 @@ static inline void hgl_rita_use_vertex_buffer_mode(HglRitaVertexBufferMode mode)
 static inline void hgl_rita_use_model_matrix(Mat4 m);                                       /* Use the specified model matrix in the current context*/
 static inline void hgl_rita_use_view_matrix(Mat4 m);                                        /* Use the specified view matrix in the current context */
 static inline void hgl_rita_use_proj_matrix(Mat4 m);                                        /* Use the specified projection matrix in the current context */
+static inline void hgl_rita_use_camera_view(Vec3 pos, Vec3 tgt, Vec3 up);                   /* Construct a `look at` view matrix and use it (tform.view). Will populate the respective `tform.camera` attributes. */
+static inline void hgl_rita_use_perspective_proj(float fov, float aspect, 
+                                                 float znear, float zfar);                  /* Construct a perspective projection matrix and use it (tform.proj). Will populate the respective `tform.camera` attributes. */
+static inline void hgl_rita_use_orthographic_proj(float left, float right, 
+                                                  float bottom, float top,
+                                                  float near, float far);                   /* Construct an orthographic projection matrix and use it (tform.proj). Will populate the respective `tform.camera` attributes. */
 static inline void hgl_rita_use_viewport(int width, int height);                            /* Use the specified viewport dimensions in the current context. These values determine the transformation from NDC space to pixel coordinates. */
 
 /* Drawing */
@@ -744,7 +760,7 @@ static inline void hgl_rita_draw_text(int pos_x, int pos_y,
                                       const char *fmt, ...);                                /* Draws text at the given screen-space position. */
 static inline void hgl_rita_draw(HglRitaPrimitiveMode primitive_mode);                      /* Draws the contents of the current bound vertex buffer using the selected primitive mode. This is an asynchronous operation. */
 static inline void hgl_rita_blit(int x, int y, int w, int h,
-                                 HglRitaTexture src,
+                                 HglRitaTexture *src,
                                  HglRitaBlendMethod blend_method,
                                  HglRitaBlitFBMask mask,
                                  HglRitaBlitFBSampler sampling_method,
@@ -876,11 +892,19 @@ static inline void hgl_rita_init()
     hgl_rita_ctx__.opts.draw_wire_frames                        = false;
 
     /* setup default transforms */
-    hgl_rita_ctx__.tform.model          = mat4_make_identity();
-    hgl_rita_ctx__.tform.view           = mat4_make_identity();
-    hgl_rita_ctx__.tform.proj           = mat4_make_identity();
-    hgl_rita_ctx__.tform.viewport       = mat4_make_identity();
-    hgl_rita_ctx__.tform.normals        = mat3_make_identity();
+    hgl_rita_ctx__.tform.model           = mat4_make_identity();
+    hgl_rita_ctx__.tform.view            = mat4_make_identity();
+    hgl_rita_ctx__.tform.proj            = mat4_make_identity();
+    hgl_rita_ctx__.tform.viewport        = mat4_make_identity();
+    hgl_rita_ctx__.tform.normals         = mat3_make_identity();
+    hgl_rita_ctx__.tform.iview           = mat3_make_identity();
+    hgl_rita_ctx__.tform.camera.position = vec3_make(0,0,0);
+    hgl_rita_ctx__.tform.camera.target   = vec3_make(0,0,0);
+    hgl_rita_ctx__.tform.camera.up       = vec3_make(0,1,0);
+    hgl_rita_ctx__.tform.camera.fov      = 0.0f;
+    hgl_rita_ctx__.tform.camera.aspect   = 1.0f;
+    hgl_rita_ctx__.tform.camera.znear    = 0.0f;
+    hgl_rita_ctx__.tform.camera.zfar     = 1.0f;
 
     /* setup texture units */
     for (int i = 0; i < HGL_RITA_N_TEXTURE_UNITS - 2; i++) {
@@ -1058,12 +1082,46 @@ static inline void hgl_rita_use_model_matrix(Mat4 m)
 static inline void hgl_rita_use_view_matrix(Mat4 m)
 {
     hgl_rita_ctx__.tform.view = m;
+    hgl_rita_ctx__.tform.iview = mat3_transpose(mat3_make_from_mat4(m));
 }
 
 static inline void hgl_rita_use_proj_matrix(Mat4 m)
 {
     hgl_rita_ctx__.tform.proj = m;
 }
+
+static inline void hgl_rita_use_camera_view(Vec3 pos, Vec3 tgt, Vec3 up)
+{
+    Mat4 m = mat4_look_at(pos, tgt, up);
+    hgl_rita_use_view_matrix(m);
+    hgl_rita_ctx__.tform.camera.position = pos;
+    hgl_rita_ctx__.tform.camera.target   = tgt;
+    hgl_rita_ctx__.tform.camera.up       = up;
+}
+
+static inline void hgl_rita_use_perspective_proj(float fov, float aspect, 
+                                                 float znear, float zfar)
+{
+    Mat4 m = mat4_make_perspective(fov, aspect, znear, zfar);
+    hgl_rita_use_proj_matrix(m);
+    hgl_rita_ctx__.tform.camera.fov    = fov;
+    hgl_rita_ctx__.tform.camera.aspect = aspect;
+    hgl_rita_ctx__.tform.camera.znear  = znear;
+    hgl_rita_ctx__.tform.camera.zfar   = zfar;
+}
+
+static inline void hgl_rita_use_orthographic_proj(float left, float right, 
+                                                  float bottom, float top,
+                                                  float near, float far)
+{
+    Mat4 m = mat4_make_ortho(left, right, bottom, top, near, far);
+    hgl_rita_ctx__.tform.proj          = m;
+    hgl_rita_ctx__.tform.camera.fov    = 0.0f;
+    hgl_rita_ctx__.tform.camera.aspect = 1.0f;
+    hgl_rita_ctx__.tform.camera.znear  = near;
+    hgl_rita_ctx__.tform.camera.zfar   = far;
+}
+
 
 static inline void hgl_rita_use_viewport(int width, int height)
 {
@@ -1537,7 +1595,7 @@ static inline void hgl_rita_draw(HglRitaPrimitiveMode primitive_mode)
 }
 
 static inline void hgl_rita_blit(int x, int y, int w, int h,
-                                 HglRitaTexture src,
+                                 HglRitaTexture *src,
                                  HglRitaBlendMethod blend_method,
                                  HglRitaBlitFBMask mask,
                                  HglRitaBlitFBSampler sampling_method,
@@ -1971,6 +2029,10 @@ static inline bool hgl_rita_aabb_intersects(HglRitaAABB a, HglRitaAABB b)
 static inline HglRitaColor hgl_rita_sample(HglRitaTexture *tex, int x, int y)
 {
     // TODO respect wrapping mode
+    if (tex == NULL) {
+        return HGL_RITA_MAGENTA;
+    }
+
     HglRitaColor color = {0};
     x = clamp(0, tex->width - 1, x);
     y = clamp(0, tex->height - 1, y);
@@ -1988,6 +2050,10 @@ static inline HglRitaColor hgl_rita_sample(HglRitaTexture *tex, int x, int y)
 
 static inline HglRitaColor hgl_rita_sample_uv(HglRitaTexture *tex, Vec2 uv)
 {
+    if (tex == NULL) {
+        return HGL_RITA_MAGENTA;
+    }
+
     assert(tex->format == HGL_RITA_RGBA8 && "format not supported yet");
     assert(tex->stride != 0 && "Texture has a stride of 0. ");
     HglRitaColor color;
@@ -2138,7 +2204,7 @@ static inline HglRitaColor hgl_rita_sample_cubemap(HglRitaTexture *tex, Vec3 dir
             uv.y = 0.5f * (-dir.y / dir.z) + 0.5f;
             dir_subtex = hgl_rita_texture_get_subtexture(*tex, 1*x_step, 1*y_step, x_step, y_step);
         } break;
-        default: return HGL_RITA_MAGENTA; // shouldn't happen
+        default: return HGL_RITA_CYAN; // shouldn't happen
     }
 
     return hgl_rita_sample_uv(&dir_subtex, uv);
@@ -2414,7 +2480,7 @@ static inline void *hgl_rita_tile_thread_internal_(void *arg)
                 HglRitaTexture *fb = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER];
                 HglRitaTexture *db = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_DEPTH_BUFFER];
 
-                HglRitaTexture src                   = op.blit_info.texture;
+                HglRitaTexture *src                  = op.blit_info.texture;
                 HglRitaBlendMethod blend_method      = op.blit_info.blend_method;
                 HglRitaBlitFBMask mask               = op.blit_info.mask;
                 HglRitaBlitFBSampler sampling_method = op.blit_info.sampler;
@@ -2423,17 +2489,17 @@ static inline void *hgl_rita_tile_thread_internal_(void *arg)
                 int fb_h = fb->height;
                 int fb_s = fb->stride;
 
-                Mat4 view_to_world_dir;
-                float z = hgl_rita_ctx__.tform.proj.m11;
+                //Mat4 view_to_world_dir;
+                //float z = hgl_rita_ctx__.tform.proj.m11;
 
-                if ((sampling_method == HGL_RITA_VIEW_DIR_CUBEMAP) ||
-                    (sampling_method == HGL_RITA_VIEW_DIR_RECTILINEAR)) {
-                    view_to_world_dir = hgl_rita_ctx__.tform.view;
-                    view_to_world_dir.c3.x = 0;
-                    view_to_world_dir.c3.y = 0;
-                    view_to_world_dir.c3.z = 0;
-                    view_to_world_dir = mat4_transpose(view_to_world_dir);
-                }
+                //if ((sampling_method == HGL_RITA_VIEW_DIR_CUBEMAP) ||
+                //    (sampling_method == HGL_RITA_VIEW_DIR_RECTILINEAR)) {
+                //    view_to_world_dir = hgl_rita_ctx__.tform.view;
+                //    view_to_world_dir.c3.x = 0;
+                //    view_to_world_dir.c3.y = 0;
+                //    view_to_world_dir.c3.z = 0;
+                //    view_to_world_dir = mat4_transpose(view_to_world_dir);
+                //}
 
                 HglRitaAABB aabb = hgl_rita_aabb_intersection(tile_aabb, op.blit_info.aabb);
                 int x = aabb.min_x;
@@ -2494,7 +2560,7 @@ static inline void *hgl_rita_tile_thread_internal_(void *arg)
                                     (float)box_x / (float)box_w,
                                     ((float)box_y / (float)box_h),
                                 };
-                                src_color = hgl_rita_sample_uv(&src, uv);
+                                src_color = hgl_rita_sample_uv(src, uv);
                             } break;
 
                             case HGL_RITA_SCREENCOORD: {
@@ -2502,27 +2568,27 @@ static inline void *hgl_rita_tile_thread_internal_(void *arg)
                                     (float)screen_x / (float)fb_w,
                                     ((float)screen_y / (float)fb_h),
                                 };
-                                src_color = hgl_rita_sample_uv(&src, uv);
+                                src_color = hgl_rita_sample_uv(src, uv);
                             } break;
 
                             case HGL_RITA_VIEW_DIR_RECTILINEAR: {
                                 float sn_x = 2.0f*((float)screen_x / (float)fb_w) - 1.0f;
                                 float sn_y = 2.0f*((float)screen_y / (float)fb_h) - 1.0f;
-                                sn_x = -sn_x; // wtf?
-                                Vec4 dir = vec4_make(sn_x, sn_y, z, 1);
-                                dir = vec4_normalize(dir);
-                                dir = mat4_mul_vec4(view_to_world_dir, dir);
-                                src_color = hgl_rita_sample_rectilinear(&src, dir.xyz);
+                                float z = hgl_rita_ctx__.tform.proj.m11;
+                                Vec3 dir = vec3_make(hgl_rita_ctx__.tform.camera.aspect * sn_x, -sn_y, -z);
+                                dir = vec3_normalize(dir);
+                                dir = mat3_mul_vec3(hgl_rita_ctx__.tform.iview, dir);
+                                src_color = hgl_rita_sample_rectilinear(src, dir);
                             } break;
 
                             case HGL_RITA_VIEW_DIR_CUBEMAP: {
                                 float sn_x = 2.0f*((float)screen_x / (float)fb_w) - 1.0f;
                                 float sn_y = 2.0f*((float)screen_y / (float)fb_h) - 1.0f;
-                                sn_x = -sn_x; // wtf?
-                                Vec4 dir = vec4_make(sn_x, sn_y, z, 1);
-                                //dir = vec4_normalize(dir); // not needed
-                                dir = mat4_mul_vec4(view_to_world_dir, dir);
-                                src_color = hgl_rita_sample_cubemap(&src, dir.xyz);
+                                float z = hgl_rita_ctx__.tform.proj.m11;
+                                Vec3 dir = vec3_make(hgl_rita_ctx__.tform.camera.aspect * sn_x, -sn_y, -z);
+                                //dir = vec3_normalize(dir); // not needed
+                                dir = mat3_mul_vec3(hgl_rita_ctx__.tform.iview, dir);
+                                src_color = hgl_rita_sample_cubemap(src, dir);
                             } break;
 
                             case HGL_RITA_SHADER: {
@@ -2536,7 +2602,7 @@ static inline void *hgl_rita_tile_thread_internal_(void *arg)
                                     (float)box_x / (float)(box_w),
                                     ((float)box_y / (float)(box_h)),
                                 };
-                                frag.color = hgl_rita_sample_uv(&src, frag.uv);
+                                frag.color = hgl_rita_sample_uv(src, frag.uv);
                                 src_color = op.blit_info.shader(&hgl_rita_ctx__, &frag);
                             } break;
                         }

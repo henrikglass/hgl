@@ -15,79 +15,6 @@
 
 static HglRitaTexture *render_texture = NULL;
 static HglRitaTexture *frame_buffer = NULL;
-static Vec3 camera_pos;
-
-static inline HglRitaColor gooch_shader(const HglRitaContext *ctx, const HglRitaFragment *in)
-{
-    (void) ctx;
-    Vec3 L  = vec3_normalize(vec3_make(1,1,1)); // light vector
-    Vec3 IV = vec3_normalize(vec3_sub(in->world_pos, camera_pos)); // inverse view vector
-    Vec3 N  = in->world_normal;
-
-    HglRitaColor cool_color = {  0,  60, 240, 255};
-    HglRitaColor warm_color = {250, 140,  20, 255};
-    float diffuse_light = vec3_dot(N, L) * 0.5 + 0.5; // Lambertian
-    float specular_light = powf(fmaxf(0, vec3_dot(vec3_reflect(IV, N), L)), 15.0f); // Phong
-    return hgl_rita_color_add(hgl_rita_color_lerp(cool_color, warm_color, diffuse_light),
-                              hgl_rita_color_mul_scalar(HGL_RITA_WHITE, specular_light));
-}
-
-static inline HglRitaColor phong_shader(const HglRitaContext *ctx, const HglRitaFragment *in)
-{
-    (void) ctx;
-    Vec3 L  = vec3_normalize(vec3_make(1,1,1)); // light vector
-    Vec3 IV = vec3_normalize(vec3_sub(in->world_pos, camera_pos)); // inverse view vector
-    Vec3 N  = in->world_normal;
-
-    float shinyness = 0.5f;
-    float specular_exponent = 25.0f;
-
-    HglRitaColor diffuse_color = in->color;
-    HglRitaColor specular_color = HGL_RITA_WHITE;
-
-    diffuse_color = hgl_rita_sample_unit_uv(HGL_RITA_TEX_DIFFUSE, in->uv);
-    float diffuse_light = clamp(0.1f, 1.0f, fmaxf(0, vec3_dot(N, L))); // Lambertian
-    float specular_light = powf(fmaxf(0, vec3_dot(vec3_reflect(IV, N), L)), specular_exponent); // Phong
-
-    diffuse_color.r *= diffuse_light;
-    diffuse_color.g *= diffuse_light;
-    diffuse_color.b *= diffuse_light;
-
-    specular_color.r *= shinyness * specular_light;
-    specular_color.g *= shinyness * specular_light;
-    specular_color.b *= shinyness * specular_light;
-
-    return hgl_rita_color_add(diffuse_color, specular_color);
-}
-
-static inline HglRitaColor blinn_phong_shader(const HglRitaContext *ctx, const HglRitaFragment *in)
-{
-    (void) ctx;
-    Vec3 L  = vec3_normalize(vec3_make(1,1,1));
-    Vec3 V = vec3_normalize(vec3_sub(camera_pos, in->world_pos));
-    Vec3 N  = in->world_normal;
-    Vec3 H  = vec3_normalize(vec3_add(L, V)); // half vector (Blinn-Phong)
-
-    float shinyness = 0.5f;
-    float specular_exponent = 70.0f;
-
-    HglRitaColor diffuse_color = in->color;
-    HglRitaColor specular_color = HGL_RITA_WHITE;
-
-    diffuse_color = hgl_rita_sample_unit_uv(HGL_RITA_TEX_DIFFUSE, in->uv);
-    float diffuse_light = clamp(0.1f, 1.0f, fmaxf(0, vec3_dot(N, L))); // Lambertian
-    float specular_light = powf(fmaxf(0, vec3_dot(H, N)), specular_exponent); // Blinn-Phong
-
-    diffuse_color.r *= diffuse_light;
-    diffuse_color.g *= diffuse_light;
-    diffuse_color.b *= diffuse_light;
-
-    specular_color.r *= shinyness * specular_light;
-    specular_color.g *= shinyness * specular_light;
-    specular_color.b *= shinyness * specular_light;
-
-    return hgl_rita_color_add(diffuse_color, specular_color);
-}
 
 static inline HglRitaColor sobel_sharpen(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
@@ -149,9 +76,9 @@ static struct {
     {.name = "NORMALS",             .func = HGL_RITA_NORMAL_SHADER},
     {.name = "DEPTH",               .func = HGL_RITA_DEPTH_SHADER},
     {.name = "LAMBERT DIFFUSE",     .func = HGL_RITA_LAMBERT_DIFFUSE},
-    {.name = "GOOCH",               .func = gooch_shader},
-    {.name = "PHONG",               .func = phong_shader},
-    {.name = "BLINN-PHONG",         .func = blinn_phong_shader},
+    {.name = "GOOCH",               .func = HGL_RITA_GOOCH},
+    {.name = "PHONG",               .func = HGL_RITA_PHONG},
+    {.name = "BLINN-PHONG",         .func = HGL_RITA_BLINN_PHONG},
 };
 
 static struct {
@@ -192,13 +119,11 @@ int main()
     float camera_distance = 100.0f;
     float camera_angle = 0;
     float camera_height = 20;
-    camera_pos = vec3_make(100*sinf(camera_angle), camera_height, 100*cosf(camera_angle));
-    Mat4 perspective_proj = mat4_make_perspective(3.1415f/4.0f,               // FOV (45 degrees)
-                                                  (float)WIDTH/(float)HEIGHT, // aspect ratio
-                                                  2.0f,                       // near clipping plane
-                                                  1000.0f);                   // far clipping plane
-    Mat4 orthographic_proj = mat4_make_ortho(-40, 40, -30, 30, 0, 1000);
-    hgl_rita_use_proj_matrix(perspective_proj);
+    Vec3 camera_pos = vec3_make(100*sinf(camera_angle), camera_height, 100*cosf(camera_angle));
+    hgl_rita_use_perspective_proj(3.1415f/3.0f,               // FOV (60 degrees)
+                                  (float)WIDTH/(float)HEIGHT, // aspect ratio
+                                  2.0f,                       // near clipping plane
+                                  1000.0f);                   // far clipping plane
 
     /* Specify the viewport (maps NDC:s to x \in [0,800], y \in [0,600]) */
     hgl_rita_use_viewport(WIDTH, HEIGHT);
@@ -234,7 +159,6 @@ int main()
     /* Load skybox texture */
     HglRitaTexture skybox;
     skybox = load_texture("assets/skybox_cubemap.png");
-    hgl_rita_texture_flip_vertically(&skybox);
 
     /* Raylib stuff: IGNORE */
     InitWindow(DISPLAY_SCALE*WIDTH, DISPLAY_SCALE*HEIGHT, "HglRita: Hello Cube!");
@@ -301,7 +225,7 @@ int main()
         /* Blit */
         /* Maybe draw skybox */
         if (background_in_use == 2) {
-            hgl_rita_blit(0, 0, WIDTH, HEIGHT, skybox, 
+            hgl_rita_blit(0, 0, WIDTH, HEIGHT, &skybox, 
                           HGL_RITA_REPLACE, 
                           HGL_RITA_DEPTH_INF, 
                           HGL_RITA_VIEW_DIR_CUBEMAP,
@@ -311,7 +235,7 @@ int main()
         /* Maybe apply post-processing shader */
         hgl_rita_bind_texture(HGL_RITA_TEX_FRAME_BUFFER, frame_buffer); // necessary only for sobel_sharpen
         if (filter_shaders[filter_shader_in_use].func != NULL) {
-            hgl_rita_blit(0, 0, WIDTH, HEIGHT, *frame_buffer, 
+            hgl_rita_blit(0, 0, WIDTH, HEIGHT, frame_buffer, 
                           HGL_RITA_REPLACE, 
                           HGL_RITA_EVERYWHERE, 
                           HGL_RITA_SHADER,
@@ -382,9 +306,9 @@ int main()
         if (IsKeyPressed(KEY_P)) {
             use_perspective_project = !use_perspective_project;
             if (use_perspective_project) {
-                hgl_rita_use_proj_matrix(perspective_proj);
+                hgl_rita_use_perspective_proj(3.1415f/3.0f, (float)WIDTH/(float)HEIGHT, 2.0f, 1000.0f);
             } else {
-                hgl_rita_use_proj_matrix(orthographic_proj);
+                hgl_rita_use_orthographic_proj(-40, 40, -30, 30, 0, 1000);
             }
         }
         if (IsKeyPressed(KEY_W)) {
@@ -402,8 +326,8 @@ int main()
         if (depth_testing) hgl_rita_enable(HGL_RITA_DEPTH_TESTING); else hgl_rita_disable(HGL_RITA_DEPTH_TESTING);
         if (frontface_winding_ccw) hgl_rita_use_frontface_winding_order(HGL_RITA_CCW); else hgl_rita_use_frontface_winding_order(HGL_RITA_CW);
         camera_pos = vec3_make(camera_distance*sinf(camera_angle), camera_height, camera_distance*cosf(camera_angle));
-        Mat4 view = mat4_look_at(camera_pos, vec3_make(0, 0, 0), vec3_make(0, 1, 0));
-        hgl_rita_use_view_matrix(view);
+        hgl_rita_use_camera_view(camera_pos, vec3_make(0, 0, 0), vec3_make(0, 1, 0));
+        //hgl_rita_use_view_matrix(view);
         
         /* raylib stuff: IGNORE */
         UpdateTexture(color_tex, frame_buffer->data.rgba8);

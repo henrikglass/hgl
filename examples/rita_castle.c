@@ -39,10 +39,7 @@ int main()
     };
     Texture2D color_tex = LoadTextureFromImage(color_image);
 
-    Mat4 view   = mat4_look_at(vec3_make(0,0,100), vec3_make(0, 0, 0), vec3_make(0,1,0));
-    Mat4 proj   = mat4_make_perspective(3.14f/4, (float)(WIDTH)/(float)(HEIGHT), 2.0f, 1000.0f);
-    hgl_rita_use_view_matrix(view);
-    hgl_rita_use_proj_matrix(proj);
+    hgl_rita_use_perspective_proj(3.14f/4, (float)(WIDTH)/(float)(HEIGHT), 2.0f, 1000.0f);
     hgl_rita_enable(HGL_RITA_Z_CLIPPING |
                     HGL_RITA_BACKFACE_CULLING |
                     HGL_RITA_DEPTH_TESTING |
@@ -61,7 +58,6 @@ int main()
     
     HglRitaTexture skybox;
     skybox = load_texture("assets/skybox_cubemap.png");
-    hgl_rita_texture_flip_vertically(&skybox);
 
     SetTargetFPS(60);
     int frame_count = 0;
@@ -71,7 +67,7 @@ int main()
         hgl_rita_clear(HGL_RITA_DEPTH);
         hgl_rita_draw(HGL_RITA_TRIANGLES);
         hgl_rita_use_texture_filter(HGL_RITA_NEAREST);
-        hgl_rita_blit(0, 0, WIDTH, HEIGHT, skybox, 
+        hgl_rita_blit(0, 0, WIDTH, HEIGHT, &skybox, 
                       HGL_RITA_REPLACE, 
                       HGL_RITA_DEPTH_INF, 
                       HGL_RITA_VIEW_DIR_CUBEMAP,
@@ -81,9 +77,10 @@ int main()
 
         /* update */
         float d = 80;
-        Mat4 view = mat4_look_at(vec3_make(d*sinf(0.01*frame_count), 20, d*cosf(0.01*frame_count)), 
+        //Mat4 view = mat4_look_at(vec3_make(d*sinf(0.01*frame_count), 20, d*cosf(0.01*frame_count)), 
+        //                         vec3_make(0, 0, 0), vec3_make(0,1,0));
+        hgl_rita_use_camera_view(vec3_make(d*sinf(0.01*frame_count), 20, d*cosf(0.01*frame_count)), 
                                  vec3_make(0, 0, 0), vec3_make(0,1,0));
-        hgl_rita_use_view_matrix(view);
 
         /* raylib stuff */
         UpdateTexture(color_tex, color_image.data);
