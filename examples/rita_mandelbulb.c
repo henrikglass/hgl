@@ -7,13 +7,12 @@
 
 #include "raylib.h"
 
+//#include "ffmpeg.h"
+
 #define WIDTH           320 
 #define HEIGHT          180
 #define DISPLAY_SCALE     4
-//#define WIDTH           3440 
-//#define HEIGHT          1440
-//#define DISPLAY_SCALE      0.9f
-#define EPSILON            0.001f
+#define EPSILON           0.001f
 
 static float fractal_power = 1.0f;
 
@@ -126,12 +125,14 @@ int main()
     };
     Texture2D color_tex = LoadTextureFromImage(color_image);
     
+    //FFMPEG *ffmpeg = ffmpeg_start_rendering(WIDTH, HEIGHT, 30);
+    
     SetTargetFPS(60);
     int frame_count = 0;
     while (!WindowShouldClose() && !IsKeyPressed(KEY_Q))
     {
         /* animate */
-        hgl_rita_use_camera_view(vec3_make(4*sinf(frame_count*0.005f), 0, 4*cosf(frame_count*0.005f)), 
+        hgl_rita_use_camera_view(vec3_make(2.5*sinf(frame_count*0.005f), 0, 2.5*cosf(frame_count*0.005f)), 
                                  vec3_make(0,0,0), 
                                  vec3_make(0, 1, 0));
         fractal_power = -5 * cosf(frame_count*0.005f) + 6;
@@ -150,10 +151,14 @@ int main()
             DrawTextureEx(color_tex, (Vector2){0, 0}, 0, DISPLAY_SCALE, WHITE);
         EndDrawing();
 
+        //ffmpeg_send_frame(ffmpeg, fb.data.rgba8, WIDTH, HEIGHT);
+
         frame_count++;
         printf("frame = %d\n", frame_count);
         if (frame_count == 1280) break;
     }
+
+    //ffmpeg_end_rendering(ffmpeg);
 
     CloseWindow();
 }

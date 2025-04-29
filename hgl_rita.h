@@ -360,9 +360,13 @@
         (q)->wp = 0;                                                                      \
         (q)->rp = 0;                                                                      \
         (q)->n_idle = 0;                                                                  \
-        assert(0 == pthread_mutex_init(&(q)->mutex, NULL));                               \
+        pthread_mutexattr_t attr_;                                                        \
+        assert(0 == pthread_mutexattr_init(&attr_));                                      \
+        assert(0 == pthread_mutexattr_settype(&attr_, PTHREAD_MUTEX_ADAPTIVE_NP));        \
+        assert(0 == pthread_mutex_init(&(q)->mutex, &attr_));                             \
         assert(0 == pthread_cond_init(&(q)->cvar_writable, NULL));                        \
         assert(0 == pthread_cond_init(&(q)->cvar_readable, NULL));                        \
+        assert(0 == pthread_mutexattr_destroy(&attr_));                                   \
     } while (0)
 
 #define hgl_rita_queue_destroy(q)                                                         \

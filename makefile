@@ -216,8 +216,8 @@ rita_pebbles:
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_pebbles.c -o $(EXAMPLES_BUILD_DIR)/rita_pebbles_optimized -Llib -lraylib -lm -ldl -lpthread
 
 rita_mandelbulb:
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_mandelbulb.c -o $(EXAMPLES_BUILD_DIR)/rita_mandelbulb -Llib -lraylib -lm -ldl -lpthread
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_mandelbulb.c -o $(EXAMPLES_BUILD_DIR)/rita_mandelbulb_optimized -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_mandelbulb.c include/ffmpeg_linux.c -o $(EXAMPLES_BUILD_DIR)/rita_mandelbulb -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_mandelbulb.c include/ffmpeg_linux.c -o $(EXAMPLES_BUILD_DIR)/rita_mandelbulb_optimized -Llib -lraylib -lm -ldl -lpthread
 
 
 ## Unit tests
