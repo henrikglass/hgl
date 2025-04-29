@@ -253,6 +253,13 @@ int64_t hgl_sv_lchop_i64(HglStringView *sv);
 double hgl_sv_lchop_f64(HglStringView *sv);
 
 /**
+ * Returns true if string view `sv` starts with the substring `substr` and
+ * subsequently lchops `strlen(substr)` off of `sv`. If `sv` does not start
+ * with `substr`, false is returned and `sv` is left unmodifed.
+ */
+bool hgl_sv_starts_with_lchop(HglStringView *sv, const char *substr);
+
+/**
  * Returns true if string view `sv` contains the substring `substr`.
  */
 bool hgl_sv_contains(HglStringView *sv, const char *substr);
@@ -729,6 +736,16 @@ double hgl_sv_lchop_f64(HglStringView *sv)
     double value = strtod(temp, &end);
     hgl_sv_lchop(sv, end - temp);
     return value;
+}
+
+bool hgl_sv_starts_with_lchop(HglStringView *sv, const char *substr)
+{
+    if (hgl_sv_starts_with(sv, substr)) {
+        hgl_sv_lchop(sv, strlen(substr));
+        return true;
+    }
+
+    return false;
 }
 
 bool hgl_sv_contains(HglStringView *sv, const char *substr)
