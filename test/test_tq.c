@@ -1,5 +1,7 @@
 
 #include "hgl_test.h"
+
+#define HGL_TQ_USE_HYBRID_MUTEX
 #include "hgl_tq.h"
 
 typedef HglThreadQueue(int, 128) TQueue;
