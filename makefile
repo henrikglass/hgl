@@ -1,5 +1,5 @@
 
-.PHONY: hotload_mylib test
+.PHONY: hotload_mylib test prep
 
 SHELL := /bin/bash
 
@@ -12,7 +12,7 @@ TEST_BUILD_DIR := build/test
 
 all: examples test
 
-examples: vec         					\
+examples: vec         			\
           rbuf                          \
           chan                          \
           rhashtbl                      \
@@ -57,171 +57,171 @@ examples: vec         					\
           rita_vertex_displacement_maps \
           rita_pebbles                  \
           rita_mandelbulb               \
-		  tqueue      
+   	  tqueue      
 
-hgl:
+hgl: prep
 	gcc -I. -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L $(EXAMPLES_DIR)/hgl.c -o $(EXAMPLES_BUILD_DIR)/hgl
 
-vec:
+vec: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/vec.c -o $(EXAMPLES_BUILD_DIR)/vec
 
-rbuf:
+rbuf: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rbuf.c -o $(EXAMPLES_BUILD_DIR)/rbuf
 
-chan:
+chan: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/chan.c -o $(EXAMPLES_BUILD_DIR)/chan
 
-rhashtbl:
+rhashtbl: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rhashtbl.c -o $(EXAMPLES_BUILD_DIR)/rhashtbl
 
-htable:
+htable: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/htable.c -o $(EXAMPLES_BUILD_DIR)/htable
 
-hset:
+hset: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/hset.c -o $(EXAMPLES_BUILD_DIR)/hset
 
-stack_alloc:
+stack_alloc: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/stack_alloc.c -o $(EXAMPLES_BUILD_DIR)/stack_alloc
 
-arena_alloc:
+arena_alloc: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/arena_alloc.c -o $(EXAMPLES_BUILD_DIR)/arena_alloc
 
-pool_alloc:
+pool_alloc: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/pool_alloc.c -o $(EXAMPLES_BUILD_DIR)/pool_alloc
 
-fs_alloc:
+fs_alloc: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/fs_alloc.c -o $(EXAMPLES_BUILD_DIR)/fs_alloc
 
-hotload: hotload_mylib
+hotload: hotload_mylib prep
 	gcc -I. -D_POSIX_C_SOURCE=200809L -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 -Wl,-rpath="./" $(EXAMPLES_DIR)/hotload.c -o $(EXAMPLES_BUILD_DIR)/hotload -ldl
 
-hotload_mylib:
+hotload_mylib: prep
 	gcc -I. -fPIE -shared -Wall -Wextra -Wpedantic -Wstrict-prototypes -Wmissing-declarations -Wmissing-prototypes -ggdb3 $(EXAMPLES_DIR)/mylib.c -o $(EXAMPLES_BUILD_DIR)/libmylib.so
 
-serialize:
+serialize: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/serialize.c -o $(EXAMPLES_BUILD_DIR)/serialize
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/serialize_elfinfo.c -o $(EXAMPLES_BUILD_DIR)/serialize_elfinfo
 
-memdbg:
+memdbg: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/memdbg.c -o $(EXAMPLES_BUILD_DIR)/memdbg
 
-flags:
+flags: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/flags.c -o $(EXAMPLES_BUILD_DIR)/flags -lm
 
-string:
+string: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/string.c -o $(EXAMPLES_BUILD_DIR)/string
 
-fft:
+fft: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -march=native -ffast-math $(EXAMPLES_DIR)/fft.c -o $(EXAMPLES_BUILD_DIR)/fft -lm
 
-hamming:
+hamming: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/hamming.c -o $(EXAMPLES_BUILD_DIR)/hamming
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(EXAMPLES_DIR)/hamming_encode.c -o $(EXAMPLES_BUILD_DIR)/hamming_encode
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(EXAMPLES_DIR)/hamming_decode.c -o $(EXAMPLES_BUILD_DIR)/hamming_decode
 
-io:
+io: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(EXAMPLES_DIR)/io.c -o $(EXAMPLES_BUILD_DIR)/io
 
-process:
+process: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(EXAMPLES_DIR)/process.c -o $(EXAMPLES_BUILD_DIR)/process
 
-cmd:
+cmd: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(EXAMPLES_DIR)/cmd.c -o $(EXAMPLES_BUILD_DIR)/cmd
 
-profile:
+profile: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -D_POSIX_C_SOURCE -ggdb3 $(EXAMPLES_DIR)/profile.c -o $(EXAMPLES_BUILD_DIR)/profile
 
-hglm:
+hglm: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -ggdb3 $(EXAMPLES_DIR)/hglm.c -o $(EXAMPLES_BUILD_DIR)/hglm -lm
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -DHGLM_USE_SIMD -mavx -ggdb3 $(EXAMPLES_DIR)/hglm.c -o $(EXAMPLES_BUILD_DIR)/hglm_simd -lm
 
-queue:
+queue: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(EXAMPLES_DIR)/queue.c -o $(EXAMPLES_BUILD_DIR)/queue
 
-tqueue:
+tqueue: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE=199309L -ggdb3 $(EXAMPLES_DIR)/tq.c -o $(EXAMPLES_BUILD_DIR)/tq
 
-ini:
+ini: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/ini.c -o $(EXAMPLES_BUILD_DIR)/ini
 
-rle:
+rle: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rle.c -o $(EXAMPLES_BUILD_DIR)/rle
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rle_hglzip.c -o $(EXAMPLES_BUILD_DIR)/hglzip
 
-worker_pool:
+worker_pool: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L -fsanitize=thread $(EXAMPLES_DIR)/worker_pool.c -o $(EXAMPLES_BUILD_DIR)/worker_pool -lpthread
 
-barrier:
+barrier: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L -fsanitize=thread $(EXAMPLES_DIR)/barrier.c -o $(EXAMPLES_BUILD_DIR)/barrier -lpthread
 
-rbtree:
+rbtree: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rbtree.c -o $(EXAMPLES_BUILD_DIR)/rbtree
 
-base64:
+base64: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/base64.c -o $(EXAMPLES_BUILD_DIR)/base64
 
-sockets:
+sockets: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=200809L $(EXAMPLES_DIR)/sockets.c -o $(EXAMPLES_BUILD_DIR)/sockets
 
-rita_castle:
+rita_castle: prep
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_castle.c -o $(EXAMPLES_BUILD_DIR)/rita_castle -Llib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_castle.c -o $(EXAMPLES_BUILD_DIR)/rita_castle_optimized -Llib -lraylib -lm -ldl -lpthread
 
-rita_hello_triangle:
+rita_hello_triangle: prep
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_hello_triangle.c -o $(EXAMPLES_BUILD_DIR)/rita_hello_triangle -Llib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_hello_triangle.c -o $(EXAMPLES_BUILD_DIR)/rita_hello_triangle_optimized -Llib -lraylib -lm -ldl -lpthread
 
-rita_hello_cube:
+rita_hello_cube: prep
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_hello_cube.c -o $(EXAMPLES_BUILD_DIR)/rita_hello_cube -Llib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_hello_cube.c -o $(EXAMPLES_BUILD_DIR)/rita_hello_cube_optimized -Llib -lraylib -lm -ldl -lpthread
 
-rita_primitives:
+rita_primitives: prep
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_primitives.c -o $(EXAMPLES_BUILD_DIR)/rita_primitives -Llib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_primitives.c -o $(EXAMPLES_BUILD_DIR)/rita_primitives_optimized -Llib -lraylib -lm -ldl -lpthread
 
-rita_3d:
+rita_3d: prep
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_3d.c -o $(EXAMPLES_BUILD_DIR)/rita_3d -Llib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_3d.c -o $(EXAMPLES_BUILD_DIR)/rita_3d_optimized -Llib -lraylib -lm -ldl -lpthread
 
-rita_filters:
+rita_filters: prep
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_filters.c -o $(EXAMPLES_BUILD_DIR)/rita_filters -Llib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_filters.c -o $(EXAMPLES_BUILD_DIR)/rita_filters_optimized -Llib -lraylib -lm -ldl -lpthread
 
-rita_game_of_life:
+rita_game_of_life: prep
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_game_of_life.c -o $(EXAMPLES_BUILD_DIR)/rita_game_of_life -Llib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_game_of_life.c -o $(EXAMPLES_BUILD_DIR)/rita_game_of_life_optimized -Llib -lraylib -lm -ldl -lpthread
 
-rita_blit:
+rita_blit: prep
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_blit.c -o $(EXAMPLES_BUILD_DIR)/rita_blit -Llib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_blit.c -o $(EXAMPLES_BUILD_DIR)/rita_blit_optimized -Llib -lraylib -lm -ldl -lpthread
 
-rita_custom_fragment_shader:
+rita_custom_fragment_shader: prep
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_custom_fragment_shader.c -o $(EXAMPLES_BUILD_DIR)/rita_custom_fragment_shader -Llib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_custom_fragment_shader.c -o $(EXAMPLES_BUILD_DIR)/rita_custom_fragment_shader_optimized -Llib -lraylib -lm -ldl -lpthread
 
-rita_skybox:
+rita_skybox: prep
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_skybox.c -o $(EXAMPLES_BUILD_DIR)/rita_skybox -Llib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_skybox.c -o $(EXAMPLES_BUILD_DIR)/rita_skybox_optimized -Llib -lraylib -lm -ldl -lpthread
 
-rita_vertex_displacement:
+rita_vertex_displacement: prep
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_vertex_displacement.c -o $(EXAMPLES_BUILD_DIR)/rita_vertex_displacement -Llib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_vertex_displacement.c -o $(EXAMPLES_BUILD_DIR)/rita_vertex_displacement_optimized -Llib -lraylib -lm -ldl -lpthread
 
-rita_vertex_displacement_maps:
+rita_vertex_displacement_maps: prep
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_vertex_displacement_maps.c -o $(EXAMPLES_BUILD_DIR)/rita_vertex_displacement_maps -Llib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_vertex_displacement_maps.c -o $(EXAMPLES_BUILD_DIR)/rita_vertex_displacement_maps_optimized -Llib -lraylib -lm -ldl -lpthread
 
-rita_pebbles:
+rita_pebbles: prep
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_pebbles.c -o $(EXAMPLES_BUILD_DIR)/rita_pebbles -Llib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_pebbles.c -o $(EXAMPLES_BUILD_DIR)/rita_pebbles_optimized -Llib -lraylib -lm -ldl -lpthread
 
-rita_mandelbulb:
+rita_mandelbulb: prep
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_mandelbulb.c include/ffmpeg_linux.c -o $(EXAMPLES_BUILD_DIR)/rita_mandelbulb -Llib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_mandelbulb.c include/ffmpeg_linux.c -o $(EXAMPLES_BUILD_DIR)/rita_mandelbulb_optimized -Llib -lraylib -lm -ldl -lpthread
 
 
 ## Unit tests
-test:
+test: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_arena_alloc.c -o $(TEST_BUILD_DIR)/test_arena_alloc
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_stack_alloc.c -o $(TEST_BUILD_DIR)/test_stack_alloc
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_pool_alloc.c -o $(TEST_BUILD_DIR)/test_pool_alloc
@@ -256,8 +256,14 @@ test:
 	chmod +x run_tests.sh
 	./run_tests.sh
 
+prep:
+	-mkdir build/
+	-mkdir build/test
+	-mkdir build/examples
 
 clean:
 	-rm $(EXAMPLES_BUILD_DIR)/*
 	-rm $(TEST_BUILD_DIR)/*
 	-rm run_tests.sh
+	-rm -r build/*
+	-rmdir build
