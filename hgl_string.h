@@ -709,7 +709,7 @@ uint64_t hgl_sv_lchop_u64(HglStringView *sv)
     size_t n = (sv->length < 63) ? sv->length : 63;
     memcpy(temp, sv->start, n);
     temp[n] = '\0';
-    double value = strtoul(temp, &end, 0);
+    uint64_t value = strtoul(temp, &end, 0);
     hgl_sv_lchop(sv, end - temp);
     return value;
 }
@@ -721,7 +721,7 @@ int64_t hgl_sv_lchop_i64(HglStringView *sv)
     size_t n = (sv->length < 63) ? sv->length : 63;
     memcpy(temp, sv->start, n);
     temp[n] = '\0';
-    double value = strtol(temp, &end, 0);
+    int64_t value = strtol(temp, &end, 0);
     hgl_sv_lchop(sv, end - temp);
     return value;
 }
