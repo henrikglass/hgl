@@ -205,8 +205,8 @@ int main(void)
     printf("fval = %f\n", (double) fval);
     printf("uval = 0x%X\n", uval);
 
-    int should_be_420 = hgl_sv_to_i64(&csv);
-    int should_be_420_again = hgl_sv_to_i64(&csv);
+    int should_be_420 = hgl_sv_to_i64(csv);
+    int should_be_420_again = hgl_sv_to_i64(csv);
 
     assert(should_be_420 == should_be_420_again);
     printf("Yay!\n");
