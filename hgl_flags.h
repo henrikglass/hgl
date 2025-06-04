@@ -513,6 +513,8 @@ int hgl_flags_parse(int argc, char *argv[])
                 case HGL_FLAGS_KIND_F64: {
                     fprintf(stderr, "%.8g. Valid range = [%.8g, %.8g]\n", val.f64, rmin.f64, rmax.f64);
                 } break;
+                                case HGL_FLAGS_KIND_BOOL:
+                case HGL_FLAGS_KIND_STR:
                 default: assert(0 && "Unreachable"); break;
             }
         }
@@ -549,7 +551,7 @@ void hgl_flags_print()
                        -HGL_FLAGS_PRINT_MARGIN, names, desc, defv.f64, rmin.f64, rmax.f64);
             } break;
             case HGL_FLAGS_KIND_STR: {
-                printf("  %-*s %s (default = %s)", -HGL_FLAGS_PRINT_MARGIN, names, desc, defv.str); break;
+                printf("  %-*s %s (default = \"%s\")", -HGL_FLAGS_PRINT_MARGIN, names, desc, defv.str); break;
             } break;
         }
 
