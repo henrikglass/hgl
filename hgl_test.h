@@ -664,6 +664,7 @@ int main(int argc, char *argv[])
 #pragma GCC diagnostic ignored "-Wunused-const-variable"
 #endif /* HGL_TEST_H */
 
+// TODO use something other than STDERR for LOG.
 // TODO timeouts (ASSERT_TIMEOUT?)
 // TODO compare output with file contents (.expect_output = FILE_CONTENTS("some_file.txt") ?) 
 
