@@ -34,9 +34,8 @@ void teardown()
     hgl_worker_pool_destroy(wp);
 }
 
-TEST(test_work1, .setup = setup, .teardown = teardown)
+TEST(test_work1, .setup = setup, .teardown = teardown, .timeout = 5)
 {
-    LOG("This test should not halt.\n");
     TaskData tasks[] = {
         (TaskData) {.input = 1},
         (TaskData) {.input = 2},
@@ -61,17 +60,15 @@ TEST(test_work1, .setup = setup, .teardown = teardown)
     hgl_worker_pool_wait(wp);
 }
 
-TEST(test_do_nothing_fast, .setup = setup, .teardown = teardown)
+TEST(test_do_nothing_fast, .setup = setup, .teardown = teardown, .timeout = 5)
 {
-    LOG("This test should not halt.\n");
     for (size_t i = 0; i < 5; i++) {
         hgl_worker_pool_add_job(wp, do_nothing_fast, NULL);
     }
 }
 
-TEST(test_workers_alive_after_init)
+TEST(test_workers_alive_after_init, .timeout = 5)
 {
-    LOG("This test should not halt.\n");
     for (size_t i = 0; i < 1000; i++) {
         wp = hgl_worker_pool_init(8, 4);
         ASSERT(wp->n_alive_workers == 8);
@@ -81,9 +78,8 @@ TEST(test_workers_alive_after_init)
     }
 }
 
-TEST(test_workers_waitable)
+TEST(test_workers_waitable, .timeout = 5)
 {
-    LOG("This test should not halt.\n");
     for (size_t i = 0; i < 1000; i++) {
         wp = hgl_worker_pool_init(8, 4);
         ASSERT(wp->n_alive_workers == 8);
@@ -97,9 +93,8 @@ TEST(test_workers_waitable)
     }
 }
 
-TEST(test_workers_killable)
+TEST(test_workers_killable, .timeout = 5)
 {
-    LOG("This test should not halt.\n");
     for (size_t i = 0; i < 1000; i++) {
         wp = hgl_worker_pool_init(8, 4);
         ASSERT(wp->n_alive_workers == 8);

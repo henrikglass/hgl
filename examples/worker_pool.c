@@ -84,8 +84,5 @@ int main(void)
     hgl_worker_pool_destroy(wp);
     printf("main: done destroying\n");
 
-    //printf("sleeping\n");
-    //hgl_sleep_s(100.0f);
-
     return 0;
 }

@@ -70,7 +70,7 @@ TEST(single_slow_worker) {
 
 #define N_THREADS 1000
 
-TEST(multiple_workers_single_queue) {
+TEST(multiple_workers_single_queue, .timeout = 1) {
     TQueue tq;
     hgl_tq_init(&tq);
 

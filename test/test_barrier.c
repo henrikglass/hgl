@@ -40,7 +40,7 @@ void my_func(void *arg)
     }
 }
 
-TEST(test_barrier)
+TEST(test_barrier, .timeout = 5)
 {
     A = malloc(PROBLEM_SIZE*sizeof(*A));
     B = malloc(PROBLEM_SIZE*sizeof(*B));
