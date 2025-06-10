@@ -155,14 +155,15 @@
 /*--- Public macros ---------------------------------------------------------------------*/
 
 /* These are exit codes from the child test process */
-#define TEST_EXIT_SUCCESS                 0x0000
-#define TEST_EXIT_ASSERT_FAIL             0x0001
-#define TEST_EXIT_CAUGHT_EXPECTED_SIGNAL  0x0002
+#define TEST_EXIT_SUCCESS                         (0)
+#define TEST_EXIT_ASSERT_FAIL               (1u << 0)
+#define TEST_EXIT_CAUGHT_EXPECTED_SIGNAL    (1u << 1)
 
 /* These are determined after child termination */
-#define TEST_EXPECT_OUTPUT_FAIL           0x0100
-#define TEST_EXPECT_SIGNAL_FAIL           0x0200
-#define TEST_GOT_UNEXPECTED_SIGNAL_FAIL   0x0400
+#define TEST_EXPECT_OUTPUT_FAIL             (1u << 2)
+#define TEST_EXPECT_SIGNAL_FAIL             (1u << 3)
+#define TEST_GOT_UNEXPECTED_SIGNAL_FAIL     (1u << 4)
+#define TEST_EXPECT_EXIT_CODE_FAIL          (1u << 5)
 
 /* Style thingies */
 #define ANSI_RED       "\033[31m"
@@ -212,6 +213,8 @@
  *     .expect_output = "goodbye"    // Expect "goodbye" on stdout* (otherwise fail test)
  *     .expect_signal = SIGSEGV      // Expect test to generate a segmentation fault (otherwise fail test)
  *     .expect_fail = true           // Expect test to fail (otherwise fail test)
+ *     .expect_exit_code = 13        // Expect a specific exit code (will override .expect_signal and 
+ *                                   // cause any failed ASSERTS to PASS)
  *     .setup = my_setup_func        // Run `my_setup_func` before spawning the test process
  *     .teardown = my_teardown_func  // Run `my_teardown_func` after the test process exits
  *
@@ -305,16 +308,18 @@ typedef struct __attribute__((aligned (32)))
         void (*test_fn)(void);
         uint32_t result;
         uint32_t id;
+        uint8_t exit_code;
         bool pass;
     } hidden; /* i.e. don't tuch this */
 
     /* user defined */
-    const char *input;         // Start test with `input` on "stdin".
-    const char *expect_output; // Expect test to terminate with `expect_output` on "stdout".
-    int         expect_signal; // Expect test to exit with signal, otherwise fail test. E.g. `.expect_signal = SIGSEGV`
-    bool        expect_fail;   // Expect test to fail. Reports failure as success and vice versa.
-    void (*setup)(void);       // Specify a test-specific setup function to be run before the test.
-    void (*teardown)(void);    // Specify a test-specific teardown function to be run after the test.
+    const char *input;            // Start test with `input` on "stdin".
+    const char *expect_output;    // Expect test to terminate with `expect_output` on "stdout".
+    int         expect_signal;    // Expect test to exit with signal, otherwise fail test. E.g. `.expect_signal = SIGSEGV`
+    bool        expect_fail;      // Expect test to fail. Reports failure as success and vice versa.
+    uint8_t     expect_exit_code; // Expect test to terminate with the specified exit code.
+    void (*setup)(void);          // Specify a test-specific setup function to be run before the test.
+    void (*teardown)(void);       // Specify a test-specific teardown function to be run after the test.
 } HglTest;
 
 /*
@@ -527,25 +532,48 @@ void hgl_test_run_test(HglTest *test)
     close(pipes[1][0]);
 
     /* determine test result */
-    test->hidden.result  = WEXITSTATUS(wstatus);
-    test->hidden.result |= WIFSIGNALED(wstatus) ? TEST_GOT_UNEXPECTED_SIGNAL_FAIL : 0;
+    test->hidden.exit_code = WEXITSTATUS(wstatus);
+    test->hidden.result = 0;
+    pass = true;
 
-    if ((test->expect_signal != 0) &&
-        ((test->hidden.result & TEST_EXIT_CAUGHT_EXPECTED_SIGNAL) == 0)) {
-        test->hidden.result |= TEST_EXPECT_SIGNAL_FAIL;
+    /* handle exit code */
+    if (test->expect_exit_code != 0) {
+        /* expect specific exit code */
+        if (test->hidden.exit_code != test->expect_exit_code) {
+            test->hidden.result |= TEST_EXPECT_EXIT_CODE_FAIL;
+            pass = false;
+        }
+    } else {
+        /* hgl_test.h exit code semantics */
+        if ((test->expect_signal != 0) &&
+            ((test->hidden.exit_code & TEST_EXIT_CAUGHT_EXPECTED_SIGNAL) == 0)) {
+            test->hidden.result |= TEST_EXPECT_SIGNAL_FAIL;
+            pass = false;
+        }
+    
+        if (0 != (test->hidden.exit_code & TEST_EXIT_ASSERT_FAIL)) {
+            test->hidden.result |= TEST_EXIT_ASSERT_FAIL;
+            pass = false;
+        }
+    }
+
+    if (WIFSIGNALED(wstatus)) {
+        test->hidden.result |= TEST_GOT_UNEXPECTED_SIGNAL_FAIL;
+        pass = false;
     }
 
     if (test->expect_output != NULL) {
         if ((strlen(stdout_buffer) != strlen(test->expect_output)) ||
             (strcmp(stdout_buffer, test->expect_output) != 0)) {
             test->hidden.result |= TEST_EXPECT_OUTPUT_FAIL;
+            pass = false;
         }
     }
+    
+    if (0 != (test->hidden.result & TEST_GOT_UNEXPECTED_SIGNAL_FAIL)) {
+        pass = false;
+    }
 
-    pass = (0 == (test->hidden.result & TEST_EXIT_ASSERT_FAIL)) &&
-           (0 == (test->hidden.result & TEST_EXPECT_SIGNAL_FAIL)) &&
-           (0 == (test->hidden.result & TEST_EXPECT_OUTPUT_FAIL)) &&
-           (0 == (test->hidden.result & TEST_GOT_UNEXPECTED_SIGNAL_FAIL));
     pass = (test->expect_fail) ? !pass : pass;
 
     /* Print additional errors */
@@ -571,6 +599,12 @@ void hgl_test_run_test(HglTest *test)
             fprintf(stderr, ANSI_RED ANSI_BOLD "  SIGNAL ERROR" ANSI_NS ANSI_NC ": ");
             fprintf(stderr, ANSI_BOLD " Expected termination by signal: " ANSI_NS "%d (%s)\n",
                             test->expect_signal, strsignal(test->expect_signal));
+        }
+
+        if (test->hidden.result & TEST_EXPECT_EXIT_CODE_FAIL) {
+            fprintf(stderr, ANSI_RED ANSI_BOLD "  EXIT CODE ERROR" ANSI_NS ANSI_NC ": ");
+            fprintf(stderr, ANSI_BOLD " Expected exit code: " ANSI_NS "%d  " ANSI_BOLD 
+                            "Got: " ANSI_NS "%d\n", test->expect_exit_code, WEXITSTATUS(wstatus));
         }
     }
 
@@ -653,6 +687,9 @@ int main(int argc, char *argv[])
             if (test->hidden.result & TEST_GOT_UNEXPECTED_SIGNAL_FAIL) {
                 printf(AMBER_PLUS "Exited with unexpected signal ");
             }
+            if (test->hidden.result & TEST_EXPECT_EXIT_CODE_FAIL) {
+                printf(AMBER_PLUS "Exited with unexpected exit code ");
+            }
         }
         printf("\n");
     }
@@ -664,7 +701,6 @@ int main(int argc, char *argv[])
 #pragma GCC diagnostic ignored "-Wunused-const-variable"
 #endif /* HGL_TEST_H */
 
-// TODO use something other than STDERR for LOG.
 // TODO timeouts (ASSERT_TIMEOUT?)
 // TODO compare output with file contents (.expect_output = FILE_CONTENTS("some_file.txt") ?) 
 
