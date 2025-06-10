@@ -744,4 +744,5 @@ int main(int argc, char *argv[])
 #pragma GCC diagnostic ignored "-Wunused-const-variable"
 #endif /* HGL_TEST_H */
 
+// TODO Use a second pipe for passing results to parent process instead of using exit codes.
 // TODO compare output with file contents (.expect_output = FILE_CONTENTS("some_file.txt") ?)
