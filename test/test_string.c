@@ -81,9 +81,9 @@ TEST(sv_contains) {
 }
 
 TEST(sv_compare) {
-    ASSERT(0 == hgl_sv_compare(HGL_SV("Hejsan"), HGL_SV("Hejsan")));
-    ASSERT(-1 == hgl_sv_compare(HGL_SV("AAAA"), HGL_SV("AAAB")));
-    ASSERT(1 == hgl_sv_compare(HGL_SV("BAAA"), HGL_SV("AAAB")));
+    ASSERT(0 == hgl_sv_compare(HGL_SV_LIT("Hejsan"), HGL_SV_LIT("Hejsan")));
+    ASSERT(-1 == hgl_sv_compare(HGL_SV_LIT("AAAA"), HGL_SV_LIT("AAAB")));
+    ASSERT(1 == hgl_sv_compare(HGL_SV_LIT("BAAA"), HGL_SV_LIT("AAAB")));
 }
 
 TEST(sb_search_and_replace, .expect_output = "Bejsan boppsan! \n Bello World!\n 0x000A, 20, 40, 80") {

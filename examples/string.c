@@ -192,9 +192,9 @@ int main(void)
 
 #endif
 #if 1
-    printf(HGL_SV_FMT "\n", HGL_SV_ARG(HGL_SV("hello!")));
+    printf(HGL_SV_FMT "\n", HGL_SV_ARG(HGL_SV_LIT("hello!")));
 
-    HglStringView csv = HGL_SV("1234, 4.123 , 0x1337, 420, 69, 123, hej");
+    HglStringView csv = HGL_SV_LIT("1234, 4.123 , 0x1337, 420, 69, 123, hej");
     int ival = (int) hgl_sv_lchop_i64(&csv);
     hgl_sv_lchop_until(&csv, ',');
     float fval = (float) hgl_sv_lchop_f64(&csv);
@@ -230,7 +230,7 @@ int main(void)
     printf(HGL_SV_FMT "\n", HGL_SV_ARG(left));
     printf("csv->length = %zu\n", csv.length);
 
-    HglStringView greeting = HGL_SV("Hello friend!");
+    HglStringView greeting = HGL_SV_LIT("Hello friend!");
     HglStringView hello = hgl_sv_lchop(&greeting, 5);
     HglStringView friend = hgl_sv_ltrim(greeting);
     printf(HGL_SV_FMT " " HGL_SV_FMT "\n", HGL_SV_ARG(hello), HGL_SV_ARG(friend));
@@ -243,8 +243,8 @@ int main(void)
     printf("sb: \"%s\"\n", sb.cstr);
     hgl_sb_destroy(&sb);
 
-    HglStringView a = HGL_SV("Hello!");
-    HglStringView b = HGL_SV("Hello!");
+    HglStringView a = HGL_SV_LIT("Hello!");
+    HglStringView b = HGL_SV_LIT("Hello!");
     assert(hgl_sv_equals(a, b));
 
 #endif
