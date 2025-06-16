@@ -89,12 +89,14 @@ void ffmpeg_end_rendering(FFMPEG *ffmpeg)
 
 void ffmpeg_send_frame(FFMPEG *ffmpeg, void *data, size_t width, size_t height)
 {
-    write(ffmpeg->pipe, data, sizeof(uint32_t)*width*height);
+    ssize_t n_written = write(ffmpeg->pipe, data, sizeof(uint32_t)*width*height);
+    (void) n_written;
 }
 
 void ffmpeg_send_frame_flipped(FFMPEG *ffmpeg, void *data, size_t width, size_t height)
 {
     for (size_t y = height; y > 0; --y) {
-        write(ffmpeg->pipe, (uint32_t*)data + (y - 1)*width, sizeof(uint32_t)*width);
+        ssize_t n_written = write(ffmpeg->pipe, (uint32_t*)data + (y - 1)*width, sizeof(uint32_t)*width);
+        (void) n_written;
     }
 }
