@@ -852,6 +852,7 @@ static inline int hgl_rita_next_vbuf_index_internal_(void);                     
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/sysinfo.h>
 
 /*--- Private function prototypes -------------------------------------------------------*/
@@ -868,7 +869,11 @@ static HglRitaContext hgl_rita_ctx__;
 
 static inline void hgl_rita_init()
 {
-    nice(-10);
+    errno = 0;
+    int niceness = nice(-10);
+    if (niceness == -1 && errno != 0) {
+        fprintf(stderr, "Unable to set niceness value. <%s:%d>\n", __FILE__, __LINE__);
+    }
 
     /* setup shaders */
     hgl_rita_ctx__.shaders.vert = NULL;
@@ -2241,7 +2246,11 @@ static inline HglRitaColor hgl_rita_sample_unit_cubemap(HglRitaTexUnit unit, Vec
 
 static inline void *hgl_rita_tile_thread_internal_(void *arg)
 {
-    nice(10);
+    errno = 0;
+    int niceness = nice(10);
+    if (niceness == -1 && errno != 0) {
+        fprintf(stderr, "Unable to set niceness value. <%s:%d>\n", __FILE__, __LINE__);
+    }
 
     HglRitaTile *tile = (HglRitaTile *) arg;
     HglRitaTileOpQueue *q = &tile->op_queue;
