@@ -1,3 +1,5 @@
+[![Build and Test](https://github.com/henrikglass/hgl/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/henrikglass/hgl/actions/workflows/build-and-test.yml)
+
 # hgl
 A collection of small (except maybe hgl\_rita.h) easy-to-use header only libraries written in C.
 
