@@ -25,6 +25,7 @@ A collection of small (except maybe hgl\_rita.h) easy-to-use header only librari
 | hgl\_sockets.h        | Networking/Utility            | A simple to use wrapper around Linux sockets (TCP/UDP)                                                  |
 | hgl\_worker\_pool.h   | Multithreading/Utility        | Thread/Worker pool.                                                                                     |
 | hgl\_barrier.h        | Multithreading/Utility        | Barrier synchronization primitive.                                                                      |
+| hgl\_waitgroup.h      | Multithreading/Utility        | Go-style waitgroup synchronization primitive.                                                           |
 | hgl\_hotload.h        | Utility                       | Quick and easy hotloading.                                                                              |
 | hgl\_profile.h        | Utility                       | Quick and dirty profiling.                                                                              |
 | hgl\_process.h        | Utility                       | Utility for spawning, running, and chaining together subprocesses. Basically execvp minus the headache. |
