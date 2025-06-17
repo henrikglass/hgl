@@ -216,7 +216,7 @@
  *     .expect_output = "goodbye"    // Expect "goodbye" on stdout* (otherwise fail test)
  *     .expect_signal = SIGSEGV      // Expect test to generate a segmentation fault (otherwise fail test)
  *     .expect_fail = true           // Expect test to fail (otherwise fail test)
- *     .expect_exit_code = 13        // Expect test to exit with code 13 (will override .expect_signal and
+ *     .expect_exit_code = 13        // Expect test to exit with code 13 (will override .expect_signal and 
  *                                   // cause any failed ASSERTS to PASS)
  *     .timeout = 10                 // Fail test automatically after 10 seconds
  *     .setup = my_setup_func        // Run `my_setup_func` before spawning the test process
@@ -268,7 +268,7 @@
     } while (0)
 
 /**
- * The `ASSERT_CSTR_EQ` macro may be used to assert equality of two
+ * The `ASSERT_CSTR_EQ` macro may be used to assert equality of two 
  * null-terminated strings inside a user-defined test.
  */
 #define ASSERT_CSTR_EQ(a_, b_)                                           \
@@ -322,7 +322,7 @@ typedef struct __attribute__((aligned (32)))
     int         expect_signal;    // Expect test to exit with signal, otherwise fail test. E.g. `.expect_signal = SIGSEGV`
     bool        expect_fail;      // Expect test to fail. Reports failure as success and vice versa.
     uint8_t     expect_exit_code; // Expect test to terminate with the specified exit code.
-    time_t      timeout;          // Fail test if it hasn't returned after the specified number of seconds
+    float       timeout;          // Fail test if it hasn't returned after the specified number of seconds
     void (*setup)(void);          // Specify a test-specific setup function to be run before the test.
     void (*teardown)(void);       // Specify a test-specific teardown function to be run after the test.
 } HglTest;
@@ -415,7 +415,7 @@ void hgl_test_print_escaped(const char *cstr)
 char *hgl_test_read_file(const char *filepath)
 {
     /* open file in read binary mode */
-    FILE *fp = fopen(filepath, "rb");
+    FILE *fp = fopen(filepath, "rb"); 
     if (fp == NULL) {
         ASSERT(0 && "[hgl_test_read_file]: Error opening file");
     }
@@ -521,13 +521,14 @@ void hgl_test_run_test(HglTest *test)
     }
 
     /* handle timeout */
-    if (test->timeout != 0) {
+    if (test->timeout != 0.0f) {
         sigset_t mask;
         sigset_t orig_mask;
-
+        
+        assert(test->timeout > 0.0f);
         struct timespec timeout = {
-            .tv_sec  = test->timeout,
-            .tv_nsec = 0,
+            .tv_sec  = (uint64_t) test->timeout,
+            .tv_nsec = (uint64_t) 1000000000.0f*(test->timeout - (int) test->timeout),
         };
 
         sigemptyset(&mask);
@@ -587,7 +588,7 @@ void hgl_test_run_test(HglTest *test)
             test->hidden__.result |= EXPECT_SIGNAL_FAIL;
             pass = false;
         }
-
+    
         if (test->hidden__.exit_code == EXIT_CODE_ASSERT_FAIL) {
             test->hidden__.result |= ASSERTION_FAIL;
             pass = false;
@@ -632,13 +633,13 @@ void hgl_test_run_test(HglTest *test)
 
         if (test->hidden__.result & EXPECT_EXIT_CODE_FAIL) {
             fprintf(stderr, ANSI_RED ANSI_BOLD "  EXIT CODE ERROR" ANSI_NS ANSI_NC ": ");
-            fprintf(stderr, ANSI_BOLD " Expected exit code: " ANSI_NS "%d  " ANSI_BOLD
+            fprintf(stderr, ANSI_BOLD " Expected exit code: " ANSI_NS "%d  " ANSI_BOLD 
                             "Got: " ANSI_NS "%d\n", test->expect_exit_code, WEXITSTATUS(wstatus));
         }
 
         if (test->hidden__.result & TIMEOUT_FAIL) {
             fprintf(stderr, ANSI_RED ANSI_BOLD "  TIMED OUT" ANSI_NS ANSI_NC ": ");
-            fprintf(stderr, ANSI_BOLD " Test took more than: " ANSI_NS "%ld seconds\n", test->timeout);
+            fprintf(stderr, ANSI_BOLD " Test took more than: " ANSI_NS "%f seconds\n", (double) test->timeout);
         }
     }
 
@@ -744,5 +745,5 @@ int main(int argc, char *argv[])
 #pragma GCC diagnostic ignored "-Wunused-const-variable"
 #endif /* HGL_TEST_H */
 
-// TODO Use a second pipe for passing results to parent process instead of using exit codes.
-// TODO compare output with file contents (.expect_output = FILE_CONTENTS("some_file.txt") ?)
+// TODO compare output with file contents (.expect_output = FILE_CONTENTS("some_file.txt") ?) 
+
