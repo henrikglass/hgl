@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 
+#define HGL_SERIALIZE_IMPLEMENTATION
 #include "hgl_serialize.h"
 
 typedef struct __attribute__((__packed__)) {

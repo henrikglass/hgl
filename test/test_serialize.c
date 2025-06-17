@@ -1,6 +1,7 @@
 
 #include "hgl_test.h"
 
+#define HGL_SERIALIZE_IMPLEMENTATION
 #include "hgl_serialize.h"
 
 
@@ -82,6 +83,99 @@ TEST(test_expect)
     ASSERT(NULL != hgl_serialize(scratch, &my_data, "#FF#4{-}'fisk'"));
     ASSERT(NULL == hgl_serialize(scratch, &my_data, "#FF#4{-}'pisk'"));
     ASSERT(NULL == hgl_serialize(scratch, &my_data, "#00#4{-}'fisk'"));
+}
+
+TEST(test_unaligned_read)
+{
+    uint16_t value16;
+    uint32_t value32;
+    uint64_t value64;
+    static uint8_t some_data[] = {
+        0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    };
+
+    // be32
+    hgl_serialize(&value32, &some_data[0], "[BE]DW");
+    ASSERT(value32 == 0x11223344);
+    hgl_serialize(&value32, &some_data[0], "[BE]1{-}DW");
+    ASSERT(value32 == 0x22334455);
+    hgl_serialize(&value32, &some_data[0], "[BE]2{-}DW");
+    ASSERT(value32 == 0x33445566);
+    hgl_serialize(&value32, &some_data[0], "[BE]3{-}DW");
+    ASSERT(value32 == 0x44556677);
+    hgl_serialize(&value32, &some_data[0], "[BE]4{-}DW");
+    ASSERT(value32 == 0x55667788);
+
+    // le32
+    hgl_serialize(&value32, &some_data[0], "[LE]DW");
+    ASSERT(value32 == 0x44332211);
+    hgl_serialize(&value32, &some_data[0], "[LE]1{-}DW");
+    ASSERT(value32 == 0x55443322);
+    hgl_serialize(&value32, &some_data[0], "[LE]2{-}DW");
+    ASSERT(value32 == 0x66554433);
+    hgl_serialize(&value32, &some_data[0], "[LE]3{-}DW");
+    ASSERT(value32 == 0x77665544);
+    hgl_serialize(&value32, &some_data[0], "[LE]4{-}DW");
+    ASSERT(value32 == 0x88776655);
+
+    // be16/le16
+    hgl_serialize(&value16, &some_data[0], "[BE]1{-}W");
+    ASSERT(value16 == 0x2233);
+    hgl_serialize(&value16, &some_data[0], "[LE]1{-}W");
+    ASSERT(value16 == 0x3322);
+    
+    // be64/le64
+    hgl_serialize(&value64, &some_data[0], "[BE]1{-}QW");
+    ASSERT(value64 == 0x2233445566778899);
+    hgl_serialize(&value64, &some_data[0], "[LE]1{-}QW");
+    ASSERT(value64 == 0x9988776655443322);
+
+    hgl_serialize(&value32, &some_data[1], "[BE]DW");
+    ASSERT(value32 == 0x22334455);
+}
+
+TEST(test_unaligned_write)
+{
+    static uint8_t some_data[] = {
+        0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99,
+    };
+
+    for (int i = 0; i < 2; i++) {
+        hgl_serialize(&scratch, &some_data[0], "[BE]%{+}W", i);
+        switch (HGL_SERIALIZE_MACHINE_ENDIANNESS) {
+            case LE_ORDER: ASSERT(scratch[0 + i] == 0x22 && scratch[1 + i] == 0x11); break;
+            case BE_ORDER: ASSERT(scratch[1 + i] == 0x22 && scratch[0 + i] == 0x11); break;
+        }
+    }
+
+    for (int i = 0; i < 4; i++) {
+        hgl_serialize(&scratch, &some_data[0], "[BE]%{+}DW", i);
+        switch (HGL_SERIALIZE_MACHINE_ENDIANNESS) {
+            case LE_ORDER: ASSERT(scratch[0 + i] == 0x44 && scratch[1 + i] == 0x33 && scratch[2 + i] == 0x22 && scratch[3 + i] == 0x11); break;
+            case BE_ORDER: ASSERT(scratch[3 + i] == 0x44 && scratch[2 + i] == 0x33 && scratch[1 + i] == 0x22 && scratch[0 + i] == 0x11); break;
+        }
+    }
+}
+
+TEST(test_nested_repeat, .timeout = 1)
+{
+    uint8_t value;
+
+    value = 0;
+    scratch[6*2*8] = 0x42;
+    hgl_serialize(&value, scratch, "6{ 2{ 8{ - } } } B");
+    assert(value == 0x42);
+
+    value = 0;
+    scratch[6*2*8] = 0x69;
+    hgl_serialize(&value, scratch, "6{ [BE] 2{ 8{ [LE] - } } } B");
+    assert(value == 0x69);
+
+    value = 0;
+    scratch[6*2*8] = 0x16;
+    hgl_serialize(&value, scratch, "%{ %{ %{ - } } } B", 6, 2, 8);
+    assert(value == 0x16);
+
 }
 
 #define TEST_STR "Hejsan Hoppsan"

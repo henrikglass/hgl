@@ -2,3 +2,5 @@ tags
 build/*
 todo.todo
 run_tests.sh
+*.swp
+.*.swp

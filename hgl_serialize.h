@@ -34,6 +34,7 @@
  *
  * Include hgl_serialize.h file like this:
  *
+ *     #define HGL_SERIALIZE_IMPLEMENTATION
  *     #include "hgl_serialize.h"
  *
  * hgl_serialize.h exports the function:
@@ -126,33 +127,38 @@
 #ifndef HGL_SERIALIZE_H
 #define HGL_SERIALIZE_H
 
-/*--- Include files ---------------------------------------------------------------------*/
+#include <stdarg.h>
+
+void *hgl_serialize(void *dst, void *src, const char *fmt, ...);
+
+#endif /* HGL_SERIALIZE_H */
+
+#ifdef HGL_SERIALIZE_IMPLEMENTATION
 
 #include <stdint.h>
-#include <stdarg.h>
 #include <byteswap.h>
+#include <assert.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <stddef.h>
 
-/*--- Public macros ---------------------------------------------------------------------*/
-
-#define EXPECT(cond) \
+#define HGL_SERIALIZE_EXPECT(cond) \
     do { \
         if (!(cond)) { \
-            fprintf(stderr, "[hgl_serialize error]: Expected %s <%s:%d>\n", \
+            fprintf(stderr, "[hgl_serialize error]: Expected `%s` <%s:%d>\n", \
                             #cond, __FILE__, __LINE__); \
             return NULL; \
         } \
     } while(0)
 
-#define IS_DIGIT(c) ((c) >= '0' && (c) <= '9')
-#define IS_HEX_DIGIT(c) (((c) >= '0' && (c) <= '9') || \
-                         ((c) >= 'a' && (c) <= 'f') || \
-                         ((c) >= 'A' && (c) <= 'F'))
+#define HGL_SERIALIZE_IS_DIGIT(c) ((c) >= '0' && (c) <= '9')
+#define HGL_SERIALIZE_IS_HEX_DIGIT(c) (((c) >= '0' && (c) <= '9') || \
+                                       ((c) >= 'a' && (c) <= 'f') || \
+                                       ((c) >= 'A' && (c) <= 'F'))
 
-#define HGL_MACHINE_ENDIANNESS ((1 == ntohl(1)) ? BE_ORDER : LE_ORDER)
-
-/*--- Public type definitions -----------------------------------------------------------*/
+#define HGL_SERIALIZE_MACHINE_ENDIANNESS ((1 == ntohl(1)) ? BE_ORDER : LE_ORDER)
+#define HGL_SERIALIZE_JUMP_STACK_HEGIHT 32
+#define HGL_SERIALIZE_LOOP_ITER_CACHE_SIZE 255
 
 typedef enum {
     BE_ORDER, 
@@ -164,7 +170,20 @@ typedef struct {
     const char *block_start;
 } Jump;
 
-/*--- Public functions ------------------------------------------------------------------*/
+typedef struct {
+    ptrdiff_t idx;
+    int n_iter;
+} IndexValuePair;
+
+static inline uint8_t nibble_to_int_(char nibble);
+static inline uint8_t read_8_(uint8_t **src);
+static inline uint16_t read_16_(uint8_t **src, ByteOrder byte_order);
+static inline uint32_t read_32_(uint8_t **src, ByteOrder byte_order);
+static inline uint64_t read_64_(uint8_t **src, ByteOrder byte_order);
+static inline void write_8_(uint8_t **dst, uint8_t value);
+static inline void write_16_(uint8_t **dst, uint16_t value);
+static inline void write_32_(uint8_t **dst, uint32_t value);
+static inline void write_64_(uint8_t **dst, uint64_t value);
 
 static inline uint8_t nibble_to_int_(char nibble)
 {
@@ -187,24 +206,82 @@ static inline uint8_t read_8_(uint8_t **src)
 
 static inline uint16_t read_16_(uint8_t **src, ByteOrder byte_order)
 {
+#if 0
     uint16_t *src16 = (uint16_t *) *src;
-    uint16_t value = (HGL_MACHINE_ENDIANNESS != byte_order) ? bswap_16(*src16) : *src16;
+    uint16_t value = (HGL_SERIALIZE_MACHINE_ENDIANNESS != byte_order) ? bswap_16(*src16) : *src16;
+#else
+    uint16_t value = 0;
+    switch (byte_order) {
+        case BE_ORDER: {
+            value = ((uint16_t) (*src)[0] << 8) | 
+                    ((uint16_t) (*src)[1]);
+        } break;
+        case LE_ORDER: {
+            value = ((uint16_t) (*src)[1] << 8) | 
+                    ((uint16_t) (*src)[0]);
+        } break;
+    }
+#endif
     *src += 2;
     return value;
 }
 
 static inline uint32_t read_32_(uint8_t **src, ByteOrder byte_order)
 {
+#if 0
     uint32_t *src32 = (uint32_t *) *src;
-    uint32_t value = (HGL_MACHINE_ENDIANNESS != byte_order) ? bswap_32(*src32) : *src32;
+    uint32_t value = (HGL_SERIALIZE_MACHINE_ENDIANNESS != byte_order) ? bswap_32(*src32) : *src32;
+#else
+    uint32_t value = 0;
+    switch (byte_order) {
+        case BE_ORDER: {
+            value = ((uint32_t) (*src)[0] << 24) | 
+                    ((uint32_t) (*src)[1] << 16) | 
+                    ((uint32_t) (*src)[2] <<  8) | 
+                    ((uint32_t) (*src)[3]);
+        } break;
+        case LE_ORDER: {
+            value = ((uint32_t) (*src)[3] << 24) | 
+                    ((uint32_t) (*src)[2] << 16) | 
+                    ((uint32_t) (*src)[1] <<  8) | 
+                    ((uint32_t) (*src)[0]);
+        } break;
+    }
+#endif
     *src += 4;
     return value;
 }
 
 static inline uint64_t read_64_(uint8_t **src, ByteOrder byte_order)
 {
+#if 0
     uint64_t *src64 = (uint64_t *) *src;
-    uint64_t value = (HGL_MACHINE_ENDIANNESS != byte_order) ? bswap_64(*src64) : *src64;
+    uint64_t value = (HGL_SERIALIZE_MACHINE_ENDIANNESS != byte_order) ? bswap_64(*src64) : *src64;
+#else
+    uint64_t value = 0;
+    switch (byte_order) {
+        case BE_ORDER: {
+            value = ((uint64_t) (*src)[0] << 56) | 
+                    ((uint64_t) (*src)[1] << 48) | 
+                    ((uint64_t) (*src)[2] << 40) | 
+                    ((uint64_t) (*src)[3] << 32) | 
+                    ((uint64_t) (*src)[4] << 24) | 
+                    ((uint64_t) (*src)[5] << 16) | 
+                    ((uint64_t) (*src)[6] <<  8) | 
+                    ((uint64_t) (*src)[7]);
+        } break;
+        case LE_ORDER: {
+            value = ((uint64_t) (*src)[7] << 56) | 
+                    ((uint64_t) (*src)[6] << 48) | 
+                    ((uint64_t) (*src)[5] << 40) | 
+                    ((uint64_t) (*src)[4] << 32) | 
+                    ((uint64_t) (*src)[3] << 24) | 
+                    ((uint64_t) (*src)[2] << 16) | 
+                    ((uint64_t) (*src)[1] <<  8) | 
+                    ((uint64_t) (*src)[0]);
+        } break;
+    }
+#endif
     *src += 8;
     return value;
 }
@@ -217,46 +294,116 @@ static inline void write_8_(uint8_t **dst, uint8_t value)
 
 static inline void write_16_(uint8_t **dst, uint16_t value)
 {
+#if 0
     *((uint16_t *)*dst) = value;
+#else
+    switch (HGL_SERIALIZE_MACHINE_ENDIANNESS) {
+        case BE_ORDER: {
+            (*dst)[0] = (value >> 8) & 0xFF;
+            (*dst)[1] = (value) & 0xFF;
+        } break;
+        case LE_ORDER: {
+            (*dst)[0] = (value) & 0xFF;
+            (*dst)[1] = (value >> 8) & 0xFF;
+        } break;
+    }
+#endif
     *dst += 2;
 }
 
 static inline void write_32_(uint8_t **dst, uint32_t value)
 {
+#if 0
     *((uint32_t *)*dst) = value;
+#else
+    switch (HGL_SERIALIZE_MACHINE_ENDIANNESS) {
+        case BE_ORDER: {
+            (*dst)[0] = (value >> 24) & 0xFF;
+            (*dst)[1] = (value >> 16) & 0xFF;
+            (*dst)[2] = (value >>  8) & 0xFF;
+            (*dst)[3] = (value >>  0) & 0xFF;
+        } break;
+        case LE_ORDER: {
+            (*dst)[0] = (value >>  0) & 0xFF;
+            (*dst)[1] = (value >>  8) & 0xFF;
+            (*dst)[2] = (value >> 16) & 0xFF;
+            (*dst)[3] = (value >> 24) & 0xFF;
+        } break;
+    }
+#endif
     *dst += 4;
 }
 
 static inline void write_64_(uint8_t **dst, uint64_t value)
 {
+#if 0
     *((uint64_t *)*dst) = value;
+#else
+    switch (HGL_SERIALIZE_MACHINE_ENDIANNESS) {
+        case BE_ORDER: {
+            (*dst)[0] = (value >> 56) & 0xFF;
+            (*dst)[1] = (value >> 48) & 0xFF;
+            (*dst)[2] = (value >> 40) & 0xFF;
+            (*dst)[3] = (value >> 32) & 0xFF;
+            (*dst)[4] = (value >> 24) & 0xFF;
+            (*dst)[5] = (value >> 16) & 0xFF;
+            (*dst)[6] = (value >>  8) & 0xFF;
+            (*dst)[7] = (value >>  0) & 0xFF;
+        } break;
+        case LE_ORDER: {
+            (*dst)[0] = (value >>  0) & 0xFF;
+            (*dst)[1] = (value >>  8) & 0xFF;
+            (*dst)[2] = (value >> 16) & 0xFF;
+            (*dst)[3] = (value >> 24) & 0xFF;
+            (*dst)[4] = (value >> 32) & 0xFF;
+            (*dst)[5] = (value >> 40) & 0xFF;
+            (*dst)[6] = (value >> 48) & 0xFF;
+            (*dst)[7] = (value >> 56) & 0xFF;
+        } break;
+    }
+#endif
     *dst += 8;
 }
 
-static inline void *hgl_serialize(void *dst, void *src, const char *fmt, ...)
+void *hgl_serialize(void *dst, void *src, const char *fmt, ...)
 {
+    const char *fmt_start = fmt;
+
     uint8_t *read_ptr = (uint8_t *) src;
     uint8_t *write_ptr = (uint8_t *) dst;
     ByteOrder byte_order = BE_ORDER;
 
-    char digit_stack[10] = {0};
+    /* 
+     * This is user to parse numbers.
+     */
+    static char digit_stack[10] = {0};
     int digit_stack_idx = 0;
 
+    /* 
+     * This is to keep track of repeat statement starting positions.
+     */
+    static Jump jump_stack[HGL_SERIALIZE_JUMP_STACK_HEGIHT] = {0};
     int jump_stack_top = 0;
-    Jump jump_stack[32] = {0};
-    
+
+    /* 
+     * This is to keep track of the number of iterations for each repeat statement
+     * declared with a format specifier, e.g. "%{DW}".
+     */
+    static IndexValuePair loop_iter_cache[HGL_SERIALIZE_LOOP_ITER_CACHE_SIZE] = {0};
+    int loop_iter_cache_idx = 0;
+
     va_list args;
     va_start(args, fmt);
 
     while (*fmt != '\0') {
         
         /* handle repeating block */
-        if ((*fmt == '%') || IS_DIGIT(*fmt)) {
+        if ((*fmt == '%') || HGL_SERIALIZE_IS_DIGIT(*fmt)) {
             int n_iter = 0;
 
-            if (IS_DIGIT(*fmt)) {
+            if (HGL_SERIALIZE_IS_DIGIT(*fmt)) {
                 /* read digts */
-                while (IS_DIGIT(*fmt) && digit_stack_idx < 10) {
+                while (HGL_SERIALIZE_IS_DIGIT(*fmt) && digit_stack_idx < 10) {
                     digit_stack[digit_stack_idx] = *fmt;
                     digit_stack_idx++;
                     fmt++;
@@ -270,17 +417,47 @@ static inline void *hgl_serialize(void *dst, void *src, const char *fmt, ...)
                     coeff *= 10;
                 }
             } else {
-                n_iter = va_arg(args, int);
+                /* check if number-of-iterations value has been cached */
+                n_iter = -1;
+                ptrdiff_t idx = fmt - fmt_start;
+                for (int i = 0; i < loop_iter_cache_idx; i++) {
+                    if (idx == loop_iter_cache[i].idx) {
+                        n_iter = loop_iter_cache[i].n_iter;
+                        break;
+                    }
+                }
+
+                /* No hit? Read next value from variadic args list & add to cache */
+                if (n_iter == -1) {
+                    n_iter = va_arg(args, int);
+                    loop_iter_cache[loop_iter_cache_idx].idx = idx;
+                    loop_iter_cache[loop_iter_cache_idx].n_iter = n_iter;
+                    loop_iter_cache_idx++;
+                    HGL_SERIALIZE_EXPECT(loop_iter_cache_idx < HGL_SERIALIZE_LOOP_ITER_CACHE_SIZE);
+                }
+
+                /* Proceed to '{' */
                 fmt++;
             }
 
-            EXPECT(*fmt == '{');
+            HGL_SERIALIZE_EXPECT(*fmt == '{');
             
-            /* add entry to jump stack */
-            jump_stack[jump_stack_top].n_iterations = n_iter;
-            jump_stack[jump_stack_top].block_start = fmt;
-            jump_stack_top++;
-            fmt++;
+            if (n_iter == 0) {
+                int n_open_curlies = 1;
+                fmt++;
+                while (n_open_curlies > 0) {
+                    HGL_SERIALIZE_EXPECT(*fmt != '\0');
+                    if (*fmt == '{') n_open_curlies++;
+                    if (*fmt == '}') n_open_curlies--;
+                    fmt++;
+                }
+            } else {
+                /* add entry to jump stack */
+                jump_stack[jump_stack_top].n_iterations = n_iter;
+                jump_stack[jump_stack_top].block_start = fmt;
+                jump_stack_top++;
+                fmt++;
+            }
             continue;
         }
 
@@ -292,7 +469,7 @@ static inline void *hgl_serialize(void *dst, void *src, const char *fmt, ...)
 
             /* handle jump-backs */
             case '}': {
-                EXPECT(jump_stack_top > 0);
+                HGL_SERIALIZE_EXPECT(jump_stack_top > 0);
                 jump_stack[jump_stack_top - 1].n_iterations--;
                 if (jump_stack[jump_stack_top - 1].n_iterations > 0) {
                     fmt = jump_stack[jump_stack_top - 1].block_start;
@@ -309,7 +486,7 @@ static inline void *hgl_serialize(void *dst, void *src, const char *fmt, ...)
                 } else if (0 == strncmp(fmt, "[LE]", 4)) {
                     byte_order = LE_ORDER;
                 } else {
-                    EXPECT(0); // fail.
+                    HGL_SERIALIZE_EXPECT(0); // fail.
                 }
                 fmt += 4;
             } break;
@@ -335,8 +512,8 @@ static inline void *hgl_serialize(void *dst, void *src, const char *fmt, ...)
                         size_t offset = 0;
                         fmt++;
                         while (fmt[0] != '>') {
-                            EXPECT(IS_HEX_DIGIT(fmt[0]));
-                            EXPECT(IS_HEX_DIGIT(fmt[1]));
+                            HGL_SERIALIZE_EXPECT(HGL_SERIALIZE_IS_HEX_DIGIT(fmt[0]));
+                            HGL_SERIALIZE_EXPECT(HGL_SERIALIZE_IS_HEX_DIGIT(fmt[1]));
                             char high_nibble = *fmt++;
                             char low_nibble = *fmt++;
                             offset <<= 8;
@@ -362,8 +539,8 @@ static inline void *hgl_serialize(void *dst, void *src, const char *fmt, ...)
 
                         fmt++;
                         while (fmt[0] != '#') {
-                            EXPECT(IS_HEX_DIGIT(fmt[0]));
-                            EXPECT(IS_HEX_DIGIT(fmt[1]));
+                            HGL_SERIALIZE_EXPECT(HGL_SERIALIZE_IS_HEX_DIGIT(fmt[0]));
+                            HGL_SERIALIZE_EXPECT(HGL_SERIALIZE_IS_HEX_DIGIT(fmt[1]));
                             char high_nibble = *fmt++;
                             char low_nibble = *fmt++;
                             to_write = (nibble_to_int_(high_nibble) << 4) +
@@ -374,7 +551,7 @@ static inline void *hgl_serialize(void *dst, void *src, const char *fmt, ...)
                     } break;
 
                     default:
-                        EXPECT(0);
+                        HGL_SERIALIZE_EXPECT(0);
                 } 
             } break;
 
@@ -383,8 +560,8 @@ static inline void *hgl_serialize(void *dst, void *src, const char *fmt, ...)
                 size_t offset = 0;
                 fmt++;
                 while (fmt[0] != '>') {
-                    EXPECT(IS_HEX_DIGIT(fmt[0]));
-                    EXPECT(IS_HEX_DIGIT(fmt[1]));
+                    HGL_SERIALIZE_EXPECT(HGL_SERIALIZE_IS_HEX_DIGIT(fmt[0]));
+                    HGL_SERIALIZE_EXPECT(HGL_SERIALIZE_IS_HEX_DIGIT(fmt[1]));
                     char high_nibble = *fmt++;
                     char low_nibble = *fmt++;
                     offset <<= 8;
@@ -401,7 +578,7 @@ static inline void *hgl_serialize(void *dst, void *src, const char *fmt, ...)
                 while (*fmt != '\'') {
                     char expected = *fmt++;
                     char actual = read_8_(&read_ptr);  
-                    EXPECT(actual == expected);
+                    HGL_SERIALIZE_EXPECT(actual == expected);
                 }
                 fmt++;
             } break;
@@ -413,14 +590,14 @@ static inline void *hgl_serialize(void *dst, void *src, const char *fmt, ...)
 
                 fmt++;
                 while (*fmt != '#') {
-                    EXPECT(IS_HEX_DIGIT(fmt[0]));
-                    EXPECT(IS_HEX_DIGIT(fmt[1]));
+                    HGL_SERIALIZE_EXPECT(HGL_SERIALIZE_IS_HEX_DIGIT(fmt[0]));
+                    HGL_SERIALIZE_EXPECT(HGL_SERIALIZE_IS_HEX_DIGIT(fmt[1]));
                     char high_nibble = *fmt++;
                     char low_nibble = *fmt++;
                     expected = (nibble_to_int_(high_nibble) << 4) +
                                 nibble_to_int_(low_nibble);
                     actual = read_8_(&read_ptr); 
-                    EXPECT(actual == expected);
+                    HGL_SERIALIZE_EXPECT(actual == expected);
                 }
                 fmt++;
             } break;
@@ -435,19 +612,19 @@ static inline void *hgl_serialize(void *dst, void *src, const char *fmt, ...)
                 fmt++; 
                 break;
             case 'D': 
-                EXPECT(fmt[1] == 'W'); 
+                HGL_SERIALIZE_EXPECT(fmt[1] == 'W'); 
                 write_32_(&write_ptr, read_32_(&read_ptr, byte_order)); 
                 fmt += 2; 
                 break;
             case 'Q': 
-                EXPECT(fmt[1] == 'W'); 
+                HGL_SERIALIZE_EXPECT(fmt[1] == 'W'); 
                 write_64_(&write_ptr, read_64_(&read_ptr, byte_order)); 
                 fmt += 2; 
                 break;
 
             /* unknown character */
             default:
-                EXPECT(0);
+                HGL_SERIALIZE_EXPECT(0);
         }
     }
    
@@ -456,5 +633,5 @@ static inline void *hgl_serialize(void *dst, void *src, const char *fmt, ...)
     return (void *) read_ptr;
 }
 
-#endif /* HGL_SERIALIZE_H */
+#endif /* HGL_SERIALIZE_IMPLEMENTATION */
 

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#define HGL_SERIALIZE_IMPLEMENTATION
 #include "hgl_serialize.h"
 
 // NB: this struct ignores some fields of the ELF header.
