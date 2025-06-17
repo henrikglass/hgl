@@ -12,7 +12,7 @@ TEST_BUILD_DIR := build/test
 
 all: examples test
 
-examples: vec         			\
+examples: vec         					\
           rbuf                          \
           chan                          \
           rhashtbl                      \
@@ -249,6 +249,7 @@ test: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_rle.c -o $(TEST_BUILD_DIR)/test_rle
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_tq.c -o $(TEST_BUILD_DIR)/test_tq
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_base64.c -o $(TEST_BUILD_DIR)/test_base64
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_waitgroup.c -o $(TEST_BUILD_DIR)/test_waitgroup
 	-rm run_tests.sh
 	echo "#!/bin/bash" >> run_tests.sh
 	find $(shell pwd)/build/test/ -type f -executable | sed "s/$$/ \&\&/">> run_tests.sh
