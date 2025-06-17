@@ -51,7 +51,7 @@ int main(void)
         B[i] = i*2;
     }
 
-    barrier = hgl_barrier_init(N_WORKERS);
+    barrier = hgl_barrier_make(N_WORKERS);
     HglWorkerPool *wp = hgl_worker_pool_init(N_WORKERS, 32);
     for (int i = 0; i < N_WORKERS; i++) {
         hgl_worker_pool_add_job(wp, my_func, (void *)(uintptr_t)i);
