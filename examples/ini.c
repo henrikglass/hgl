@@ -44,7 +44,7 @@ int main(void)
 
     fs_allocator = hgl_fs_make(2*1024, 4);
 
-    HglIni *ini = hgl_ini_parse("assets/test.ini");
+    HglIni *ini = hgl_ini_open("assets/test.ini");
     if (ini == NULL) {
         return 1;
     }
@@ -75,6 +75,15 @@ int main(void)
 
     printf("{%zu -- %zu}\n", fs_allocator.free_stack[fs_allocator.free_count - 1].start - fs_allocator.memory,
                              fs_allocator.free_stack[fs_allocator.free_count - 1].end - fs_allocator.memory);
+
+#if 0
+    ini = hgl_ini_create("testingtesting.ini");
+    hgl_ini_put(ini, "Things", "added_bool", "true");
+    hgl_ini_put(ini, "Things", "added_bool", "false");
+    hgl_ini_put(ini, "Things2", "added_thing", "127.0.0.1");
+    hgl_ini_put(ini, "Things2", "added_thing_again", "127.0.0.1");
+    hgl_ini_save(ini, NULL);
+#endif
 
     //hgl_memdbg_report();
     return 0;
