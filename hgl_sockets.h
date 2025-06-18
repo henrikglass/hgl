@@ -117,8 +117,8 @@ int hgl_socket_client(const char *host, const char *service, HglSocketProtocol p
     struct addrinfo hints;
     struct addrinfo *addrs;
     struct addrinfo *ai;
-    int socktype;
-    int prot;
+    int socktype = 0;
+    int prot = 0;
 
     switch (protocol) {
         case HGL_SOCKET_TCP: {
@@ -179,8 +179,8 @@ int hgl_socket_server(const char *service, HglSocketProtocol protocol)
     struct addrinfo hints;
     struct addrinfo *addrs;
     struct addrinfo *ai;
-    int socktype;
-    int prot;
+    int socktype = 0;
+    int prot = 0;
 
     switch (protocol) {
         case HGL_SOCKET_TCP: {
