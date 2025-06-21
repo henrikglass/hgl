@@ -561,7 +561,11 @@ void hgl_flags_print()
                        -HGL_FLAGS_PRINT_MARGIN, names, desc, defv.f64, rmin.f64, rmax.f64);
             } break;
             case HGL_FLAGS_KIND_STR: {
-                printf("  %-*s %s (default = \"%s\")", -HGL_FLAGS_PRINT_MARGIN, names, desc, defv.str); break;
+                if (defv.str != NULL) {
+                    printf("  %-*s %s (default = \"%s\")", -HGL_FLAGS_PRINT_MARGIN, names, desc, defv.str); break;
+                } else {
+                    printf("  %-*s %s (default = -)", -HGL_FLAGS_PRINT_MARGIN, names, desc); break;
+                }
             } break;
         }
 
