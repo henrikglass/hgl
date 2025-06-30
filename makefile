@@ -22,7 +22,7 @@ examples: vec         					\
           arena_alloc                   \
           pool_alloc                    \
           fs_alloc                      \
-          hgl                           \
+          misc                          \
           hotload                       \
           serialize                     \
           memdbg                        \
@@ -59,8 +59,8 @@ examples: vec         					\
           rita_mandelbulb               \
    	  tqueue      
 
-hgl: prep
-	gcc -I. -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L $(EXAMPLES_DIR)/hgl.c -o $(EXAMPLES_BUILD_DIR)/hgl
+misc: prep
+	gcc -I. -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L $(EXAMPLES_DIR)/misc.c -o $(EXAMPLES_BUILD_DIR)/misc
 
 vec: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/vec.c -o $(EXAMPLES_BUILD_DIR)/vec

@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "hgl.h"
+#include "hgl_misc.h"
 #include "hgl_da.h"
 
 #define HGL_MEMDBG_IMPLEMENTATION

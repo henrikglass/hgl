@@ -28,7 +28,7 @@
  *
  * ABOUT:
  *
- * hgl.h contains a bunch of misc. typedefs, macros, and useful functions that I 
+ * hgl_misc.h contains a bunch of misc. typedefs, macros, and useful functions that I 
  * use from time to time.
  *
  *

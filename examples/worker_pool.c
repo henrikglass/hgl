@@ -3,7 +3,7 @@
 #define HGL_WORKER_POOL_IMPLEMENTATION
 #include "hgl_worker_pool.h"
 
-#include "hgl.h"
+#include "hgl_misc.h"
 
 #include <stdio.h>
 
