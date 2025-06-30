@@ -48,15 +48,6 @@
  * then the internal hgl_memdbg implementation will request 16 + 8 bytes, store the
  * linked list node in the top 16 bytes, and return a pointer to the remaining 8.
  *
- * To ensure that the linked list is maintained in a safe manner in a multithreaded
- * program, the user should define the following before including `hgl_memdbg.h`:
- *
- *     #define HGL_MEMDBG_ENABLE_MULTITHREAD
- *
- * `HGL_MEMDBG_ENABLE_MULTITHREAD` adds a global mutex to the program which is used
- * to ensure mutual exclusion of the entire linked list when accessed from different
- * threads.
- *
  * Optionally, you can define the following:
  *
  *     #define HGL_MEMDBG_ENABLE_STACKTRACES
@@ -65,6 +56,11 @@
  * malloc and realloc that will be printed in case of a memory leak. Note that this
  * will cause some overhead for calls to malloc, realloc, and free.
  *
+ * To disable hgl_memdbg.h without having to comment out all the 
+ * `#include "hgl_memdbg.h"` in your code, you can define the following macro
+ * ahead of including the implementation:
+ *
+ *     #define HGL_MEMDBG_DISABLE
  *
  * EXAMPLE:
  *
@@ -84,8 +80,10 @@
  *
  *         // Oops, we forgot to free 'arr'!
  *
- *         int err = hgl_memdbg_report();
- *         return (err != 0) ? 1 : 0;
+ *         // NB: Optional! hgl_memdbg.h will automatically register 
+ *         //     hgl_memdbg_report() to run upon program exit.
+ *         // int err = hgl_memdbg_report();
+ *         // return (err != 0) ? 1 : 0;
  *     }
  *
  *
@@ -104,38 +102,42 @@
 /*--- Public macros ---------------------------------------------------------------------*/
 
 #define HGL_RED     "\x1b[31m"
+#define HGL_AMBER   "\x1b[33m"
 #define HGL_MAGENTA "\x1b[35m"
 #define HGL_NC      "\x1b[0m"
 
 /*--- Public type definitions -----------------------------------------------------------*/
 
 /* Goes at the start of an allocation */
+// TODO reorder largest --> smallest
 typedef struct HglAllocationHeader {
+    size_t size;
+    struct HglAllocationHeader *prev;
+    struct HglAllocationHeader *next;
+    const char *expr_str;
     const char *file;
     int line;
-    size_t size;
 #ifdef HGL_MEMDBG_ENABLE_STACKTRACES
     char **stack_trace;
     int stack_trace_depth;
 #endif
-    struct HglAllocationHeader *prev;
-    struct HglAllocationHeader *next;
 } HglAllocationHeader;
 
 /*--- Public variables ------------------------------------------------------------------*/
 
 /*--- Public function prototypes --------------------------------------------------------*/
 
-void *hgl_memdbg_internal_malloc_(size_t size, const char *file, int line);
-void *hgl_memdbg_internal_realloc_(void *ptr, size_t size, const char *file, int line);
+void *hgl_memdbg_internal_malloc_(size_t size, const char *file, int line, const char *expr_str);
+void *hgl_memdbg_internal_calloc_(size_t nmemb, size_t size, const char *file, int line, const char *expr_str);
+void *hgl_memdbg_internal_realloc_(void *ptr, size_t size, const char *file, int line, const char *expr_str);
 void hgl_memdbg_internal_free_(void *ptr);
 
 /**
  * Prints a memory leak report.
- *
- * Returns 0 if no leaks were found, -1 otherwise.
  */
 int hgl_memdbg_report(void);
+
+void hgl_memdbg_atexit_(void);
 
 #endif /* HGL_MEMDBG_H */
 
@@ -143,21 +145,37 @@ int hgl_memdbg_report(void);
 
 #include <stdio.h>
 #include <stddef.h>
+#include <pthread.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <assert.h>
+#ifdef HGL_MEMDBG_ENABLE_STACKTRACES
+#include <execinfo.h>
+#endif
 
 /* Size of header + required padding to keep the alignment constraints of malloc */
 #define HGL_MEMDBG_PADDED_HEADER_SIZE (sizeof(HglAllocationHeader) + (_Alignof(max_align_t) - \
                                       (sizeof(HglAllocationHeader) & (_Alignof(max_align_t) - 1))))
 
 
-HglAllocationHeader *hgl_allocation_header_head_ = NULL;
-
-#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
-#include <pthread.h>
+static HglAllocationHeader *hgl_allocation_header_head_ = NULL;
 static pthread_mutex_t hgl_memdbg_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+static bool exit_func_registered = false;
+
+void *hgl_memdbg_internal_malloc_(size_t size, const char *file, int line, const char *expr_str)
+{
+#ifdef HGL_MEMDBG_DISABLE
+    (void) file;
+    (void) line;
+    (void) expr_str;
+    return malloc(size);
 #endif
 
-void *hgl_memdbg_internal_malloc_(size_t size, const char *file, int line)
-{
+    if (!exit_func_registered) {
+        assert(0 == atexit(hgl_memdbg_atexit_));
+        exit_func_registered = true;
+    }
 
     if (size == 0) {
         return NULL;
@@ -170,14 +188,13 @@ void *hgl_memdbg_internal_malloc_(size_t size, const char *file, int line)
         return NULL;
     }
 
-#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
     pthread_mutex_lock(&hgl_memdbg_mutex_);
-#endif
 
     /* Construct header and insert into circular doubly-linked list */
-    header->file = file;
-    header->line = line;
-    header->size = size;
+    header->expr_str = expr_str;
+    header->file     = file;
+    header->line     = line;
+    header->size     = size;
     if (hgl_allocation_header_head_ == NULL) {
         header->prev = header;
         header->next = header;
@@ -197,23 +214,55 @@ void *hgl_memdbg_internal_malloc_(size_t size, const char *file, int line)
     header->stack_trace = backtrace_symbols(tmp, header->stack_trace_depth);
 #endif
 
-#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
     pthread_mutex_unlock(&hgl_memdbg_mutex_);
-#endif
 
     /* Return memory after header */
     return (void *)((uint8_t *)(header) + HGL_MEMDBG_PADDED_HEADER_SIZE);
 }
 
-void *hgl_memdbg_internal_realloc_(void *ptr, size_t size, const char *file, int line)
+void *hgl_memdbg_internal_calloc_(size_t nmemb, size_t size, const char *file, int line, const char *expr_str)
 {
-    if (ptr == NULL) {
-        return hgl_memdbg_internal_malloc_(size, file, line);
+#ifdef HGL_MEMDBG_DISABLE
+    (void) file;
+    (void) line;
+    (void) expr_str;
+    return calloc(nmemb, size);
+#endif
+
+    if (!exit_func_registered) {
+        assert(0 == atexit(hgl_memdbg_atexit_));
+        exit_func_registered = true;
     }
 
-#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
-    pthread_mutex_lock(&hgl_memdbg_mutex_);
+    if (size == 0 || nmemb == 0) {
+        return NULL;
+    }
+
+    void *ptr = hgl_memdbg_internal_malloc_(nmemb * size, file, line, expr_str);
+    memset(ptr, 0, nmemb * size);
+
+    return ptr;
+}
+
+void *hgl_memdbg_internal_realloc_(void *ptr, size_t size, const char *file, int line, const char *expr_str)
+{
+#ifdef HGL_MEMDBG_DISABLE
+    (void) file;
+    (void) line;
+    (void) expr_str;
+    return realloc(ptr, size);
 #endif
+
+    if (!exit_func_registered) {
+        assert(0 == atexit(hgl_memdbg_atexit_));
+        exit_func_registered = true;
+    }
+
+    if (ptr == NULL) {
+        return hgl_memdbg_internal_malloc_(size, file, line, expr_str);
+    }
+
+    pthread_mutex_lock(&hgl_memdbg_mutex_);
 
     uint8_t *ptr8 = (uint8_t *) ptr;
     HglAllocationHeader *header = (HglAllocationHeader *) (ptr8 - HGL_MEMDBG_PADDED_HEADER_SIZE);
@@ -223,9 +272,7 @@ void *hgl_memdbg_internal_realloc_(void *ptr, size_t size, const char *file, int
     bool is_only_node = (header == next) && (header == prev);
     header = realloc((void *) header, size + HGL_MEMDBG_PADDED_HEADER_SIZE);
     if (header == NULL) {
-#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
         pthread_mutex_unlock(&hgl_memdbg_mutex_);
-#endif
         return NULL;
     }
 
@@ -239,9 +286,10 @@ void *hgl_memdbg_internal_realloc_(void *ptr, size_t size, const char *file, int
     }
 
     /* Update header */
-    header->size = size;
-    header->file = file;
-    header->line = line;
+    header->expr_str = expr_str;
+    header->size     = size;
+    header->file     = file;
+    header->line     = line;
 
 #ifdef HGL_MEMDBG_ENABLE_STACKTRACES
     /* Re-generate stack trace. */
@@ -256,24 +304,30 @@ void *hgl_memdbg_internal_realloc_(void *ptr, size_t size, const char *file, int
         hgl_allocation_header_head_ = header;
     }
 
-#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
     pthread_mutex_unlock(&hgl_memdbg_mutex_);
-#endif
 
     return (void *)((uint8_t *)(header) + HGL_MEMDBG_PADDED_HEADER_SIZE);
 }
 
 void hgl_memdbg_internal_free_(void *ptr)
 {
+#ifdef HGL_MEMDBG_DISABLE
+    free(ptr);
+    return;
+#endif
+
+    if (!exit_func_registered) {
+        assert(0 == atexit(hgl_memdbg_atexit_));
+        exit_func_registered = true;
+    }
+
     uint8_t *ptr8 = (uint8_t *) ptr;
 
     if (ptr == NULL) {
         return;
     }
 
-#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
     pthread_mutex_lock(&hgl_memdbg_mutex_);
-#endif
 
     /* Remove allocation from linked list and free it. */
     HglAllocationHeader *header = (HglAllocationHeader *) (ptr8 - HGL_MEMDBG_PADDED_HEADER_SIZE);
@@ -298,9 +352,7 @@ void hgl_memdbg_internal_free_(void *ptr)
         hgl_allocation_header_head_ = NULL;
     }
 
-#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
     pthread_mutex_unlock(&hgl_memdbg_mutex_);
-#endif
 }
 
 int hgl_memdbg_report()
@@ -321,35 +373,37 @@ int hgl_memdbg_report()
     }
 #endif
 
-    printf("====================== [%shgl_memdbg report%s] ======================\n",
+    printf("============================ [%shgl_memdbg report%s] ============================\n",
            HGL_MAGENTA, HGL_NC);
     if (header != NULL) {
         printf("\n");
-#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
         pthread_mutex_lock(&hgl_memdbg_mutex_);
-#endif
         do {
-            printf("<%s:%d>: %sLEAKED%s %zu bytes of memory.\n",
-                   header->file, header->line, HGL_RED, HGL_NC, header->size);
+            printf("[%s%s:%d%s]: Call to \"%s\" %sLEAKED%s %zu bytes of memory.\n",
+                   HGL_AMBER, header->file, header->line, HGL_NC, header->expr_str,
+                   HGL_RED, HGL_NC, header->size);
 #ifdef HGL_MEMDBG_ENABLE_STACKTRACES
             if (header->stack_trace != NULL) {
-                printf ("Stack trace at allocation (compile with -rdynamic to enable symbols): \n");
+                printf ("    Stack trace at allocation (compile with -rdynamic to enable symbols): \n");
                 for (int i = 0; i < header->stack_trace_depth; i++) {
-                    printf ("  [%d] %s\n", i, header->stack_trace[i]);
+                    printf ("      [%d] %s\n", i, header->stack_trace[i]);
                 }
             }
 #endif
             total_unfreed += header->size;
             header = header->next;
         } while (header != hgl_allocation_header_head_);
-#ifdef HGL_MEMDBG_ENABLE_MULTITHREAD
         pthread_mutex_unlock(&hgl_memdbg_mutex_);
-#endif
     }
     printf("\nTOTAL:\t%zu bytes left unfreed.\n\n", total_unfreed);
-    printf("=================================================================\n");
+    printf("=============================================================================\n");
 
-    return (total_unfreed == 0) ? 0 : -1;
+    return (total_unfreed != 0) ? -1 : 0;
+}
+
+void hgl_memdbg_atexit_(void)
+{
+    (void) hgl_memdbg_report();
 }
 
 #endif
@@ -357,10 +411,9 @@ int hgl_memdbg_report()
 #ifndef HGL_MEMDBG_H
 #define HGL_MEMDBG_H
 
-#define malloc(size)        (hgl_memdbg_internal_malloc_((size), __FILE__, __LINE__))
-#define realloc(ptr, size)  (hgl_memdbg_internal_realloc_((ptr), (size), __FILE__, __LINE__))
+#define malloc(size)        (hgl_memdbg_internal_malloc_((size), __FILE__, __LINE__, "malloc(" #size ");"))
+#define calloc(nmemb, size) (hgl_memdbg_internal_calloc_((nmemb), (size), __FILE__, __LINE__, "calloc(" #nmemb ", " #size ");"))
+#define realloc(ptr, size)  (hgl_memdbg_internal_realloc_((ptr), (size), __FILE__, __LINE__, "realloc(" #ptr ", " #size ");"))
 #define free(ptr)           (hgl_memdbg_internal_free_((ptr)))
 
 #endif
-
-

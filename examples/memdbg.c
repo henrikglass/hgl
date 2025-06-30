@@ -35,6 +35,5 @@ int main(void)
     free(arr);
     free(d);
 
-    int has_leak = hgl_memdbg_report();
-    return (has_leak) ? 1 : 0;
+    return 0;
 }
