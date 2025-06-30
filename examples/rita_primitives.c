@@ -81,7 +81,7 @@ int main()
     HglRitaColor end_color = HGL_RITA_BLUE;
     for (int i = 0; i <= n; i++) {
         float t = (float)i / (float)n;
-        float angle = -t * 3.1415926535f / 2.0;
+        float angle = -t * 3.1415926535f / 2.0f;
         hgl_rita_buf_push(&vbuf_tri_fan, (HglRitaVertex){.pos.x = 500 + 400*cosf(angle), 
                                                          .pos.y = 900 + 400*sinf(angle), 
                                                          .color = hgl_rita_color_lerp(start_color, end_color, t)});

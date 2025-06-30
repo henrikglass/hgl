@@ -143,7 +143,7 @@ int main()
     models[1] = load_model_from_obj("assets/skull.obj");
     models[1].diffuse = load_texture("assets/skull.png");
     models[1].tform = mat4_scale(models[1].tform, vec3_make(1, 1, 1));
-    models[1].tform = mat4_rotate(models[1].tform, -3.1415/2.0f, vec3_make(1, 0, 0));
+    models[1].tform = mat4_rotate(models[1].tform, -3.1415f/2.0f, vec3_make(1, 0, 0));
     models[1].tform = mat4_translate(models[1].tform, vec3_make(0, -10, 0));
     models[2] = load_model_from_obj("assets/hcandersen.obj");
     models[2].diffuse = load_texture("assets/hcandersen_albedo.png");

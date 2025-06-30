@@ -132,7 +132,7 @@ int main()
     while (!WindowShouldClose() && !IsKeyPressed(KEY_Q))
     {
         /* animate */
-        hgl_rita_use_camera_view(vec3_make(2.5*sinf(frame_count*0.005f), 0, 2.5*cosf(frame_count*0.005f)), 
+        hgl_rita_use_camera_view(vec3_make(2.5f*sinf(frame_count*0.005f), 0, 2.5f*cosf(frame_count*0.005f)), 
                                  vec3_make(0,0,0), 
                                  vec3_make(0, 1, 0));
         fractal_power = -5 * cosf(frame_count*0.005f) + 6;

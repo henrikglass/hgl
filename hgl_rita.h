@@ -1359,11 +1359,11 @@ static inline void hgl_rita_draw(HglRitaPrimitiveMode primitive_mode)
     hgl_rita_ctx__.vertices.counter = 0;
 
     /* compute mvp matrix to (potentially) be used in vertex shader */
-    Mat4 m = hgl_rita_ctx__.tform.model;
-    Mat4 v = hgl_rita_ctx__.tform.view;
-    Mat4 p = hgl_rita_ctx__.tform.proj;
-    hgl_rita_ctx__.tform.mv = mat4_mul_mat4(v, m);
-    hgl_rita_ctx__.tform.mvp = mat4_mul_mat4(p, mat4_mul_mat4(v, m));
+    Mat4 M = hgl_rita_ctx__.tform.model;
+    Mat4 V = hgl_rita_ctx__.tform.view;
+    Mat4 P = hgl_rita_ctx__.tform.proj;
+    hgl_rita_ctx__.tform.mv = mat4_mul_mat4(V, M);
+    hgl_rita_ctx__.tform.mvp = mat4_mul_mat4(P, mat4_mul_mat4(V, M));
 
 #ifdef HGL_RITA_DEBUG
     HglRitaTexture *fb = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER];

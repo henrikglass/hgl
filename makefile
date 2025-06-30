@@ -164,60 +164,60 @@ sockets: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=200809L $(EXAMPLES_DIR)/sockets.c -o $(EXAMPLES_BUILD_DIR)/sockets
 
 rita_castle: prep
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_castle.c -o $(EXAMPLES_BUILD_DIR)/rita_castle -Llib -lraylib -lm -ldl -lpthread
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_castle.c -o $(EXAMPLES_BUILD_DIR)/rita_castle_optimized -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_castle.c -o $(EXAMPLES_BUILD_DIR)/rita_castle -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_castle.c -o $(EXAMPLES_BUILD_DIR)/rita_castle_optimized -Llib -lraylib -lm -ldl -lpthread
 
 rita_hello_triangle: prep
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_hello_triangle.c -o $(EXAMPLES_BUILD_DIR)/rita_hello_triangle -Llib -lraylib -lm -ldl -lpthread
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_hello_triangle.c -o $(EXAMPLES_BUILD_DIR)/rita_hello_triangle_optimized -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_hello_triangle.c -o $(EXAMPLES_BUILD_DIR)/rita_hello_triangle -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_hello_triangle.c -o $(EXAMPLES_BUILD_DIR)/rita_hello_triangle_optimized -Llib -lraylib -lm -ldl -lpthread
 
 rita_hello_cube: prep
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_hello_cube.c -o $(EXAMPLES_BUILD_DIR)/rita_hello_cube -Llib -lraylib -lm -ldl -lpthread
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_hello_cube.c -o $(EXAMPLES_BUILD_DIR)/rita_hello_cube_optimized -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_hello_cube.c -o $(EXAMPLES_BUILD_DIR)/rita_hello_cube -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_hello_cube.c -o $(EXAMPLES_BUILD_DIR)/rita_hello_cube_optimized -Llib -lraylib -lm -ldl -lpthread
 
 rita_primitives: prep
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_primitives.c -o $(EXAMPLES_BUILD_DIR)/rita_primitives -Llib -lraylib -lm -ldl -lpthread
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_primitives.c -o $(EXAMPLES_BUILD_DIR)/rita_primitives_optimized -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_primitives.c -o $(EXAMPLES_BUILD_DIR)/rita_primitives -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_primitives.c -o $(EXAMPLES_BUILD_DIR)/rita_primitives_optimized -Llib -lraylib -lm -ldl -lpthread
 
 rita_3d: prep
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_3d.c -o $(EXAMPLES_BUILD_DIR)/rita_3d -Llib -lraylib -lm -ldl -lpthread
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_3d.c -o $(EXAMPLES_BUILD_DIR)/rita_3d_optimized -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_3d.c -o $(EXAMPLES_BUILD_DIR)/rita_3d -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_3d.c -o $(EXAMPLES_BUILD_DIR)/rita_3d_optimized -Llib -lraylib -lm -ldl -lpthread
 
 rita_filters: prep
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_filters.c -o $(EXAMPLES_BUILD_DIR)/rita_filters -Llib -lraylib -lm -ldl -lpthread
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_filters.c -o $(EXAMPLES_BUILD_DIR)/rita_filters_optimized -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_filters.c -o $(EXAMPLES_BUILD_DIR)/rita_filters -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_filters.c -o $(EXAMPLES_BUILD_DIR)/rita_filters_optimized -Llib -lraylib -lm -ldl -lpthread
 
 rita_game_of_life: prep
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_game_of_life.c -o $(EXAMPLES_BUILD_DIR)/rita_game_of_life -Llib -lraylib -lm -ldl -lpthread
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_game_of_life.c -o $(EXAMPLES_BUILD_DIR)/rita_game_of_life_optimized -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_game_of_life.c -o $(EXAMPLES_BUILD_DIR)/rita_game_of_life -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_game_of_life.c -o $(EXAMPLES_BUILD_DIR)/rita_game_of_life_optimized -Llib -lraylib -lm -ldl -lpthread
 
 rita_blit: prep
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_blit.c -o $(EXAMPLES_BUILD_DIR)/rita_blit -Llib -lraylib -lm -ldl -lpthread
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_blit.c -o $(EXAMPLES_BUILD_DIR)/rita_blit_optimized -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_blit.c -o $(EXAMPLES_BUILD_DIR)/rita_blit -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_blit.c -o $(EXAMPLES_BUILD_DIR)/rita_blit_optimized -Llib -lraylib -lm -ldl -lpthread
 
 rita_custom_fragment_shader: prep
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_custom_fragment_shader.c -o $(EXAMPLES_BUILD_DIR)/rita_custom_fragment_shader -Llib -lraylib -lm -ldl -lpthread
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_custom_fragment_shader.c -o $(EXAMPLES_BUILD_DIR)/rita_custom_fragment_shader_optimized -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_custom_fragment_shader.c -o $(EXAMPLES_BUILD_DIR)/rita_custom_fragment_shader -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_custom_fragment_shader.c -o $(EXAMPLES_BUILD_DIR)/rita_custom_fragment_shader_optimized -Llib -lraylib -lm -ldl -lpthread
 
 rita_skybox: prep
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_skybox.c -o $(EXAMPLES_BUILD_DIR)/rita_skybox -Llib -lraylib -lm -ldl -lpthread
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_skybox.c -o $(EXAMPLES_BUILD_DIR)/rita_skybox_optimized -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_skybox.c -o $(EXAMPLES_BUILD_DIR)/rita_skybox -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_skybox.c -o $(EXAMPLES_BUILD_DIR)/rita_skybox_optimized -Llib -lraylib -lm -ldl -lpthread
 
 rita_vertex_displacement: prep
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_vertex_displacement.c -o $(EXAMPLES_BUILD_DIR)/rita_vertex_displacement -Llib -lraylib -lm -ldl -lpthread
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_vertex_displacement.c -o $(EXAMPLES_BUILD_DIR)/rita_vertex_displacement_optimized -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_vertex_displacement.c -o $(EXAMPLES_BUILD_DIR)/rita_vertex_displacement -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_vertex_displacement.c -o $(EXAMPLES_BUILD_DIR)/rita_vertex_displacement_optimized -Llib -lraylib -lm -ldl -lpthread
 
 rita_vertex_displacement_maps: prep
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_vertex_displacement_maps.c -o $(EXAMPLES_BUILD_DIR)/rita_vertex_displacement_maps -Llib -lraylib -lm -ldl -lpthread
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_vertex_displacement_maps.c -o $(EXAMPLES_BUILD_DIR)/rita_vertex_displacement_maps_optimized -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_vertex_displacement_maps.c -o $(EXAMPLES_BUILD_DIR)/rita_vertex_displacement_maps -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_vertex_displacement_maps.c -o $(EXAMPLES_BUILD_DIR)/rita_vertex_displacement_maps_optimized -Llib -lraylib -lm -ldl -lpthread
 
 rita_pebbles: prep
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_pebbles.c -o $(EXAMPLES_BUILD_DIR)/rita_pebbles -Llib -lraylib -lm -ldl -lpthread
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_pebbles.c -o $(EXAMPLES_BUILD_DIR)/rita_pebbles_optimized -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_pebbles.c -o $(EXAMPLES_BUILD_DIR)/rita_pebbles -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_pebbles.c -o $(EXAMPLES_BUILD_DIR)/rita_pebbles_optimized -Llib -lraylib -lm -ldl -lpthread
 
 rita_mandelbulb: prep
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rita_mandelbulb.c include/ffmpeg_linux.c -o $(EXAMPLES_BUILD_DIR)/rita_mandelbulb -Llib -lraylib -lm -ldl -lpthread
-	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_mandelbulb.c include/ffmpeg_linux.c -o $(EXAMPLES_BUILD_DIR)/rita_mandelbulb_optimized -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_mandelbulb.c include/ffmpeg_linux.c -o $(EXAMPLES_BUILD_DIR)/rita_mandelbulb -Llib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iinclude -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_mandelbulb.c include/ffmpeg_linux.c -o $(EXAMPLES_BUILD_DIR)/rita_mandelbulb_optimized -Llib -lraylib -lm -ldl -lpthread
 
 
 ## Unit tests

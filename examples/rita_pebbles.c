@@ -152,8 +152,8 @@ int main()
         //hgl_rita_draw(HGL_RITA_TRIANGLES_DISPATCH);
         hgl_rita_finish();
 
-        float t1 = clamp(0, 0.99, 0.5 + 1.4*sinf(frame_count*0.03f));
-        float t2 = clamp(0, 0.99, 0.5 + 1.4*sinf(frame_count*0.03f + 3.1415f));
+        float t1 = clamp(0, 0.99, 0.5f + 1.4f*sinf(frame_count*0.03f));
+        float t2 = clamp(0, 0.99, 0.5f + 1.4f*sinf(frame_count*0.03f + 3.1415f));
         camera_pos = vec3_lerp(vec3_make(0,20,0),vec3_make(0,20,20), t1);
         Mat4 view = mat4_look_at(camera_pos, 
                                  vec3_make(0,0,0), 

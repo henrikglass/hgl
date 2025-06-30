@@ -249,7 +249,7 @@ static inline HglRitaColor HGL_RITA_GOOCH(const HglRitaContext *ctx, const HglRi
 
     HglRitaColor cool_color = {  0,  60, 240, 255};
     HglRitaColor warm_color = {250, 140,  20, 255};
-    float diffuse_light = vec3_dot(N, L) * 0.5 + 0.5; // Lambertian
+    float diffuse_light = vec3_dot(N, L) * 0.5f + 0.5f; // Lambertian
     float specular_light = powf(fmaxf(0, vec3_dot(vec3_reflect(IV, N), L)), 15.0f); // Phong
     return hgl_rita_color_add(hgl_rita_color_lerp(cool_color, warm_color, diffuse_light),
                               hgl_rita_color_mul_scalar(HGL_RITA_WHITE, specular_light));

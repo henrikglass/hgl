@@ -77,9 +77,9 @@ static inline HglRitaColor analog_camera(const HglRitaContext *ctx, const HglRit
     Vec3 v_yiq = mat3_mul_vec3(rgb2yiq, v_rgb.xyz);
     v_yiq = yiq_adjust_colors(v_yiq, -0.24f, 1.5f, 1.3f);
     v_rgb.xyz = mat3_mul_vec3(yiq2rgb, v_yiq);
-    v_rgb.x *= 0.96;
-    v_rgb.y *= 0.92;
-    v_rgb.z *= 0.81;
+    v_rgb.x *= 0.96f;
+    v_rgb.y *= 0.92f;
+    v_rgb.z *= 0.81f;
     color = hgl_rita_color_from_vector(v_rgb);
 
     return color;

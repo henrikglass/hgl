@@ -26,7 +26,7 @@ static inline HglRitaVertex my_vertex_displacement_shader(const HglRitaContext *
     v.w = 1.0f;
 
     float h = hgl_rita_sample_unit_uv(HGL_RITA_TEX_DISPLACEMENT, in->uv).r / 255.0f;
-    v.y += 9*powf(h, 1.0f/0.42);
+    v.y += 9*powf(h, 1.0f/0.42f);
 
     /* local space --> world space -> view space */
     v = mat4_mul_vec4(ctx->tform.mvp, v);
@@ -134,8 +134,8 @@ int main()
         hgl_rita_draw(HGL_RITA_TRIANGLES);
         hgl_rita_finish();
 
-        float t1 = clamp(0, 0.99, 0.5 + 1.4*sinf(frame_count*0.06f));
-        float t2 = clamp(0, 0.99, 0.5 + 1.4*sinf(frame_count*0.06f + 3.1415f));
+        float t1 = clamp(0, 0.99, 0.5f + 1.4f*sinf(frame_count*0.06f));
+        float t2 = clamp(0, 0.99, 0.5f + 1.4f*sinf(frame_count*0.06f + 3.1415f));
         Mat4 view = mat4_look_at(vec3_lerp(vec3_make(0,30,0),vec3_make(0,20,30), t1), 
                                  vec3_make(0,0,0), 
                                  vec3_lerp(vec3_make(0,0,-1),vec3_make(0,1,0), t2));
