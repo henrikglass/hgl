@@ -1632,8 +1632,8 @@ static inline void hgl_rita_blit(int x, int y, int w, int h,
     int end_x = aabb.max_x / HGL_RITA_TILE_SIZE_X + 1;
     int end_y = aabb.max_y / HGL_RITA_TILE_SIZE_Y + 1;
     int stride = hgl_rita_ctx__.renderer.n_tile_cols;
-    for (int y = start_y; y < end_y; y++) {
-        for (int x = start_x; x < end_x; x++) {
+    for (y = start_y; y < end_y; y++) {
+        for (x = start_x; x < end_x; x++) {
             int i = y*stride + x;
             hgl_rita_queue_push(&(hgl_rita_ctx__.renderer.tile[i].op_queue), op);
         }
@@ -2149,7 +2149,7 @@ static inline HglRitaColor hgl_rita_sample_uv(HglRitaTexture *tex, Vec2 uv)
 static inline HglRitaColor hgl_rita_sample_rectilinear(HglRitaTexture *tex, Vec3 dir)
 {
     Vec2 uv;
-    uv.x = atan2f(dir.z, dir.x) / (2.0f * PI) + 0.5f;
+    uv.x = atan2f(dir.z, dir.x) / (2.0f * (float)PI) + 0.5f;
     uv.y = dir.y * 0.5f + 0.5f;
     return hgl_rita_sample_uv(tex, uv);
 }
@@ -2294,11 +2294,11 @@ static inline void *hgl_rita_tile_thread_internal_(void *arg)
                 float w1_row = hgl_rita_det_internal_(f0.x, f0.y, x, y, f2.x, f2.y); // + bias1;
                 float w2_row = hgl_rita_det_internal_(f0.x, f0.y, f1.x, f1.y, x, y); // + bias2;
 
-                for (int y = aabb.min_y; y < aabb.max_y; y++) {
+                for (y = aabb.min_y; y < aabb.max_y; y++) {
                     float w0 = w0_row;
                     float w1 = w1_row;
                     float w2 = w2_row;
-                    for (int x = aabb.min_x; x < aabb.max_x; x++) {
+                    for (x = aabb.min_x; x < aabb.max_x; x++) {
                         bool is_inside;
                         if (frontfacing) {
                             is_inside = w0 >= 0 && w1 >= 0 && w2 >= 0;
@@ -2391,25 +2391,25 @@ static inline void *hgl_rita_tile_thread_internal_(void *arg)
                         if (outside_outcode == outcode0) {
                             x0 = x;
                             y0 = y;
-                                                        outcode0 = INSIDE;
-                                                        if      (x0 < tile_aabb.min_x) outcode0 |= LEFT;
-                                                        else if (x0 > tile_aabb.max_x) outcode0 |= RIGHT;
-                                                        if      (y0 < tile_aabb.min_y) outcode0 |= BOTTOM;
-                                                        else if (y0 > tile_aabb.max_y) outcode0 |= TOP;
+                            outcode0 = INSIDE;
+                            if      (x0 < tile_aabb.min_x) outcode0 |= LEFT;
+                            else if (x0 > tile_aabb.max_x) outcode0 |= RIGHT;
+                            if      (y0 < tile_aabb.min_y) outcode0 |= BOTTOM;
+                            else if (y0 > tile_aabb.max_y) outcode0 |= TOP;
                         } else {
                             x1 = x;
                             y1 = y;
-                                                        outcode1 = INSIDE;
-                                                        if      (x1 < tile_aabb.min_x) outcode1 |= LEFT;
-                                                        else if (x1 > tile_aabb.max_x) outcode1 |= RIGHT;
-                                                        if      (y1 < tile_aabb.min_y) outcode1 |= BOTTOM;
-                                                        else if (y1 > tile_aabb.max_y) outcode1 |= TOP;
-                                                }
+                            outcode1 = INSIDE;
+                            if      (x1 < tile_aabb.min_x) outcode1 |= LEFT;
+                            else if (x1 > tile_aabb.max_x) outcode1 |= RIGHT;
+                            if      (y1 < tile_aabb.min_y) outcode1 |= BOTTOM;
+                            else if (y1 > tile_aabb.max_y) outcode1 |= TOP;
+                        }
                     }
                 }
 
                 /* line was not accepted (outside AABB) */
-                                if (!accept) {
+                if (!accept) {
                     break;
                 }
 
@@ -2441,7 +2441,7 @@ static inline void *hgl_rita_tile_thread_internal_(void *arg)
                 if (dx > abs(dy)) {
                     float y_step = (float)dy / (float)dx;
                     for (int i = 0; i < dx; i++) {
-                        float t = (float) i / (float) dx;
+                        t = (float) i / (float) dx;
                         int x = f0.x + i;
                         int y = f0.y + i*y_step;
                         HglRitaFragment frag = hgl_rita_frag_lerp_internal_(x, y, f0, f1, t);
@@ -2455,7 +2455,7 @@ static inline void *hgl_rita_tile_thread_internal_(void *arg)
 
                     float x_step = (float)dx / (float)dy;
                     for (int i = 0; i < abs(dy); i++) {
-                        float t = (float) i / (float) abs(dy);
+                        t = (float) i / (float) abs(dy);
                         int x = f0.x + i*x_step;
                         int y = f0.y + i;
                         HglRitaFragment frag = hgl_rita_frag_lerp_internal_(x, y, f0, f1, t);

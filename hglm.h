@@ -1424,7 +1424,7 @@ static HGL_INLINE float hglm_smootherstep(float t)
 
 static HGL_INLINE float hglm_sinstep(float t)
 {
-    return -0.5f * cosf(t * HGLM_PI) + 0.5f;
+    return -0.5f * cosf(t * (float)HGLM_PI) + 0.5f;
 }
 
 static HGL_INLINE float hglm_lerpsmooth(float a, float b, float dt, float omega)
