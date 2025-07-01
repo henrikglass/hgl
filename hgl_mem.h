@@ -51,6 +51,8 @@ static inline void write16be_unaligned(void *ptr, uint16_t v);
 static inline void write32be_unaligned(void *ptr, uint32_t v);
 static inline void write64be_unaligned(void *ptr, uint64_t v);
 
+static inline void memfrobn(void *ptr, size_t n, void *key, size_t keylen);
+
 static inline void memset16(uint16_t *ptr, uint16_t v, size_t n)
 {
     uint8_t *ptr8 = (uint8_t *)ptr;
@@ -413,6 +415,15 @@ static inline void write64be_unaligned(void *ptr, uint64_t v)
     ptr8[5] = (uint16_t)((v >> 16) & 0xFF);
     ptr8[6] = (uint16_t)((v >>  8) & 0xFF);
     ptr8[7] = (uint16_t)((v >>  0) & 0xFF);
+}
+
+static inline void memfrobn(void *ptr, size_t n, void *key, size_t keylen)
+{
+    uint8_t *ptr8 = (uint8_t *)ptr;
+    uint8_t *key8 = (uint8_t *)key;
+    for (size_t i = 0; i < n; i++) {
+        ptr8[i] = ptr8[i] ^ key8[i % keylen];
+    }
 }
 
 #endif /* HGL_MEM_H */

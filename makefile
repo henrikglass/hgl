@@ -250,6 +250,8 @@ test: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_tq.c -o $(TEST_BUILD_DIR)/test_tq
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_base64.c -o $(TEST_BUILD_DIR)/test_base64
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_waitgroup.c -o $(TEST_BUILD_DIR)/test_waitgroup
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_float.c -o $(TEST_BUILD_DIR)/test_float -lm
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_mem.c -o $(TEST_BUILD_DIR)/test_mem
 	-rm run_tests.sh
 	echo "#!/bin/bash" >> run_tests.sh
 	find $(shell pwd)/build/test/ -type f -executable | sed "s/$$/ \&\&/">> run_tests.sh

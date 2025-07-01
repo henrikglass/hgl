@@ -133,7 +133,8 @@ static inline f64 f64_from_fixed_radix(uint64_t v, int n_bits, int radix, bool i
     assert(n_bits <= 64);
     assert(radix <= n_bits);
     f64 s = 1.0 / (f64)(1lu << radix);
-    uint64_t m = (((uint64_t)-1) << n_bits) ^ ((uint64_t)-1);
+    uint64_t m = n_bits != 64 ? (((uint64_t)-1) << n_bits) ^ ((uint64_t)-1) 
+                              : (uint64_t)-1;
     v = v & m;
     if (is_signed) {
         m = 1lu << (n_bits - 1);
@@ -148,7 +149,8 @@ static inline f64 f64_from_fixed_scale(uint64_t v, int n_bits, f64 scale, bool i
 {
     assert(n_bits <= 64);
     f64 s = scale;
-    uint64_t m = (((uint64_t)-1) << n_bits) ^ ((uint64_t)-1);
+    uint64_t m = n_bits != 64 ? (((uint64_t)-1) << n_bits) ^ ((uint64_t)-1) 
+                              : (uint64_t)-1;
     v = v & m;
     if (is_signed) {
         m = 1lu << (n_bits - 1);
@@ -162,7 +164,8 @@ static inline f64 f64_from_fixed_scale(uint64_t v, int n_bits, f64 scale, bool i
 static inline uint64_t f64_to_fixed_radix(f64 v, int n_bits, int radix)
 {
     assert(n_bits <= 64);
-    uint64_t m = (((uint64_t)-1) << n_bits) ^ ((uint64_t)-1);
+    uint64_t m = n_bits != 64 ? (((uint64_t)-1) << n_bits) ^ ((uint64_t)-1) 
+                              : (uint64_t)-1;
     uint64_t u = ((uint64_t)(v * (1lu << radix))) & m;
     return u;
 }
@@ -170,14 +173,16 @@ static inline uint64_t f64_to_fixed_radix(f64 v, int n_bits, int radix)
 static inline uint64_t f64_to_fixed_scale(f64 v, int n_bits, f64 scale)
 {
     assert(n_bits <= 64);
-    uint64_t m = (((uint64_t)-1) << n_bits) ^ ((uint64_t)-1);
+    uint64_t m = n_bits != 64 ? (((uint64_t)-1) << n_bits) ^ ((uint64_t)-1) 
+                              : (uint64_t)-1;
     uint64_t u = ((uint64_t)(v / scale)) & m;
     return u;
 }
 
 static inline f64 f64_clamp_to_fixed_range_radix(f64 v, int n_bits, int radix, bool is_signed)
 {
-    uint64_t m = (((uint64_t)-1) << n_bits) ^ ((uint64_t)-1);
+    uint64_t m = n_bits != 64 ? (((uint64_t)-1) << n_bits) ^ ((uint64_t)-1) 
+                              : (uint64_t)-1;
     f64 min = is_signed ? f64_from_fixed_radix((m >> 1) ^ m, n_bits, radix, true) : 0;
     f64 max = is_signed ? f64_from_fixed_radix((m >> 1), n_bits, radix, true) :
                           f64_from_fixed_radix(m, n_bits, radix, false);
@@ -188,7 +193,8 @@ static inline f64 f64_clamp_to_fixed_range_radix(f64 v, int n_bits, int radix, b
 
 static inline f64 f64_clamp_to_fixed_range_scale(f64 v, int n_bits, f64 scale, bool is_signed)
 {
-    uint64_t m = (((uint64_t)-1) << n_bits) ^ ((uint64_t)-1);
+    uint64_t m = n_bits != 64 ? (((uint64_t)-1) << n_bits) ^ ((uint64_t)-1) 
+                              : (uint64_t)-1;
     f64 min = is_signed ? f64_from_fixed_scale((m >> 1) ^ m, n_bits, scale, true) : 0;
     f64 max = is_signed ? f64_from_fixed_scale((m >> 1), n_bits, scale, true) :
                           f64_from_fixed_scale(m, n_bits, scale, false);

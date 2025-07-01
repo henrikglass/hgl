@@ -284,6 +284,22 @@
     } while (0)
 
 /**
+ * The `ASSERT_CSTR_NEQ` macro may be used to assert nonequality of two 
+ * null-terminated strings inside a user-defined test.
+ */
+#define ASSERT_CSTR_NEQ(a_, b_)                                          \
+    do {                                                                 \
+        if (strcmp((a_), (b_)) == 0) {                                   \
+            if (!hgl_test_opt_silent__) {                                \
+                fprintf(stderr, ANSI_BOLD ANSI_RED "  ASSERTION FAILED"  \
+                        ANSI_NC ANSI_NS ": `%s` != `%s` <%s:%d>\n",      \
+                        #a_, #b_, __FILE__, __LINE__);                   \
+            }                                                            \
+            exit(EXIT_CODE_ASSERT_FAIL);                                 \
+        }                                                                \
+    } while (0)
+
+/**
  * The `LOG` macro may be used in place of regular the regular printf to
  * actually print stuff to the terminal. For simplicity, the `LOG` macro
  * just prints stuff to stderr.
