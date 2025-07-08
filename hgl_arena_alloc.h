@@ -72,6 +72,13 @@
 #define HGL_ARENA_ALIGNMENT 16
 #endif
 
+#define HGL_ARENA_INITIALIZER(s)     \
+    {                                \
+        .memory = (uint8_t[(s)]){0}, \
+        .head = 0,                   \
+        .size = (s),                 \
+    }
+
 /*--- Include files ---------------------------------------------------------------------*/
 
 #include <stdlib.h>
@@ -109,6 +116,11 @@ void *hgl_arena_alloc(HglArena *arena, size_t alloc_size);
 void hgl_arena_free_all(HglArena *arena);
 
 /**
+ * Print arena memory usage.
+ */
+void hgl_arena_print_usage(HglArena *arena);
+
+/**
  * Destroy the arena (Free the arena itself).
  */
 void hgl_arena_destroy(HglArena *arena);
@@ -120,6 +132,10 @@ void hgl_arena_destroy(HglArena *arena);
 /*--- Arena Alloc functions -------------------------------------------------------------*/
 
 #ifdef HGL_ARENA_ALLOC_IMPLEMENTATION
+
+#ifdef HGL_ARENA_ALLOC_DEBUG_PRINTS
+#  include <stdio.h>
+#endif
 
 HglArena hgl_arena_make(size_t arena_size)
 {
@@ -163,17 +179,19 @@ void *hgl_arena_alloc(HglArena *arena, size_t alloc_size)
     /* Move head to nearest multiple of alignment after `head` + `alloc_size` */
     arena->head += (alloc_size + HGL_ARENA_ALIGNMENT - 1) &
                   ~(HGL_ARENA_ALIGNMENT - 1);
-#ifdef HGL_ARENA_ALLOC_DEBUG_PRINTS
-    printf("Arena usage: %f%% of %lu KiB\n",
-           100.f * ((float) arena->head / (float) arena->size),
-           (arena->size / 1024));
-#endif /* HGL_ARENA_ALLOC_DEBUG_PRINTS */
     return ptr;
 }
 
 void hgl_arena_free_all(HglArena *arena)
 {
     arena->head = 0;
+}
+
+void hgl_arena_print_usage(HglArena *arena)
+{
+    printf("Arena usage: %f%% (%lu/%lu bytes).\n",
+           100.0 * ((double) arena->head / (double) arena->size),
+           arena->head, arena->size);
 }
 
 void hgl_arena_destroy(HglArena *arena)

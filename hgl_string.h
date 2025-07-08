@@ -178,6 +178,11 @@ HglStringView hgl_sv_find_next(HglStringView *sv, const char *substr);
 HglStringView hgl_sv_find_next_regex_match(HglStringView *sv, const char *regex);
 
 /**
+ * Returns the substring of `sv` of length `n` starting at offset `offset`
+ */
+HglStringView hgl_sv_substr(HglStringView sv, size_t offset, size_t n);
+
+/**
  * Chops `n` bytes from the beginning of `sv`.
  */
 HglStringView hgl_sv_lchop(HglStringView *sv, size_t n);
@@ -586,6 +591,19 @@ HglStringView hgl_sv_find_next_regex_match(HglStringView *sv, const char *regex)
     regfree(&re);
     sv->it_ += rmatch.rm_so + match.length;
     return match;
+}
+
+HglStringView hgl_sv_substr(HglStringView sv, size_t offset, size_t n)
+{
+    if ((offset + n) > sv.length) {
+        n = sv.length - offset;
+    }
+
+    return (HglStringView) {
+        .start  = &sv.start[offset],
+        .length = n,
+        .it_    = 0,
+    };
 }
 
 HglStringView hgl_sv_lchop(HglStringView *sv, size_t n)
