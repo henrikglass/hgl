@@ -223,7 +223,7 @@ void *hgl_stack_alloc(HglArena *arena, size_t alloc_size)
 
 #ifdef HGL_STACK_ALLOC_DEBUG_PRINTS
     printf("Arena usage: %f%% of %lu KiB\n",
-           100.f * ((float) arena->head / (float) arena->size),
+           100.0 * ((double) arena->head / (double) arena->size),
            (arena->size / 1024));
 #endif /* HGL_ARENA_ALLOC_DEBUG_PRINTS */
 
