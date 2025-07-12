@@ -34,6 +34,7 @@
  *
  * Include hgl_stack_alloc.h file like this:
  *
+ *     #define HGL_ARENA_ALLOC_IMPLEMENTATION
  *     #define HGL_STACK_ALLOC_IMPLEMENTATION
  *     #include "hgl_stack_alloc.h"
  *
@@ -84,13 +85,6 @@
 
 /*--- Include files ---------------------------------------------------------------------*/
 
-/* This should mostly behave ok */
-#if !defined(HGL_ARENA_ALLOC_IMPLEMENTATION) && \
-     defined(HGL_STACK_ALLOC_IMPLEMENTATION)
-#define HGL_ARENA_ALLOC_IMPLEMENTATION
-#elif defined(HGL_ARENA_ALLOC_IMPLEMENTATION)
-#undef HGL_ARENA_ALLOC_IMPLEMENTATION
-#endif
 #include "hgl_arena_alloc.h"
 
 /*--- Public type definitions -----------------------------------------------------------*/

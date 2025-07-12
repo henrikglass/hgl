@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #define HGL_ARENA_ALIGNMENT 32
+#define HGL_ARENA_ALLOC_IMPLEMENTATION
 #define HGL_STACK_ALLOC_IMPLEMENTATION
 #include "hgl_stack_alloc.h"
 

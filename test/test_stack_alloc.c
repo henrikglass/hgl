@@ -1,6 +1,7 @@
 
 #include "hgl_test.h"
 
+#define HGL_ARENA_ALLOC_IMPLEMENTATION
 #define HGL_STACK_ALLOC_IMPLEMENTATION
 #include "hgl_stack_alloc.h"
 
