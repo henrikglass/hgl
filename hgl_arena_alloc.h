@@ -112,6 +112,13 @@ typedef struct
  */
 HglArena hgl_arena_make(size_t arena_size);
 
+#ifdef _DEFAULT_SOURCE
+/**
+ * Create an arena of size `arena_size` using an anonymous private mmap-mapping.
+ */
+HglArena hgl_arena_make_mmap(size_t arena_size);
+#endif
+
 /**
  * Create an arena of `buf_size` from a preallocated buffer `buf`.
  */
@@ -173,6 +180,7 @@ HglArena hgl_arena_make(size_t arena_size)
     };
 }
 
+#ifdef _DEFAULT_SOURCE
 HglArena hgl_arena_make_mmap(size_t arena_size)
 {
     void *mem = mmap(NULL, arena_size, 
@@ -190,6 +198,7 @@ HglArena hgl_arena_make_mmap(size_t arena_size)
         .last_alloc = 0,
     };
 }
+#endif
 
 HglArena hgl_arena_make_from_buffer(void *buf, size_t buf_size)
 {
