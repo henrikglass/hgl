@@ -73,13 +73,13 @@
 #endif
 
 
-#define HGL_ARENA_INITIALIZER(size)     \
-    {                                   \
-        .memory = (uint8_t[(size)]){0}, \
-        .head = 0,                      \
-        .size = (size),                 \
-        .backend = HGL_ARENA_STATIC,    \
-        .last_alloc = 0,                \
+#define HGL_ARENA_INITIALIZER(s)     \
+    {                                \
+        .memory = (uint8_t[(s)]){0}, \
+        .head = 0,                   \
+        .size = (s),                 \
+        .backend = HGL_ARENA_STATIC, \
+        .last_alloc = 0,             \
     }
 
 /*--- Include files ---------------------------------------------------------------------*/
