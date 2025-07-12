@@ -55,3 +55,21 @@ TEST(test_alignment) {
 
     ASSERT(p1 - p0 == HGL_ARENA_ALIGNMENT);
 }
+
+TEST(test_realloc) {
+    void *p0 = hgl_arena_alloc(&arena, 10); 
+    void *p1 = hgl_arena_alloc(&arena, 20); 
+
+    size_t previous_arena_head = arena.head;
+    void *p2 = hgl_arena_realloc(&arena, p1, 20);
+    size_t new_arena_head = arena.head;
+
+    ASSERT(previous_arena_head == new_arena_head);
+}
+
+TEST(test_realloc_invalid_pointer, .expect_signal = SIGABRT) {
+    void *p0 = hgl_arena_alloc(&arena, 10); 
+    void *p1 = hgl_arena_alloc(&arena, 20); 
+
+    void *p2 = hgl_arena_realloc(&arena, p0, 20);
+}

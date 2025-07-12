@@ -101,8 +101,8 @@ void *hgl_stack_alloc(HglArena *arena, size_t alloc_size);
 void *hgl_stack_realloc(HglArena *arena, void *ptr, size_t alloc_size);
 
 /**
- * Free `ptr` from `arena`. `ptr` must be the result of the last allocation
- * from `hgl_stack_alloc`.
+ * Free `ptr` from `arena`. `ptr` must be the result of the allocation
+ * from `hgl_stack_alloc` which is currently at the top of the stack.
  */
 void hgl_stack_free(HglArena *arena, void *ptr);
 
@@ -246,7 +246,7 @@ void hgl_stack_free(HglArena *arena, void *ptr)
                                    "Detected corrupted canary in allocation footer");
 #endif
 
-    /* ptr was not the last thing alloced */
+    /* ptr was not at the top of the stack */
     if (ptr != arena->memory + last_footer->alloc_offset) {
         fprintf(stderr, "hgl_stack_free(): invalid pointer.\n");
         abort();
