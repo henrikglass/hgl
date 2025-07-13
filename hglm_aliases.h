@@ -101,6 +101,10 @@ typedef HglmMat    Mat;
 #define ivec2_mul_scalar         hglm_ivec2_mul_scalar
 #define ivec2_lerp               hglm_ivec2_lerp
 
+#define ivec3_make               hglm_ivec3_make
+
+#define ivec4_make               hglm_ivec4_make
+
 #define vec2_print               hglm_vec2_print
 #define vec2_make                hglm_vec2_make
 #define vec2_from_polar          hglm_vec2_from_polar
@@ -148,6 +152,9 @@ typedef HglmMat    Mat;
 #define vec4_perspective_divide  hglm_vec4_perspective_divide
 #define vec4_lerp                hglm_vec4_lerp
 #define vec4_bezier3             hglm_vec4_bezier3
+
+#define mat2_make                hglm_mat2_make
+#define mat2_make_identity       hglm_mat2_make_identity
 
 #define mat3_print               hglm_mat3_print
 #define mat3_make                hglm_mat3_make
