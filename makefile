@@ -223,6 +223,7 @@ rita_mandelbulb: prep
 ## Unit tests
 test: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(TEST_DIR)/test_arena_alloc.c -o $(TEST_BUILD_DIR)/test_arena_alloc
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -DHGL_ARENA_ALLOW_EXPENSIVE_REALLOC -ggdb3 $(TEST_DIR)/test_arena_alloc.c -o $(TEST_BUILD_DIR)/test_arena_alloc2
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(TEST_DIR)/test_stack_alloc.c -o $(TEST_BUILD_DIR)/test_stack_alloc
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_pool_alloc.c -o $(TEST_BUILD_DIR)/test_pool_alloc
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_fs_alloc.c -o $(TEST_BUILD_DIR)/test_fs_alloc

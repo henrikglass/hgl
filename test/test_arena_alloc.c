@@ -67,7 +67,12 @@ TEST(test_realloc) {
     ASSERT(previous_arena_head == new_arena_head);
 }
 
-TEST(test_realloc_invalid_pointer, .expect_signal = SIGABRT) {
+TEST(
+    test_realloc_invalid_pointer, 
+#ifndef HGL_ARENA_ALLOW_EXPENSIVE_REALLOC
+    .expect_signal = SIGABRT
+#endif
+) {
     void *p0 = hgl_arena_alloc(&arena, 10); 
     void *p1 = hgl_arena_alloc(&arena, 20); 
 
