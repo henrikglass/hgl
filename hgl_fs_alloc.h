@@ -285,12 +285,38 @@ void *hgl_fs_alloc(HglFsAllocator *allocator, size_t size)
 
 void *hgl_fs_realloc(HglFsAllocator *allocator, void *ptr, size_t size)
 {
-    if (ptr == NULL) {
+    // TODO I haven't really though about this too hard..
+    uint8_t *ptr8 = (uint8_t *) ptr;
+
+    if (ptr8 == NULL) {
         return hgl_fs_alloc(allocator, size);        
     }
 
+    if ((ptr8 < allocator->memory) || (ptr8 > (allocator->memory + allocator->size))) {
+        fprintf(stderr, "[hgl_fs_free] Invalid pointer. Pointer ptr=%p is outside the valid range [%p, %p].\n", 
+                ptr, allocator->memory, allocator->memory + allocator->size);
+        assert(0);
+    }
+    
+    if (((uintptr_t)ptr8 & (HGL_FS_ALLOC_ALIGNMENT - 1)) != 0) {
+        fprintf(stderr, "[hgl_fs_free] Invalid pointer. Pointer ptr=%p has incorrect alignment (%d).\n", 
+                ptr, HGL_FS_ALLOC_ALIGNMENT);
+        assert(0);
+    }
+
+    ptr8 -= HGL_FS_ALLOC_ALIGNMENT;
+    HglFsChunkHeader *header = (HglFsChunkHeader *) ptr8;
+    size_t current_allocation_size = header->next_chunk - (uint8_t *)ptr;
+    printf("current_allocation_size = %zu\n", current_allocation_size);
+
+    /* alloc new & copy data there */
+    void *newptr = hgl_fs_alloc(allocator, size);
+    memcpy(newptr, ptr, current_allocation_size);
+
+    /* free old chunk */
     hgl_fs_free(allocator, ptr);
-    return hgl_fs_alloc(allocator, size);        
+
+    return newptr;
 }
 
 void hgl_fs_free(HglFsAllocator *allocator, void *ptr)

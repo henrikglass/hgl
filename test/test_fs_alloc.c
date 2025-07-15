@@ -119,3 +119,24 @@ TEST(test_too_big_alloc) {
     void *p2 = hgl_fs_alloc(&fs_allocator, 24*1024); 
     ASSERT(p2 == NULL);
 }
+
+TEST(test_realloc) {
+    void *p0 = hgl_fs_alloc(&fs_allocator, 32); 
+    char *p1 = hgl_fs_alloc(&fs_allocator, 64); 
+    void *p2 = hgl_fs_alloc(&fs_allocator, 32); 
+
+    ASSERT(p0 < (void*)p1);
+    ASSERT((void*)p1 < p2);
+
+    strcpy(p1, "Hejsan hoppsan");
+    ASSERT(strcmp(p1, "Hejsan hoppsan") == 0);
+
+    char *p3 = hgl_fs_realloc(&fs_allocator, p1, 256);
+    ASSERT(p3 != NULL);
+    ASSERT(strcmp(p3, "Hejsan hoppsan") == 0);
+
+    ASSERT(p2 < (void *)p3);
+    void *p4 = hgl_fs_alloc(&fs_allocator, 32);
+    ASSERT(p4 < p2);
+    ASSERT(p0 < p4);
+}
