@@ -8,7 +8,7 @@
 static HglArena arena;
 
 GLOBAL_SETUP {
-    arena = hgl_arena_make(128 * 1024); // 128 KiB
+    arena = hgl_arena_make(128 * 1024, HGL_ARENA_MALLOC, NULL); // 128 KiB
 }
 
 GLOBAL_TEARDOWN {
@@ -47,6 +47,32 @@ TEST(test_too_big_allocation) {
     void *p0 = hgl_stack_alloc(&arena, 128*1024 + 4); 
 
     ASSERT(p0 == NULL);
+}
+
+TEST(test_realloc) {
+    unsigned int *p0 = hgl_stack_alloc(&arena, sizeof(unsigned int)); 
+    unsigned int *p1 = hgl_stack_alloc(&arena, sizeof(unsigned int)); 
+    unsigned int *p2 = hgl_stack_alloc(&arena, sizeof(unsigned int)); 
+    unsigned int *p3 = hgl_stack_alloc(&arena, sizeof(unsigned int)); 
+    *p0 = 0x11111111;
+    *p1 = 0x22222222;
+    *p2 = 0x33333333;
+    *p3 = 0x44444444;
+    unsigned int *p4 = hgl_stack_realloc(&arena, p3, sizeof(unsigned int));
+    ASSERT(p4 != NULL);
+    ASSERT(p4 == p3);
+}
+
+TEST(test_realloc_invalid_ptr, .expect_signal = SIGABRT) {
+    unsigned int *p0 = hgl_stack_alloc(&arena, sizeof(unsigned int)); 
+    unsigned int *p1 = hgl_stack_alloc(&arena, sizeof(unsigned int)); 
+    unsigned int *p2 = hgl_stack_alloc(&arena, sizeof(unsigned int)); 
+    unsigned int *p3 = hgl_stack_alloc(&arena, sizeof(unsigned int)); 
+    *p0 = 0x11111111;
+    *p1 = 0x22222222;
+    *p2 = 0x33333333;
+    *p3 = 0x44444444;
+    p3 = hgl_stack_realloc(&arena, p1, sizeof(unsigned int));
 }
 
 TEST(test_free_last) {

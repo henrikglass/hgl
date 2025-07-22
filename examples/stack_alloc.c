@@ -27,7 +27,7 @@ void stack_free(void *ptr)
 int main()
 {
     //s_arena = hgl_arena_make(256 * 1024);  // 128 KiB
-    s_arena = hgl_arena_make_from_buffer(memory_chunk, sizeof(memory_chunk));
+    s_arena = hgl_arena_make(sizeof(memory_chunk), HGL_ARENA_STATIC, memory_chunk);
 
     void *arena_alloced_thing = arena_alloc(32);
 

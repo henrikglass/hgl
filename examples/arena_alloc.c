@@ -16,7 +16,7 @@ void *arena_alloc(size_t size)
 int main()
 {
     //s_arena = hgl_arena_make(128 * 1024);  // 128 KiB
-    s_arena = hgl_arena_make_from_buffer(memory_chunk, sizeof(memory_chunk));
+    s_arena = hgl_arena_make(sizeof(memory_chunk), HGL_ARENA_STATIC, memory_chunk);
     //s_arena = hgl_arena_make(1024);  // 1 KiB
 
 

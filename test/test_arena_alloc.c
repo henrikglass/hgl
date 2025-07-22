@@ -8,7 +8,7 @@
 static HglArena arena;
 
 GLOBAL_SETUP {
-    arena = hgl_arena_make(128 * 1024); // 128 KiB
+    arena = hgl_arena_make(128 * 1024, HGL_ARENA_MMAP, NULL); // 128 KiB
 }
 
 GLOBAL_TEARDOWN {

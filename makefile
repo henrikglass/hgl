@@ -81,10 +81,10 @@ hset: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/hset.c -o $(EXAMPLES_BUILD_DIR)/hset
 
 stack_alloc: prep
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(EXAMPLES_DIR)/stack_alloc.c -o $(EXAMPLES_BUILD_DIR)/stack_alloc
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/stack_alloc.c -o $(EXAMPLES_BUILD_DIR)/stack_alloc
 
 arena_alloc: prep
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(EXAMPLES_DIR)/arena_alloc.c -o $(EXAMPLES_BUILD_DIR)/arena_alloc
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/arena_alloc.c -o $(EXAMPLES_BUILD_DIR)/arena_alloc
 
 pool_alloc: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/pool_alloc.c -o $(EXAMPLES_BUILD_DIR)/pool_alloc
@@ -222,9 +222,9 @@ rita_mandelbulb: prep
 
 ## Unit tests
 test: prep
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(TEST_DIR)/test_arena_alloc.c -o $(TEST_BUILD_DIR)/test_arena_alloc
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -DHGL_ARENA_ALLOW_EXPENSIVE_REALLOC -ggdb3 $(TEST_DIR)/test_arena_alloc.c -o $(TEST_BUILD_DIR)/test_arena_alloc2
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -ggdb3 $(TEST_DIR)/test_stack_alloc.c -o $(TEST_BUILD_DIR)/test_stack_alloc
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_arena_alloc.c -o $(TEST_BUILD_DIR)/test_arena_alloc
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -DHGL_ARENA_ALLOW_EXPENSIVE_REALLOC -ggdb3 $(TEST_DIR)/test_arena_alloc.c -o $(TEST_BUILD_DIR)/test_arena_alloc2
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_stack_alloc.c -o $(TEST_BUILD_DIR)/test_stack_alloc
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_pool_alloc.c -o $(TEST_BUILD_DIR)/test_pool_alloc
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_fs_alloc.c -o $(TEST_BUILD_DIR)/test_fs_alloc
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_memdbg.c -o $(TEST_BUILD_DIR)/test_memdbg
