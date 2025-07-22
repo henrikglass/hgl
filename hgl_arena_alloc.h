@@ -190,12 +190,15 @@ HglArena hgl_arena_make(size_t size, HglArenaKind kind, void *buffer)
         case HGL_ARENA_MMAP_HUGEPAGE_2MB:
         case HGL_ARENA_MMAP_HUGEPAGE_1GB: {
             int mmap_flags = MAP_PRIVATE | MAP_ANONYMOUS; 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch-enum"
             switch (kind) {
                 case HGL_ARENA_MMAP_HUGEPAGE:     mmap_flags |= MAP_HUGETLB; break;
                 case HGL_ARENA_MMAP_HUGEPAGE_2MB: mmap_flags |= MAP_HUGETLB | MAP_HUGE_2MB; break;
                 case HGL_ARENA_MMAP_HUGEPAGE_1GB: mmap_flags |= MAP_HUGETLB | MAP_HUGE_1GB; break;
                 default: break;
             }
+#pragma GCC diagnostic pop
             arena.memory = mmap(NULL, size, PROT_READ | PROT_WRITE, mmap_flags, -1, 0);
             if (arena.memory == MAP_FAILED) {
                 fprintf(stderr, "hgl_arena_alloc.h] Call to `mmap()` failed.\n");
