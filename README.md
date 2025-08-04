@@ -6,7 +6,6 @@ A collection of small (except maybe hgl\_rita.h) easy-to-use header only librari
 | **library**           | **Category**                  | **Description**                                                                                          |
 |-----------------------|-------------------------------|----------------------------------------------------------------------------------------------------------|
 | hgl\_arena\_alloc.h   | Allocator                     | Arena allocator.                                                                                         |
-| hgl\_stack\_alloc.h   | Allocator                     | Stack allocator (requires hgl\_arena\_alloc.h).                                                          |
 | hgl\_pool\_alloc.h    | Allocator                     | Pool allocator.                                                                                          |
 | hgl\_fs\_alloc.h      | Allocator                     | A "free stack" allocator. Similar to other free list allocators.                                         |
 | hgl\_memdbg.h         | Allocator/Utility             | Quick and easy leak checking replacement for malloc, realloc, and free.                                  |

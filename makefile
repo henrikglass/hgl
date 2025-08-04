@@ -18,7 +18,6 @@ examples: vec         					\
           rhashtbl                      \
           htable                        \
           hset                          \
-          stack_alloc                   \
           arena_alloc                   \
           pool_alloc                    \
           fs_alloc                      \
@@ -57,7 +56,7 @@ examples: vec         					\
           rita_vertex_displacement_maps \
           rita_pebbles                  \
           rita_mandelbulb               \
-   	  tqueue      
+   	  	  tqueue      
 
 misc: prep
 	gcc -I. -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L $(EXAMPLES_DIR)/misc.c -o $(EXAMPLES_BUILD_DIR)/misc
@@ -80,11 +79,8 @@ htable: prep
 hset: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/hset.c -o $(EXAMPLES_BUILD_DIR)/hset
 
-stack_alloc: prep
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/stack_alloc.c -o $(EXAMPLES_BUILD_DIR)/stack_alloc
-
 arena_alloc: prep
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/arena_alloc.c -o $(EXAMPLES_BUILD_DIR)/arena_alloc
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-override-init -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/arena_alloc.c -o $(EXAMPLES_BUILD_DIR)/arena_alloc
 
 pool_alloc: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/pool_alloc.c -o $(EXAMPLES_BUILD_DIR)/pool_alloc
@@ -222,9 +218,7 @@ rita_mandelbulb: prep
 
 ## Unit tests
 test: prep
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_arena_alloc.c -o $(TEST_BUILD_DIR)/test_arena_alloc
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -DHGL_ARENA_ALLOW_EXPENSIVE_REALLOC -ggdb3 $(TEST_DIR)/test_arena_alloc.c -o $(TEST_BUILD_DIR)/test_arena_alloc2
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_stack_alloc.c -o $(TEST_BUILD_DIR)/test_stack_alloc
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Wno-override-init -Werror -O0 -ggdb3 $(TEST_DIR)/test_arena_alloc.c -o $(TEST_BUILD_DIR)/test_arena_alloc
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_pool_alloc.c -o $(TEST_BUILD_DIR)/test_pool_alloc
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_fs_alloc.c -o $(TEST_BUILD_DIR)/test_fs_alloc
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_memdbg.c -o $(TEST_BUILD_DIR)/test_memdbg

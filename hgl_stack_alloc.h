@@ -53,12 +53,7 @@
  * void hgl_stack_free(HglArena *arena, void *ptr);
  * void hgl_stack_assert_canaries_alive(HglArena *arena); // requires HGL_STACK_ALLOC_ENABLE_CANARIES
  *
- * Since hgl_stack_alloc builds ontop of hgl_arena_alloc, the alignment can be defined in the
- * same way as for hgl_arena_alloc:
- *
- *     #define HGL_ARENA_ALIGNMENT 64
- *
- * A few other useful things that may be defined by the user:
+ * A few useful things that may be defined by the user:
  *
  *     #define HGL_STACK_ALLOC_DEBUG_PRINTS
  *     #define HGL_STACK_ALLOC_ENABLE_CANARIES
@@ -176,8 +171,8 @@ void *hgl_stack_alloc(HglArena *arena, size_t alloc_size)
 {
     void *ptr = arena->memory + arena->head;
     size_t size_with_footer = alloc_size + sizeof(HglStackFooter);
-    size_t aligned_size     = (size_with_footer + HGL_ARENA_ALIGNMENT - 1)
-                              & ~(HGL_ARENA_ALIGNMENT - 1);
+    size_t aligned_size     = (size_with_footer + arena->alignment - 1)
+                              & ~(arena->alignment - 1);
 
     /* Allocation too small: Return NULL */
     if (alloc_size == 0) {
