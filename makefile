@@ -56,7 +56,8 @@ examples: vec         					\
           rita_vertex_displacement_maps \
           rita_pebbles                  \
           rita_mandelbulb               \
-   	  	  tqueue      
+   	  	  tqueue                        \
+		  xar
 
 misc: prep
 	gcc -I. -std=c17 -Wall -Wextra -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L $(EXAMPLES_DIR)/misc.c -o $(EXAMPLES_BUILD_DIR)/misc
@@ -136,6 +137,9 @@ queue: prep
 
 tqueue: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE=199309L -ggdb3 $(EXAMPLES_DIR)/tq.c -o $(EXAMPLES_BUILD_DIR)/tq
+
+xar: prep
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Wno-override-init -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/xar.c -o $(EXAMPLES_BUILD_DIR)/xar
 
 ini: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/ini.c -o $(EXAMPLES_BUILD_DIR)/ini
