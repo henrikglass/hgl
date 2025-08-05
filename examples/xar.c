@@ -79,7 +79,7 @@ int main(void)
     for (int i = 0; i < 32; i++) {
         hgl_xar_push(&ints, i);
     }
-    int *arr = hgl_xar_to_array(&ints);
+    int *arr = hgl_xar_to_array(&ints, NULL);
     size_t count = hgl_xar_count(&ints);
     for (size_t i = 0; i < count; i++) {
         printf("arr[%zu] = %d\n", i, arr[i]);

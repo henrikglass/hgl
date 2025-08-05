@@ -114,7 +114,7 @@
 #define hgl_xar_copy_first_n_to_array(xar, buf, n)          hgl_xar_copy_to_array_generic(&(xar)->header, (buf), (n))
 #define hgl_xar_copy_to_array(xar, buf)                     hgl_xar_copy_to_array_generic(&(xar)->header, (buf), (xar)->header.count)
 #define hgl_xar_count(xar)                                  ((xar)->header.count)
-#define hgl_xar_to_array(xar)                               hgl_xar_to_array_generic(&(xar)->header)
+#define hgl_xar_to_array(xar, optional_allocator)           hgl_xar_to_array_generic(&(xar)->header, optional_allocator)
 
 /*--- Public type definitions -----------------------------------------------------------*/
 
@@ -138,7 +138,7 @@ void *hgl_xar_last_generic(HglXarHeader *xar);
 void *hgl_xar_get_generic(HglXarHeader *xar, size_t i);
 void hgl_xar_remove_backswap_generic(HglXarHeader *xar, size_t i);
 size_t hgl_xar_copy_to_array_generic(HglXarHeader *xar, void *buf, size_t n);
-void *hgl_xar_to_array_generic(HglXarHeader *xar);
+void *hgl_xar_to_array_generic(HglXarHeader *xar, void *(*alloc)(size_t));
 
 #endif /* HGL_XAR_H */
 
@@ -174,7 +174,7 @@ void hgl_xar_push_generic(HglXarHeader *xar, void *el)
 
 void *hgl_xar_pop_generic(HglXarHeader *xar)
 {
-    if (xar->count <= 0) {
+    if (xar->count == 0) {
         return NULL;
     }
     void *ret = hgl_xar_get_generic(xar, xar->count - 1);
@@ -184,7 +184,7 @@ void *hgl_xar_pop_generic(HglXarHeader *xar)
 
 void *hgl_xar_last_generic(HglXarHeader *xar)
 {
-    if (xar->count <= 0) {
+    if (xar->count == 0) {
         return NULL;
     }
     return hgl_xar_get_generic(xar, xar->count - 1);
@@ -258,10 +258,15 @@ size_t hgl_xar_copy_to_array_generic(HglXarHeader *xar, void *buf, size_t n)
     return buf_offset;
 }
 
-void *hgl_xar_to_array_generic(HglXarHeader *xar)
+void *hgl_xar_to_array_generic(HglXarHeader *xar, void *(*optional_allocator)(size_t))
 {
     size_t size = xar->el_size * xar->count;
-    void *buf = xar->alloc(size);
+    void *buf;
+    if (optional_allocator != NULL) {
+        buf = optional_allocator(size);
+    } else {
+        buf = xar->alloc(size);
+    }
     hgl_xar_copy_to_array_generic(xar, buf, xar->count);
     return buf;
 }
