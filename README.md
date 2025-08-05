@@ -11,6 +11,7 @@ A collection of small (except maybe hgl\_rita.h) easy-to-use header only librari
 | hgl\_memdbg.h         | Allocator/Utility             | Quick and easy leak checking replacement for malloc, realloc, and free.                                  |
 | hgl\_vector.h         | Data Structure                | Typed\* dynamic (resizable) array.                                                                       |
 | hgl\_da.h             | Data Structure                | Macro-only generic dynamic array implementation.                                                         |
+| hgl\_xar.h            | Data Structure                | Generic "exponential array" (Xar) implementation.                                                        |
 | hgl\_q.h              | Data Structure                | Macro-only generic queue (circular buffer) implementation.                                               |
 | hgl\_tq.h             | Data Structure/Thread Utility | Macro-only generic synchronized (thread) queue implementation.                                           |
 | hgl\_hash\_table.h    | Data Structure                | Typed\* Robin Hood style hash table/map.                                                                 |
