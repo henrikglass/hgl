@@ -59,7 +59,8 @@ int main(int argc, char *argv[])
     if (*opt_deflate) {
         /* create output filename if none provided */
         if (*opt_output == NULL) {
-            HglStringBuilder sb = hgl_sb_make(*opt_input, 0); 
+            HglStringBuilder sb = hgl_sb_make(); 
+            hgl_sb_append_cstr(&sb, *opt_input);
             hgl_sb_append_cstr(&sb, ".hz");
             *opt_output = sb.cstr;
         }
@@ -103,7 +104,8 @@ int main(int argc, char *argv[])
     } else if (*opt_inflate) {
         /* create output filename if none provided */
         if (*opt_output == NULL) {
-            HglStringBuilder sb = hgl_sb_make(*opt_input, 0); 
+            HglStringBuilder sb = hgl_sb_make(); 
+            hgl_sb_append_cstr(&sb, *opt_input);
             hgl_sb_append_cstr(&sb, ".deflated");
             *opt_output = sb.cstr;
         }

@@ -106,7 +106,7 @@ flags: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/flags.c -o $(EXAMPLES_BUILD_DIR)/flags -lm
 
 string: prep
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/string.c -o $(EXAMPLES_BUILD_DIR)/string
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-override-init -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/string.c -o $(EXAMPLES_BUILD_DIR)/string
 
 fft: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -march=native -ffast-math $(EXAMPLES_DIR)/fft.c -o $(EXAMPLES_BUILD_DIR)/fft -lm
@@ -228,7 +228,7 @@ test: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_memdbg.c -o $(TEST_BUILD_DIR)/test_memdbg
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_chan.c -o $(TEST_BUILD_DIR)/test_chan
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_buffered_chan.c -o $(TEST_BUILD_DIR)/test_buffered_chan
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_string.c -o $(TEST_BUILD_DIR)/test_string
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Wno-override-init -Werror -O0 -ggdb3 $(TEST_DIR)/test_string.c -o $(TEST_BUILD_DIR)/test_string
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_da.c -o $(TEST_BUILD_DIR)/test_da
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_q.c -o $(TEST_BUILD_DIR)/test_q
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_htable.c -o $(TEST_BUILD_DIR)/test_htable

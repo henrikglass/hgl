@@ -8,7 +8,8 @@ static HglStringBuilder sb;
 static HglStringView sv;
 
 GLOBAL_SETUP {
-    sb = hgl_sb_make("Hejsan hoppsan! \n Hello World!\n 0x000A, 20, 40, 80", 4096);
+    sb = hgl_sb_make(.initial_capacity = 4096);
+    hgl_sb_append_cstr(&sb, "Hejsan hoppsan! \n Hello World!\n 0x000A, 20, 40, 80");
     sv = hgl_sv_from_sb(&sb);
 }
 

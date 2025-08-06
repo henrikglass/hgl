@@ -11,8 +11,10 @@ int main(void)
 {
 
 #if 0
-    HglStringBuilder str = hgl_sb_make("    hello \n  ", 0);
-    HglStringBuilder str2 = hgl_sb_make(" hejsan hoppsan    \n    ", 0);
+    HglStringBuilder str = hgl_sb_make();
+    HglStringBuilder str2 = hgl_sb_make();
+    hgl_sb_append_cstr(&str, "    hello \n  ");
+    hgl_sb_append_cstr(&str2, " hejsan hoppsan    \n    ");
     printf("str1: \"%s\" -- len: %zu cap: %zu\n", str.cstr, str.length, str.capacity);
     printf("str2: \"%s\" -- len: %zu cap: %zu\n", str2.cstr, str2.length, str2.capacity);
     hgl_sb_trim(&str);
@@ -91,7 +93,8 @@ int main(void)
     printf("%d\n", hgl_sv_contains(&sv2, "fågel "));
     printf("%d\n", hgl_sv_ends_with(&sv2, "strykjärn"));
 
-    HglStringBuilder sb13 = hgl_sb_make(" a      bb ccc dddd  eeeee", 0);
+    HglStringBuilder sb13 = hgl_sb_make();
+    hgl_sb_append_cstr(&sb13, " a      bb ccc dddd  eeeee");
     printf("copy: \"%s\"\n", sb13.cstr);
     hgl_sb_replace(&sb13, " ", "----");
     printf("copy: \"%s\"\n", sb13.cstr);
@@ -99,13 +102,15 @@ int main(void)
     hgl_sb_destroy(&sb13);
     hgl_sb_destroy(&str);
     
-    HglStringBuilder hsb = hgl_sb_make("Hejsan hoppsan fisk fågel!", 0);
+    HglStringBuilder hsb = hgl_sb_make();
+    hgl_sb_append_cstr(&hsb, "Hejsan hoppsan fisk fågel!");
     hgl_sb_grow(&hsb, 1000);
     hgl_sb_replace(&hsb, "fisk", "tjoppsan");
     printf("hsb: \"%s\"\n", hsb.cstr);
     hgl_sb_destroy(&hsb);
     
-    hsb = hgl_sb_make(" aaa bb cc  dddd  ee  ", 256);
+    hsb = hgl_sb_make(.initial_capacity = 256);
+    hgl_sb_append_cstr(&hsb, " aaa bb cc  dddd  ee  ");
     sv = hgl_sv_from_sb(&hsb);
     hgl_sv_op_begin(&sv);
     while (1) {
@@ -124,7 +129,8 @@ int main(void)
     (void) match;
 
     printf("\n\n\n\nREAD FILE:\n");
-    HglStringBuilder sb14 = hgl_sb_make("text: ", 0);
+    HglStringBuilder sb14 = hgl_sb_make();
+    hgl_sb_append_cstr(&sb14, "text: ");
     hgl_sb_append_file(&sb14, "assets/text.txt");
     hgl_sb_append_file(&sb14, "assets/text.txt");
     hgl_sb_append_file(&sb14, "assets/text.txt");
@@ -136,17 +142,18 @@ int main(void)
     hgl_sb_destroy(&sb14);
     
     //printf("\n\n\n\nREGEX REPLACE:\n");
-    HglStringBuilder sb15 = hgl_sb_make("glass glassigt strutsigt mystigt glassigt\n", 0);
+    HglStringBuilder sb15 = hgl_sb_make();
+    hgl_sb_append_cstr(&sb15, "glass glassigt strutsigt mystigt glassigt\n");
     hgl_sb_replace_regex(&sb15, "glass(igt)?", "-");
     hgl_sb_replace_regex(&sb15, "\n", "newline");
-    //printf("\"%s\"\n", sb15.cstr);
+    printf("\"%s\"\n", sb15.cstr);
 
     hgl_sb_destroy(&sb15);
 
 #endif
 #if 0
     /* example from header library. */
-    HglStringBuilder sb = hgl_sb_make("", 0);
+    HglStringBuilder sb = hgl_sb_make(.initial_capacity = 4096);
     hgl_sb_append_file(&sb, "assets/glassigt_lyrics.txt");
     HglStringView sv = hgl_sv_from_sb(&sb);
 
@@ -235,7 +242,7 @@ int main(void)
     HglStringView friend = hgl_sv_ltrim(greeting);
     printf(HGL_SV_FMT " " HGL_SV_FMT "\n", HGL_SV_ARG(hello), HGL_SV_ARG(friend));
 
-    HglStringBuilder sb = hgl_sb_make("", 0);
+    HglStringBuilder sb = hgl_sb_make();
     hgl_sb_append_sv(&sb, &hello);
     hgl_sb_append_char(&sb, ',');
     hgl_sb_append_char(&sb, ' ');
