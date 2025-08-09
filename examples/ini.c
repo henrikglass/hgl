@@ -3,38 +3,18 @@
 //#define HGL_MEMDBG_IMPLEMENTATION
 //#include "hgl_memdbg.h"
 
-#define HGL_FS_ALLOC_IMPLEMENTATION
-#include "hgl_fs_alloc.h"
+#define HGL_ALLOC_IMPLEMENTATION
+#include "hgl_alloc.h"
 
 
-static HglFsAllocator fs_allocator;
+static HglAllocator my_allocator;
 
-void *fs_alloc(size_t size);
-void fs_free(void *ptr);
-void fs_free_all(void);
-
-void *fs_alloc(size_t size) {
-    printf("<ALLOC>\n");
-    return hgl_fs_alloc(&fs_allocator, size);
-}
-
-void *fs_realloc(void *ptr, size_t size) {
-    printf("<REALLOC>\n");
-    return hgl_fs_realloc(&fs_allocator, ptr, size);
-}
-
-void fs_free(void *ptr) {
-    printf("<FREE>\n");
-    hgl_fs_free(&fs_allocator, ptr);
-}
-
-void fs_free_all(void) {
-    hgl_fs_free_all(&fs_allocator);
-}
-
-#define HGL_INI_ALLOC fs_alloc
-#define HGL_INI_REALLOC fs_realloc
-#define HGL_INI_FREE fs_free
+static inline void *my_alloc(size_t size) { return hgl_alloc(&my_allocator, size); }
+static inline void *my_realloc(void *ptr, size_t size) { return hgl_realloc(&my_allocator, ptr, size); }
+static inline void my_free(void *ptr) { hgl_free(&my_allocator, ptr); }
+#define HGL_INI_ALLOC my_alloc
+#define HGL_INI_REALLOC my_realloc
+#define HGL_INI_FREE my_free
 #define HGL_INI_IMPLEMENTATION
 #include "hgl_ini.h"
 
@@ -42,7 +22,9 @@ void fs_free_all(void) {
 int main(void)
 {
 
-    fs_allocator = hgl_fs_make(2*1024, 4);
+    my_allocator = hgl_alloc_make(.kind = HGL_FREE_STACK_ALLOCATOR, 
+                                  .size = 2*1024, 
+                                  .free_stack_capacity = 4);
 
     HglIni *ini = hgl_ini_open("assets/test.ini");
     if (ini == NULL) {
@@ -71,10 +53,7 @@ int main(void)
 
     //hgl_ini_free(ini);
     //
-    fs_free_all();
-
-    printf("{%zu -- %zu}\n", fs_allocator.free_stack[fs_allocator.free_count - 1].start - fs_allocator.memory,
-                             fs_allocator.free_stack[fs_allocator.free_count - 1].end - fs_allocator.memory);
+    hgl_free_all(&my_allocator);
 
 #if 0
     ini = hgl_ini_create("testingtesting.ini");

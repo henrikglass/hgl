@@ -3,25 +3,20 @@
 #define HGL_MEMDBG_IMPLEMENTATION
 #include "hgl_memdbg.h"
 
-#define HGL_POOL_ALLOC_IMPLEMENTATION
-#include "hgl_pool_alloc.h"
+#define HGL_ALLOC_IMPLEMENTATION
+#include "hgl_alloc.h"
 
-static HglPool pool;
+static HglAllocator pool;
 
 void *pool_alloc(size_t size)
 {
-    assert(size == pool.chunk_size);
-    return hgl_pool_alloc(&pool);
+    assert(size == (size_t)pool.config.pool_chunk_size);
+    return hgl_alloc_from_pool(&pool);
 }
 
 void pool_free(void *ptr)
 {
-    hgl_pool_free(&pool, ptr);
-}
-
-void pool_free_all()
-{
-    hgl_pool_free_all(&pool);
+    hgl_free(&pool, ptr);
 }
 
 #define HGL_RBTREE_ALLOC pool_alloc
@@ -101,7 +96,9 @@ static int my_cmp(const void *a, const void *b)
 
 int main(void)
 {
-    pool = hgl_pool_make(512, sizeof(HglRbTreeNode));
+    pool = hgl_alloc_make(.kind = HGL_POOL_ALLOCATOR, 
+                          .size = 512 * sizeof(HglRbTreeNode), 
+                          .pool_chunk_size = sizeof(HglRbTreeNode));
 
     int my_ints[] = {1,5,2,7,6,4,1,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,1,3};
 
@@ -132,7 +129,7 @@ int main(void)
         }
     }
 
-    printf("pool chunks used: %ld\n", pool.n_chunks - pool.free_stack_head - 1);
+    hgl_alloc_print_usage(&pool);
 
     verify_rb_properties(tree);
 
@@ -200,16 +197,15 @@ int main(void)
     hgl_rbtree_print(tree, tree->root, 0, 0);
 
     printf("tree count: %zu\n", hgl_rbtree_count(tree));
-    printf("pool chunks used: %ld\n", pool.n_chunks - pool.free_stack_head - 1);
+    hgl_alloc_print_usage(&pool);
     printf("Note: One extra chunk used for (dummy) NIL node\n");
 
     printf("Destroying tree:\n");
     hgl_rbtree_destroy(tree);
-    printf("pool chunks used: %ld\n", pool.n_chunks - pool.free_stack_head - 1);
+    hgl_alloc_print_usage(&pool);
 
-
-    pool_free_all();
-    hgl_pool_destroy(&pool);
+    hgl_free_all(&pool);
+    hgl_alloc_destroy(&pool);
 
     hgl_memdbg_report();
 

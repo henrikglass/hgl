@@ -18,9 +18,7 @@ examples: vec         					\
           rhashtbl                      \
           htable                        \
           hset                          \
-          arena_alloc                   \
-          pool_alloc                    \
-          fs_alloc                      \
+          alloc                         \
           misc                          \
           hotload                       \
           serialize                     \
@@ -80,14 +78,8 @@ htable: prep
 hset: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/hset.c -o $(EXAMPLES_BUILD_DIR)/hset
 
-arena_alloc: prep
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-override-init -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/arena_alloc.c -o $(EXAMPLES_BUILD_DIR)/arena_alloc
-
-pool_alloc: prep
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/pool_alloc.c -o $(EXAMPLES_BUILD_DIR)/pool_alloc
-
-fs_alloc: prep
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/fs_alloc.c -o $(EXAMPLES_BUILD_DIR)/fs_alloc
+alloc: prep
+	gcc -I. -std=c17 -Wall -Wextra -Wno-override-init -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/alloc.c -o $(EXAMPLES_BUILD_DIR)/alloc
 
 hotload: hotload_mylib prep
 	gcc -I. -D_POSIX_C_SOURCE=200809L -std=c17 -Wall -Wextra -Wpedantic -Werror -O0 -ggdb3 -Wl,-rpath="./" $(EXAMPLES_DIR)/hotload.c -o $(EXAMPLES_BUILD_DIR)/hotload -ldl
@@ -142,7 +134,7 @@ xar: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Wno-override-init -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/xar.c -o $(EXAMPLES_BUILD_DIR)/xar
 
 ini: prep
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/ini.c -o $(EXAMPLES_BUILD_DIR)/ini
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Wno-override-init -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/ini.c -o $(EXAMPLES_BUILD_DIR)/ini
 
 rle: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rle.c -o $(EXAMPLES_BUILD_DIR)/rle
@@ -155,7 +147,7 @@ barrier: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 -D_POSIX_C_SOURCE=199309L -fsanitize=thread $(EXAMPLES_DIR)/barrier.c -o $(EXAMPLES_BUILD_DIR)/barrier -lpthread
 
 rbtree: prep
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rbtree.c -o $(EXAMPLES_BUILD_DIR)/rbtree
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Wno-override-init -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/rbtree.c -o $(EXAMPLES_BUILD_DIR)/rbtree
 
 base64: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/base64.c -o $(EXAMPLES_BUILD_DIR)/base64
@@ -222,9 +214,7 @@ rita_mandelbulb: prep
 
 ## Unit tests
 test: prep
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Wno-override-init -Werror -O0 -ggdb3 $(TEST_DIR)/test_arena_alloc.c -o $(TEST_BUILD_DIR)/test_arena_alloc
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_pool_alloc.c -o $(TEST_BUILD_DIR)/test_pool_alloc
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_fs_alloc.c -o $(TEST_BUILD_DIR)/test_fs_alloc
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Wno-override-init -Werror -O0 -ggdb3 $(TEST_DIR)/test_alloc.c -o $(TEST_BUILD_DIR)/test_alloc
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_memdbg.c -o $(TEST_BUILD_DIR)/test_memdbg
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_chan.c -o $(TEST_BUILD_DIR)/test_chan
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_buffered_chan.c -o $(TEST_BUILD_DIR)/test_buffered_chan
