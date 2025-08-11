@@ -527,7 +527,7 @@ void *hgl_alloc(HglAllocator *allocator, size_t alloc_size)
             if (i < 0) {
 #ifdef HGL_ALLOC_DEBUG_PRINTS
                 HGL_ALLOC_WARNING("hgl_alloc(): Allocation of size %zu failed. No large enough "
-                                  "chunk of contigous memory found.\n", alloc_size);
+                                  "chunk of contiguous memory found.\n", alloc_size);
 #endif
                 return NULL;
             }
