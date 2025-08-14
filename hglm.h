@@ -146,23 +146,6 @@ typedef struct
     float z;
 } HglmVec3;
 
-typedef struct __attribute__ ((aligned(16)))
-{
-    union {
-        struct {
-            HglmVec2 c0;
-            HglmVec2 c1;
-        };
-        struct {
-            float m00;
-            float m10;
-            float m01;
-            float m11;
-        };
-        float f[4];
-    };
-} HglmMat2;
-
 typedef union __attribute__ ((aligned(16)))
 {
     struct {
@@ -186,6 +169,23 @@ typedef union __attribute__ ((aligned(16)))
 #endif
     float f[4];
 } HglmVec4;
+
+typedef struct __attribute__ ((aligned(16)))
+{
+    union {
+        struct {
+            HglmVec2 c0;
+            HglmVec2 c1;
+        };
+        struct {
+            float m00;
+            float m10;
+            float m01;
+            float m11;
+        };
+        float f[4];
+    };
+} HglmMat2;
 
 typedef struct __attribute__ ((aligned(16)))
 {
