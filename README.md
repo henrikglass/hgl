@@ -20,7 +20,6 @@ A collection of small (except maybe hgl\_rita.h) easy-to-use header only librari
 | hgl\_chan.h            | Data Structure/Thread Utility | Typed\* synchronized message passing utility. Similar to Go's channels.                                  |
 | hgl\_buffered\_chan.h  | Data Structure/Thread Utility | Typed\* and buffered synchronized message passing utility. Similar to Go's buffered channels.            |
 | hgl\_string.h          | Data Strucutre/Utility        | Dynamic string builder, sized strings, and easy-to-use string operations.                                |
-| hgl\_string\_aliases.h | Data Strucutre/Utility        | Aliases for hgl\_string.h without `hgl_` and `Hgl` prefixes, to make things less wordy.                  |
 | hgl\_sockets.h         | Networking/Utility            | A simple to use wrapper around Linux sockets (TCP/UDP)                                                   |
 | hgl\_worker\_pool.h    | Multithreading/Utility        | Thread/Worker pool.                                                                                      |
 | hgl\_barrier.h         | Multithreading/Utility        | Barrier synchronization primitive.                                                                       |
@@ -41,7 +40,6 @@ A collection of small (except maybe hgl\_rita.h) easy-to-use header only librari
 | hgl\_rle.h             | Algorithm                     | Run-length encoding and decoding. Supports multiple data and run-length block sizes.                     |
 | hgl\_hamming.h         | Algorithm                     | Hamming(16,11) encoding and decoding system.                                                             |
 | hglm.h                 | Math                          | Vector math library with some SIMD support.                                                              |
-| hglm\_aliases.h        | Math                          | Aliases for hglm.h without `hglm_` and `Hglm` prefixes, to make things less wordy.                       |
 | hgl\_test.h            | Unit Testing Framework.       | Simple but powerful unit testing framework.                                                              |
 | hgl.h                  | Utility/Misc.                 | Misc. stuff that might be useful from time to time.                                                      |
 | hgl\_rita.h            | 3D graphics/CPU rasterizer    | Multi-threaded (tiled) CPU-rasterizer and general purpose graphics library.                              |

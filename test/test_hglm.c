@@ -1,8 +1,8 @@
 
 #include "hgl_test.h"
 
+#define HGLM_STRIP_PREFIX
 #include "hglm.h"
-#include "hglm_aliases.h"
 
 bool float_eq(float a, float b)
 {

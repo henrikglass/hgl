@@ -143,8 +143,8 @@
 
 /*--- Include files ---------------------------------------------------------------------*/
 
+#define HGLM_STRIP_PREFIX
 #include "hglm.h"
-#include "hglm_aliases.h"
 
 #include <stdbool.h>
 #include <stdarg.h>

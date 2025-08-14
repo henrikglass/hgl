@@ -1,7 +1,7 @@
 #include <stdio.h>
 
+#define HGLM_STRIP_PREFIX
 #include "hglm.h"
-#include "hglm_aliases.h"
 
 
 int main()
