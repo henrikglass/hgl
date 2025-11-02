@@ -302,6 +302,7 @@ void hgl_profile_end(void)
     uint64_t time_ns = get_time_nanos_();
     const char *name = da_pop_(&stack);
     HglProfStat *entry = hgl_profile_get(name);
+    if (entry == NULL) abort(); // fix stupid warning
     entry->time_ns_last = time_ns - entry->time_ns_last;
     entry->time_ns_total += entry->time_ns_last;
     if (entry->time_ns_last > entry->time_ns_max) {
