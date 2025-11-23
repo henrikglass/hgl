@@ -183,6 +183,14 @@ HglStringView hgl_sv_from_sb(HglStringBuilder *sb);
 HglStringView hgl_sv_from_cstr(const char *cstr);
 
 /**
+ * Create NULL-terminated `cstr` from `sv`, wrapped inside a HglStringView object. 
+ * If `mem_alloc` is not NULL, then it is used to allocate memory for the cstr copy, 
+ * otherwise HGL_STRING_ALLOC is used. The caller should ensure that the returned 
+ * string is freed correctly after use.
+ */
+HglStringView hgl_sv_make_copy(HglStringView sv, void *(*mem_alloc)(size_t));
+
+/**
  * Create NULL-terminated `cstr` from `sv`. If `mem_alloc` is not NULL, then
  * it is used to allocate memory for the cstr copy, otherwise HGL_STRING_ALLOC
  * is used. The caller should ensure that the returned string is freed
@@ -352,9 +360,21 @@ bool hgl_sv_ends_with(HglStringView *sv, const char *substr);
 int hgl_sv_compare(HglStringView a, HglStringView b);
 
 /**
+ * Returns 0 if the string views `sv` and `cstr` are equal, -1 if `sv` is "less
+ * than" `cstr`, and 1 if `sv` is "greater than" `cstr`. See `man 3 strncmp` for the
+ * definition of "less than" and "greater than".
+ */
+int hgl_sv_compare_cstr(HglStringView sv, const char *cstr);
+
+/**
  * Returns true if `a` and `b` are equal.
  */
 bool hgl_sv_equals(HglStringView a, HglStringView b);
+
+/**
+ * Returns true if `sv` and `cstr` are equal.
+ */
+bool hgl_sv_equals_cstr(HglStringView sv, const char *cstr);
 
 /*=======================================================================================*/
 /*--- String Builder function prototypes ------------------------------------------------*/
@@ -519,8 +539,16 @@ HglStringView hgl_sv_from_sb(HglStringBuilder *sb)
 HglStringView hgl_sv_from_cstr(const char *cstr)
 {
     return (HglStringView) {
-        .start = cstr,
+        .start  = cstr,
         .length = strlen(cstr)
+    };
+}
+
+HglStringView hgl_sv_make_copy(HglStringView sv, void *(*mem_alloc)(size_t))
+{
+    return (HglStringView) {
+        .start  = hgl_sv_make_cstr_copy(sv, mem_alloc),
+        .length = sv.length,
     };
 }
 
@@ -884,9 +912,20 @@ int hgl_sv_compare(HglStringView a, HglStringView b)
     return strncmp(a.start, b.start, a.length);
 }
 
+int hgl_sv_compare_cstr(HglStringView sv, const char *cstr)
+{
+    HglStringView other = hgl_sv_from_cstr(cstr);
+    return hgl_sv_compare(sv, other);
+}
+
 bool hgl_sv_equals(HglStringView a, HglStringView b)
 {
     return 0 == hgl_sv_compare(a, b);
+}
+
+bool hgl_sv_equals_cstr(HglStringView sv, const char *cstr)
+{
+    return 0 == hgl_sv_compare_cstr(sv, cstr);
 }
 
 HglStringBuilder hgl_sb_make_(HglStringBuilderConfig config)
@@ -951,7 +990,7 @@ void hgl_sb_grow_by_policy(HglStringBuilder *sb,
         return;
     }
 
-    size_t new_capacity;
+    size_t new_capacity = 0;
     switch (policy) {
         case HGL_SB_GROWTH_POLICY_TO_FIT: {
             new_capacity = needed_capacity;
@@ -1208,6 +1247,7 @@ typedef HglStringBuilder StringBuilder;
 #define sv_from                  hgl_sv_from
 #define sv_from_sb               hgl_sv_from_sb
 #define sv_from_cstr             hgl_sv_from_cstr
+#define sv_make_copy             hgl_sv_make_copy
 #define sv_make_cstr_copy        hgl_sv_make_cstr_copy
 #define sv_op_begin              hgl_sv_op_begin
 #define sv_split_next            hgl_sv_split_next
@@ -1234,7 +1274,9 @@ typedef HglStringBuilder StringBuilder;
 #define sv_starts_with           hgl_sv_starts_with
 #define sv_ends_with             hgl_sv_ends_with
 #define sv_compare               hgl_sv_compare
+#define sv_compare_cstr          hgl_sv_compare_cstr
 #define sv_equals                hgl_sv_equals
+#define sv_equals_cstr           hgl_sv_equals_cstr
 
 #define sb_make                  hgl_sb_make
 #define sb_make_copy             hgl_sb_make_copy
