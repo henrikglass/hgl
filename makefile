@@ -55,6 +55,7 @@ examples: vec         					\
           rita_pebbles                  \
           rita_mandelbulb               \
    	  	  tqueue                        \
+   	  	  fsm                           \
 		  xar
 
 misc: prep
@@ -132,6 +133,9 @@ tqueue: prep
 
 xar: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Wno-override-init -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/xar.c -o $(EXAMPLES_BUILD_DIR)/xar
+
+fsm: prep
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Wno-override-init -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/fsm.c -o $(EXAMPLES_BUILD_DIR)/fsm
 
 ini: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Wno-override-init -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/ini.c -o $(EXAMPLES_BUILD_DIR)/ini
