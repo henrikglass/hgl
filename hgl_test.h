@@ -537,7 +537,7 @@ void hgl_test_run_test(HglTest *test)
     }
 
     /* handle timeout */
-    if (test->timeout != 0.0f) {
+    if (test->timeout > 0.0f) {
         sigset_t mask;
         sigset_t orig_mask;
         
