@@ -198,19 +198,22 @@ bool hgl_ini_get_bool(HglIni *ini, const char *section_name, const char *key_nam
 
 /**
  * Gets a signed integer value from `ini`. The raw value is retrieved and
- * parsed as a 64-bit signed integer.
+ * parsed as a 64-bit signed integer. If `section_name` and `key_name` do not match
+ * a valid entry 0 is returned.
  */
 int64_t hgl_ini_get_i64(HglIni *ini, const char *section_name, const char *key_name);
 
 /**
  * Gets an unsigned integer value from `ini`. The raw value is retrieved and
- * parsed as a 64-bit unsigned integer.
+ * parsed as a 64-bit unsigned integer. If `section_name` and `key_name` do not match
+ * a valid entry 0 is returned.
  */
 uint64_t hgl_ini_get_u64(HglIni *ini, const char *section_name, const char *key_name);
 
 /**
  * Gets an floating point value from `ini`. The raw value is retrieved and
- * parsed as a 64-bit float.
+ * parsed as a 64-bit float. If `section_name` and `key_name` do not match
+ * a valid entry 0.0 is returned.
  *
  * Note: this assumes "double" is 64 bits, which it in most cases is.
  */
@@ -680,6 +683,9 @@ bool hgl_ini_get_bool(HglIni *ini, const char *section_name, const char *key_nam
 int64_t hgl_ini_get_i64(HglIni *ini, const char *section_name, const char *key_name)
 {
     const char *raw_value = hgl_ini_get(ini, section_name, key_name);
+    if (raw_value == NULL) {
+        return 0;
+    }
     char *end;
     return strtol(raw_value, &end, 0);
 }
@@ -687,6 +693,9 @@ int64_t hgl_ini_get_i64(HglIni *ini, const char *section_name, const char *key_n
 uint64_t hgl_ini_get_u64(HglIni *ini, const char *section_name, const char *key_name)
 {
     const char *raw_value = hgl_ini_get(ini, section_name, key_name);
+    if (raw_value == NULL) {
+        return 0;
+    }
     char *end;
     return strtoul(raw_value, &end, 0);
 }
@@ -694,6 +703,9 @@ uint64_t hgl_ini_get_u64(HglIni *ini, const char *section_name, const char *key_
 double hgl_ini_get_f64(HglIni *ini, const char *section_name, const char *key_name)
 {
     const char *raw_value = hgl_ini_get(ini, section_name, key_name);
+    if (raw_value == NULL) {
+        return 0.0;
+    }
     char *end;
     return strtod(raw_value, &end);
 }
