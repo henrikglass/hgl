@@ -75,7 +75,6 @@
 #ifndef HGL_IO_H
 #define HGL_IO_H
 
-#include <endian.h>
 #include <stdint.h>
 #include <stddef.h>
 
@@ -85,14 +84,14 @@ typedef enum
     HGL_IO_FILE_MODE_MEMORY_MAPPED,
 } HglFileMode;
 
-typedef enum 
+typedef enum
 {
     HGL_IO_PIXEL_FORMAT_RGBA8,   /* 4x bytes per pixel in the order R, G, B, A         */
     HGL_IO_PIXEL_FORMAT_RGB8,    /* 3x bytes per pixel in the order R, G, B            */
     HGL_IO_PIXEL_FORMAT_RGBA32F, /* 4x 32-bit floats per pixel in the order R, G, B, A */
     HGL_IO_PIXEL_FORMAT_R8,      /* 1x byte per pixel (grayscale)                      */
     HGL_IO_PIXEL_FORMAT_R32F,    /* 1x 32-bit float per pixel (grayscale)              */
-} HglPixelFormat; 
+} HglPixelFormat;
 
 typedef struct
 {
@@ -108,7 +107,7 @@ typedef struct
     uint8_t *data;
     size_t width;
     size_t height;
-    HglPixelFormat format; 
+    HglPixelFormat format;
 } HglImage;
 
 /**
@@ -185,6 +184,7 @@ int hgl_io_image_write_netpbm(const char *filepath, HglImage *image);
 
 #ifdef HGL_IO_IMPLEMENTATION
 
+#include <endian.h>
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
@@ -194,12 +194,17 @@ int hgl_io_image_write_netpbm(const char *filepath, HglImage *image);
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <ctype.h>
 
-/* CONFIGURABLE: HGL_BUFFERED_CHAN_ALLOC, HGL_BUFFERED_CHAN_FREE */
+/* CONFIGURABLE: HGL_IO_ALLOC, HGL_IO_FREE */
 #if !defined(HGL_IO_ALLOC) && !defined(HGL_IO_FREE)
 #  include <stdlib.h>
 #  define HGL_IO_ALLOC    malloc
 #  define HGL_IO_FREE     free
+#endif
+
+#ifndef MIN
+#  define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
 void hgl_io_file_create(const char *filepath, size_t size)
@@ -412,28 +417,28 @@ void hgl_io_file_munmap(HglFile *file)
     file->size = 0;
 }
 
-#define HGL_IO_SWIZZLE32(v, a, b, c, d)                  \
-    ({                                                   \
-        uint32_t v_ = (v);                               \
-        uint32_t nv_ = 0u;                               \
-        uint32_t bytes_[4];                              \
-        __typeof__ (a) a_ = (a);                         \
-        __typeof__ (b) b_ = (b);                         \
-        __typeof__ (c) c_ = (c);                         \
-        __typeof__ (d) d_ = (d);                         \
-        assert((a_ >= 0) && (a_ <= 3));                  \
-        assert((b_ >= 0) && (b_ <= 3));                  \
-        assert((c_ >= 0) && (c_ <= 3));                  \
-        assert((d_ >= 0) && (d_ <= 3));                  \
-        bytes_[0] = ((v_ & 0xFF000000) >> 24);           \
-        bytes_[1] = ((v_ & 0x00FF0000) >> 16);           \
-        bytes_[2] = ((v_ & 0x0000FF00) >> 8);            \
-        bytes_[3] = ((v_ & 0x000000FF));                 \
-        nv_ |= bytes_[a_] << 24;                         \
-        nv_ |= bytes_[b_] << 16;                         \
-        nv_ |= bytes_[c_] <<  8;                         \
-        nv_ |= bytes_[d_];                               \
-		nv_;                                             \
+#define HGL_IO_SWIZZLE32(v, a, b, c, d)                    \
+    ({                                                     \
+        uint32_t v_ = (v);                                 \
+        uint32_t nv_ = 0u;                                 \
+        uint32_t bytes_[4];                                \
+        __typeof__ (a) a_ = (a);                           \
+        __typeof__ (b) b_ = (b);                           \
+        __typeof__ (c) c_ = (c);                           \
+        __typeof__ (d) d_ = (d);                           \
+        assert((a_ >= 0) && (a_ <= 3));                    \
+        assert((b_ >= 0) && (b_ <= 3));                    \
+        assert((c_ >= 0) && (c_ <= 3));                    \
+        assert((d_ >= 0) && (d_ <= 3));                    \
+        bytes_[0] = ((v_ & 0xFF000000) >> 24);             \
+        bytes_[1] = ((v_ & 0x00FF0000) >> 16);             \
+        bytes_[2] = ((v_ & 0x0000FF00) >> 8);              \
+        bytes_[3] = ((v_ & 0x000000FF));                   \
+        nv_ |= bytes_[a_] << 24;                           \
+        nv_ |= bytes_[b_] << 16;                           \
+        nv_ |= bytes_[c_] <<  8;                           \
+        nv_ |= bytes_[d_];                                 \
+        nv_;                                               \
     })
 
 #define HGL_IO_SWIZZLE4x8_IN_PLACE(ptr, a, b, c, d)        \
@@ -451,7 +456,228 @@ void hgl_io_file_munmap(HglFile *file)
         ptr_[3] = (v32_ & 0x000000FF);                     \
     } while (0)
 
-HglImage hgl_io_image_read_netpbm(const char *filepath);
+static inline int next_pbm_textvalue(FILE *fp, char *buffer, size_t size)
+{
+    int c = '\0';
+    size_t i = 1;
+
+    while (c != EOF) {
+        /* skip spaces */
+        while((c = fgetc(fp)) != EOF && isspace(c));
+
+        /* skip commented lines */
+        if(c == '#'){
+            while(c != '\r' && c != '\n' && (c = fgetc(fp)) != EOF);
+        } else if (c != EOF){
+            /* read values to buffer */
+            buffer[0] = c;
+            for(; i < size && (c = fgetc(fp)) != EOF && !isspace(c); i++) {
+                buffer[i] = c;
+            }
+
+            /* null terminate */
+            buffer[MIN(size - 1, i)] = '\0';
+            return i;
+        }
+    }
+
+    return EOF;
+}
+
+HglImage hgl_io_image_read_netpbm(const char *filepath)
+{
+    HglImage img = { .data = NULL };
+
+    enum Magic {MAGIC_NIL, P1, P2, P3, P4, P5, P6};
+
+    char magic_text[16];
+    char *end;
+    char scratch[16];
+    long precision;
+    enum Magic magic = MAGIC_NIL;
+
+    /* open file */
+    FILE *fp = fopen(filepath, "rb");
+    if (fp == NULL) {
+        fprintf(stderr, "Unable to open `%s`\n", filepath);
+        goto out_err;
+    }
+
+    /* read header data */
+    if (next_pbm_textvalue(fp, magic_text, 16) == EOF) return img;
+    if (next_pbm_textvalue(fp, scratch, 16) == EOF) return img;
+    img.width = (size_t)strtoul(scratch, &end, 10);
+    if (next_pbm_textvalue(fp, scratch, 16) == EOF) return img;
+    img.height = (size_t)strtoul(scratch, &end, 10);
+    if (next_pbm_textvalue(fp, scratch, 16) == EOF) return img;
+    precision = strtol(scratch, &end, 10);
+
+    if (magic_text[2] != '\0') {
+        fprintf(stderr, "Malformed netpbm file\n");
+        goto out_err;
+    }
+
+    /* figure out what internal format to use */
+    if (memcmp(magic_text, "P2", 2) == 0) magic = P2;
+    else if (memcmp(magic_text, "P3", 2) == 0) magic = P3;
+    else if (memcmp(magic_text, "P5", 2) == 0) magic = P5;
+    else if (memcmp(magic_text, "P6", 2) == 0) magic = P6;
+
+    if (magic == MAGIC_NIL) {
+        fprintf(stderr, "hgl_io.h does not support netpbm files with magic `%.2s`\n", magic_text);
+        goto out_err;
+    }
+
+    if (precision == 255) {
+        switch (magic) {
+            case P2: img.format = HGL_IO_PIXEL_FORMAT_R8; break;
+            case P5: img.format = HGL_IO_PIXEL_FORMAT_R8; break;
+            case P3: img.format = HGL_IO_PIXEL_FORMAT_RGB8; break;
+            case P6: img.format = HGL_IO_PIXEL_FORMAT_RGB8; break;
+            case P1: case P4:
+            case MAGIC_NIL: {
+                assert(0 && "unreachable");
+            } break;
+        }
+    } else if (precision == 65535) {
+        switch (magic) {
+            case P2: img.format = HGL_IO_PIXEL_FORMAT_R32F; break;
+            case P5: img.format = HGL_IO_PIXEL_FORMAT_R32F; break;
+            case P3: img.format = HGL_IO_PIXEL_FORMAT_RGBA32F; break;
+            case P6: img.format = HGL_IO_PIXEL_FORMAT_RGBA32F; break;
+            case P1: case P4:
+            case MAGIC_NIL: {
+                assert(0 && "unreachable");
+            } break;
+        }
+    } else {
+        fprintf(stderr, "hgl_io.h does precision values other than 255 or 65535\n");
+        goto out_err;
+    }
+
+    /* allocate memory for image data */
+    size_t n_pixels = img.width * img.height;
+    switch (img.format) {
+        case HGL_IO_PIXEL_FORMAT_R8: {
+            img.data = HGL_IO_ALLOC(n_pixels);
+        } break;
+        case HGL_IO_PIXEL_FORMAT_RGB8: {
+            img.data = HGL_IO_ALLOC(3 * n_pixels);
+        } break;
+        case HGL_IO_PIXEL_FORMAT_R32F: {
+            img.data = HGL_IO_ALLOC(sizeof(float) * n_pixels);
+        } break;
+        case HGL_IO_PIXEL_FORMAT_RGBA32F: {
+            img.data = HGL_IO_ALLOC(4 * sizeof(float) * n_pixels);
+        } break;
+        case HGL_IO_PIXEL_FORMAT_RGBA8: {
+            assert(0 && "unreachable");
+        } break;
+    }
+
+    if (img.data == NULL) {
+        fprintf(stderr, "call to HGL_IO_ALLOC returned NULL.\n");
+        goto out_err;
+    }
+
+    /* read pixel data */
+    switch (img.format) {
+        /* grayscale, regular precision */
+        case HGL_IO_PIXEL_FORMAT_R8: {
+            if (magic == P2) {
+                for (size_t i = 0; i < n_pixels; i++) {
+                    if (next_pbm_textvalue(fp, scratch, 16) == EOF) {
+                        break;
+                    }
+                    img.data[i] = (uint8_t) strtoul(scratch, &end, 10);
+                }
+            } else /* magic == P5 */ {
+                size_t n_read = fread(img.data, 1, n_pixels, fp);
+                assert(n_read == n_pixels);
+            }
+        } break;
+
+        /* color, regular precision */
+        case HGL_IO_PIXEL_FORMAT_RGB8: {
+            size_t n_values = 3 * n_pixels;
+            if (magic == P3) {
+                for (size_t i = 0; i < n_values; i++) {
+                    if (next_pbm_textvalue(fp, scratch, 16) == EOF) {
+                        break;
+                    }
+                    img.data[i] = (uint8_t) strtoul(scratch, &end, 10);
+                }
+            } else /* magic == P6 */ {
+                size_t n_read = fread(img.data, 1, n_values, fp);
+                assert(n_read == n_values);
+            }
+        } break;
+
+        /* grayscale, extended precision */
+        case HGL_IO_PIXEL_FORMAT_R32F: {
+            float *img_data_f32 = (float *) img.data;
+            if (magic == P2) {
+                for (size_t i = 0; i < n_pixels; i++) {
+                    if (next_pbm_textvalue(fp, scratch, 16) == EOF) {
+                        break;
+                    }
+                    img_data_f32[i] = (float)strtoul(scratch, &end, 10) / (float)precision;
+                }
+            } else /* magic == P5 */ {
+                for (size_t i = 0; i < n_pixels; i++) {
+                    uint8_t hi, lo;
+                    assert(1 == fread(&hi, 1, 1, fp));
+                    assert(1 == fread(&lo, 1, 1, fp));
+                    uint16_t raw_value = ((uint16_t)hi << 8) + lo;
+                    img_data_f32[i] = (float)raw_value / (float)precision;
+                }
+            }
+        } break;
+
+        /* color, extended precision */
+        case HGL_IO_PIXEL_FORMAT_RGBA32F: {
+            float *img_data_f32 = (float *) img.data;
+            if (magic == P3) {
+                for (size_t i = 0; i < n_pixels; i++) {
+                    for (size_t j = 0; j < 3; j++) {
+                        if (next_pbm_textvalue(fp, scratch, 16) == EOF) {
+                            break;
+                        }
+                        img_data_f32[4*i + j] = (float)strtoul(scratch, &end, 10) / (float)precision;
+                    }
+                    img_data_f32[4*i + 3] = 1.0f;
+                }
+            } else /* magic == P6 */ {
+                for (size_t i = 0; i < n_pixels; i++) {
+                    for (size_t j = 0; j < 3; j++) {
+                        uint8_t hi, lo;
+                        assert(1 == fread(&hi, 1, 1, fp));
+                        assert(1 == fread(&lo, 1, 1, fp));
+                        uint16_t raw_value = ((uint16_t)hi << 8) + lo;
+                        img_data_f32[4*i + j] = (float)raw_value / (float)precision;
+                    }
+                    img_data_f32[4*i + 3] = 1.0f;
+                }
+            }
+        } break;
+
+        case HGL_IO_PIXEL_FORMAT_RGBA8: {
+            assert(0 && "unreachable");
+        } break;
+    }
+
+    fclose(fp);
+    return img;
+
+out_err:
+    if (img.data != NULL) {
+        HGL_IO_FREE(img.data);
+    }
+    if (fp != NULL) {
+        fclose(fp);
+    }
+    return img;
+}
 
 int hgl_io_image_write_netpbm(const char *filepath, HglImage *image)
 {
@@ -477,13 +703,15 @@ int hgl_io_image_write_netpbm(const char *filepath, HglImage *image)
         case HGL_IO_PIXEL_FORMAT_R8: {
             fwrite(image->data, 1, image->width * image->height, fp);
         } break;
+
         case HGL_IO_PIXEL_FORMAT_RGB8: {
             fwrite(image->data, 1, 3 * image->width * image->height, fp);
         } break;
+
         case HGL_IO_PIXEL_FORMAT_RGBA8: {
             for (size_t y = 0; y < image->height; y++) {
                 for (size_t x = 0; x < image->width; x++) {
-                    uint8_t rgb8[3]; 
+                    uint8_t rgb8[3];
                     rgb8[0] = image->data[y*image->width*4 + x*4];
                     rgb8[1] = image->data[y*image->width*4 + x*4 + 1];
                     rgb8[2] = image->data[y*image->width*4 + x*4 + 2];
@@ -491,11 +719,12 @@ int hgl_io_image_write_netpbm(const char *filepath, HglImage *image)
                 }
             }
         } break;
+
         case HGL_IO_PIXEL_FORMAT_RGBA32F: {
             float *image_data32f = (float *) image->data;
             for (size_t y = 0; y < image->height; y++) {
                 for (size_t x = 0; x < image->width; x++) {
-                    uint16_t rgb16[3]; 
+                    uint16_t rgb16[3];
                     rgb16[0] = htobe16((uint16_t)(image_data32f[y*image->width*4 + x*4] * 65535));
                     rgb16[1] = htobe16((uint16_t)(image_data32f[y*image->width*4 + x*4 + 1] * 65535));
                     rgb16[2] = htobe16((uint16_t)(image_data32f[y*image->width*4 + x*4 + 2] * 65535));
@@ -503,6 +732,7 @@ int hgl_io_image_write_netpbm(const char *filepath, HglImage *image)
                 }
             }
         } break;
+
         case HGL_IO_PIXEL_FORMAT_R32F: {
             float *image_data32f = (float *) image->data;
             for (size_t y = 0; y < image->height; y++) {
