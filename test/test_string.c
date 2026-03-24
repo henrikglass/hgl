@@ -34,6 +34,21 @@ TEST(sv_lchop2, .expect_output = " 0x000A, 20, 40, 80") {
     ASSERT(sv.length == 0);
 }
 
+    // hgl_sb_append_cstr(&sb, "Hejsan hoppsan! \n Hello World!\n 0x000A, 20, 40, 80");
+
+TEST(sv_chop_predicate, .expect_output = "Hejsan hoppsan204080") {
+    HglStringView hejsan = hgl_sv_lchop_until_predicate(&sv, isspace);
+    HglStringView hoppsan = hgl_sv_lchop_until_predicate(&sv, ispunct);
+
+    printf(HGL_SV_FMT " " HGL_SV_FMT, HGL_SV_ARG(hejsan), HGL_SV_ARG(hoppsan));
+
+    HglStringView n80 = hgl_sv_trim(hgl_sv_rchop_until_predicate(&sv, ispunct));
+    HglStringView n40 = hgl_sv_trim(hgl_sv_rchop_until_predicate(&sv, ispunct));
+    HglStringView n20 = hgl_sv_trim(hgl_sv_rchop_until_predicate(&sv, ispunct));
+
+    printf(HGL_SV_FMT HGL_SV_FMT HGL_SV_FMT, HGL_SV_ARG(n20), HGL_SV_ARG(n40), HGL_SV_ARG(n80));
+}
+
 TEST(sv_lchop_int) {
     hgl_sv_lchop_until(&sv, '\n');
     hgl_sv_lchop_until(&sv, '\n');
