@@ -1313,6 +1313,8 @@ typedef HglStringBuilder StringBuilder;
 #define sv_rchop                 hgl_sv_rchop
 #define sv_lchop_until           hgl_sv_lchop_until
 #define sv_rchop_until           hgl_sv_rchop_until
+#define sv_lchop_until_predicate hgl_sv_lchop_until_predicate
+#define sv_rchop_until_predicate hgl_sv_rchop_until_predicate
 #define sv_lchop_lexeme          hgl_sv_lchop_lexeme
 #define sv_ltrim                 hgl_sv_ltrim
 #define sv_rtrim                 hgl_sv_rtrim
@@ -1323,7 +1325,7 @@ typedef HglStringBuilder StringBuilder;
 #define sv_lchop_u64             hgl_sv_lchop_u64
 #define sv_lchop_i64             hgl_sv_lchop_i64
 #define sv_lchop_f64             hgl_sv_lchop_f64
-#define sv_starts_with_lchop     hgl_sv_starts_with_lchop
+#define sv_lchop_if_starts_with  hgl_sv_lchop_if_starts_with
 #define sv_starts_with_lexeme    hgl_sv_starts_with_lexeme
 #define sv_contains              hgl_sv_contains
 #define sv_starts_with           hgl_sv_starts_with
