@@ -924,7 +924,7 @@ double hgl_sv_lchop_f64(HglStringView *sv)
     return value;
 }
 
-bool hgl_sv_starts_with_lchop(HglStringView *sv, const char *substr)
+bool hgl_sv_lchop_if_starts_with(HglStringView *sv, const char *substr)
 {
     if (hgl_sv_starts_with(sv, substr)) {
         hgl_sv_lchop(sv, strlen(substr));
