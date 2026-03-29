@@ -615,7 +615,7 @@ HglCommand *hgl_cmd_tree_at_cstr(const HglCommand *cmd_tree_root, const char *pa
         /* get next word */
         while (isspace(*p)) p++;
         while (!isspace(p[l]) && p[l] != '\0') l++;
-        *end = (l == 0) ? NULL : p;
+        *end = p;
 
         if (found_leaf) {
             return curr_cmd;
