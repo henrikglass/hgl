@@ -500,7 +500,7 @@ const HglCommand *hgl_cmd_input(const HglCommand *cmd_tree_root,
 
             default: {
                 /* insert any ascii printable charactes */
-                if (c >= 0x20 && c <= 0x7F) {
+                if (isprint(c)) {
                     gb_insert_char(&gbuf, c); 
                 }
             } break;
