@@ -352,7 +352,7 @@ static HistBuffer hbuf_ = {
     .size     = HGL_CMD_HISTORY_BUFFER_SIZE,
     .first    = 0u,
     .last     = 0u,
-    .nav      = 0u,
+    .nav      = HISTORY_PAST_END,
     .is_empty = true,
 };
 
@@ -366,7 +366,7 @@ const HglCommand *hgl_cmd_input(const HglCommand *cmd_tree_root,
     static char gbuf_data[HGL_CMD_GAP_BUFFER_SIZE];
     static char scratch[HGL_CMD_GAP_BUFFER_SIZE];
     static char history_scratch[HGL_CMD_GAP_BUFFER_SIZE];
-    char c = '\0';
+    unsigned char c = '\0';
     const char *end = NULL;
     bool running = true;
     bool double_tab = false;
@@ -499,10 +499,9 @@ const HglCommand *hgl_cmd_input(const HglCommand *cmd_tree_root,
             } break;
 
             default: {
-                if (isalnum(c) || c == ' ' || c == '_' || c == '-') {
+                /* insert any ascii printable charactes */
+                if (c >= 0x20 && c <= 0x7F) {
                     gb_insert_char(&gbuf, c); 
-                } else {
-                    //printf("code = %d\n", (int)c);
                 }
             } break;
         }
@@ -1167,7 +1166,7 @@ static void hb_append(HistBuffer *hbuf, const char *str, size_t length)
         memcpy(hbuf->data, &e, sizeof(e));
         memcpy(hbuf->data + sizeof(e), str, length);
         hbuf->is_empty = false;
-        hbuf->nav = 0u;
+        hbuf->nav = HISTORY_PAST_END;
         return;
     }
 
