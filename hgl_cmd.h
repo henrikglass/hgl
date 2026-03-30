@@ -508,7 +508,7 @@ const HglCommand *hgl_cmd_input(const HglCommand *cmd_tree_root,
 
         /* Update completion buffer */
         char *cmdstr = gb_to_cstr(&gbuf, scratch);
-        cmdstr[gbuf.cursor - 1] = '\0';
+        cmdstr[((gbuf.cursor - 1) < 0) ? 0 : (gbuf.cursor - 1)] = '\0'; // clamp to [0, gbuf->size]
         cmd = hgl_cmd_tree_at_cstr(cmd_tree_root, cmdstr, &end);
         if (cmd != NULL) {
             if (cmd->kind == HGL_CMD_LEAF) {
@@ -1267,46 +1267,6 @@ static void hb_debug_print(const HistBuffer *hbuf)
     printf("\n");
 }
 #endif
-
-//static const char *hb_navigate_prev(HistBuffer *hbuf, uint32_t *length)
-//{
-//    if (hbuf->is_empty) {
-//        *length = 0;
-//        return NULL;
-//    }
-//
-//    HistEntryHeader *e = (HistEntryHeader *)&hbuf->data[hbuf->nav];
-//    *length = e->length;
-//    const char *str = (const char *)&hbuf->data[hbuf->nav + sizeof(HistEntryHeader)];
-//
-//    if (hbuf->nav != hbuf->first) {
-//        hbuf->nav = e->prev;
-//    }
-//
-//    return str;
-//}
-//
-//static const char *hb_navigate_next(HistBuffer *hbuf, uint32_t *length)
-//{
-//    if (hbuf->is_empty) {
-//        *length = 0;
-//        return NULL;
-//    }
-//
-//    HistEntryHeader *e = (HistEntryHeader *)&hbuf->data[hbuf->nav];
-//    if (hbuf->nav != hbuf->last) {
-//        hbuf->nav = e->next;
-//    } else {
-//        *length = 0;
-//        return NULL;
-//    }
-//
-//    e = (HistEntryHeader *)&hbuf->data[hbuf->nav];
-//    *length = e->length;
-//    const char *str = (const char *)&hbuf->data[hbuf->nav + sizeof(HistEntryHeader)];
-//
-//    return str;
-//}
 
 static const char *hb_navigate_prev(HistBuffer *hbuf, uint32_t *length)
 {
