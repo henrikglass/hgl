@@ -531,10 +531,10 @@ const HglCommand *hgl_cmd_input(const HglCommand *cmd_tree_root,
         bool is_leaf = (curr_cmd != NULL) && (curr_cmd->kind == HGL_CMD_LEAF);
         bool is_node = (curr_cmd != NULL) && (curr_cmd->kind == HGL_CMD_NODE);
         bool is_bad_path = (end != &cmdstr[gbuf.cursor]) && (end != cmdstr);
-        if (is_leaf || is_bad_path) {
-            curr_tree = NULL;
-        } else if (is_node) {
+        if (is_node) {
             curr_tree = curr_cmd->sub_tree;
+        } else if (is_leaf || is_bad_path || isspace(gb_char_left_of_cursor(&gbuf))) {
+            curr_tree = NULL;
         } else {
             curr_tree = cmd_tree_root;
         }
