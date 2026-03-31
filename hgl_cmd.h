@@ -498,9 +498,8 @@ const HglCommand *hgl_cmd_input(const HglCommand *cmd_tree_root,
             case '\t': {
                 int n = gb_word_under_cursor(&gbuf, scratch); 
                 scratch[n] = '\0';
-                //printf("scratch = \"%s\"\n", scratch);
                 cb_match_prefix(&cbuf, scratch, &mbuf);
-                if ((mbuf.longest_common_prefix > n) || (mbuf.count == 1)) {
+                if ((mbuf.longest_common_prefix > n)) {
                     gb_delete_left(&gbuf, n);
                     gb_insert_many(&gbuf, mbuf.arr[0], mbuf.longest_common_prefix);
                     if (mbuf.count == 1) {
@@ -528,17 +527,14 @@ const HglCommand *hgl_cmd_input(const HglCommand *cmd_tree_root,
         /* Update completion buffer */
         char *cmdstr = gb_to_cstr(&gbuf, scratch);
         cmdstr[gbuf.cursor] = '\0';
-        //curr_cmd = hgl_cmd_tree_at_cstr(cmd_tree_root, cmdstr, &end);
         curr_cmd = hgl_cmd_tree_at_cstr_unique(cmd_tree_root, cmdstr, &end);
-        //if (curr_cmd != NULL && cmdstr[(gbuf.cursor - 1) < 0 ? 0 : (gbuf.cursor - 1)] == ' ') {
-        if (curr_cmd != NULL) {
-            if (curr_cmd->kind == HGL_CMD_LEAF) {
-                curr_tree = NULL;
-            } else if (/*(curr_cmd->sub-tree != curr_tree) && */ curr_cmd->kind == HGL_CMD_NODE) {
-                curr_tree = curr_cmd->sub_tree;
-            }
-        } else if (end != &cmdstr[gbuf.cursor] && end != cmdstr) {
+        bool is_leaf = (curr_cmd != NULL) && (curr_cmd->kind == HGL_CMD_LEAF);
+        bool is_node = (curr_cmd != NULL) && (curr_cmd->kind == HGL_CMD_NODE);
+        bool is_bad_path = (end != &cmdstr[gbuf.cursor]) && (end != cmdstr);
+        if (is_leaf || is_bad_path) {
             curr_tree = NULL;
+        } else if (is_node) {
+            curr_tree = curr_cmd->sub_tree;
         } else {
             curr_tree = cmd_tree_root;
         }

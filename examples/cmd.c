@@ -58,6 +58,14 @@ static HglCommand command_tree[] =
         }},
         {HGL_CMD_NONE}
     }},
+    {HGL_CMD_NODE, "aaaa", "", .sub_tree = (HglCommand[]){
+        {HGL_CMD_LEAF, "bbbb", "", .private_data = operate_tractor},
+        {HGL_CMD_NONE}
+    }},
+    {HGL_CMD_NODE, "aaaa_", "", .sub_tree = (HglCommand[]){
+        {HGL_CMD_LEAF, "bbbb_", "", .private_data = operate_tractor},
+        {HGL_CMD_NONE}
+    }},
     {HGL_CMD_LEAF, "print", "prints the `args`", .private_data = my_printf},
     {HGL_CMD_NODE, "open", "opens something", .sub_tree = (HglCommand[]){
         {HGL_CMD_LEAF, "jar", "a jar"},
