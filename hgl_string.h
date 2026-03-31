@@ -183,7 +183,7 @@ HglStringView hgl_sv_from_sb(HglStringBuilder *sb);
 HglStringView hgl_sv_from_cstr(const char *cstr);
 
 /**
- * Create NULL-terminated `cstr` from `sv`, wrapped inside a HglStringView object. 
+ * Create NULL-terminated cstr from `sv`, wrapped inside a HglStringView object. 
  * If `mem_alloc` is not NULL, then it is used to allocate memory for the cstr copy, 
  * otherwise HGL_STRING_ALLOC is used. The caller should ensure that the returned 
  * string is freed correctly after use.
@@ -191,12 +191,19 @@ HglStringView hgl_sv_from_cstr(const char *cstr);
 HglStringView hgl_sv_make_copy(HglStringView sv, void *(*mem_alloc)(size_t));
 
 /**
- * Create NULL-terminated `cstr` from `sv`. If `mem_alloc` is not NULL, then
+ * Create NULL-terminated cstr from `sv`. If `mem_alloc` is not NULL, then
  * it is used to allocate memory for the cstr copy, otherwise HGL_STRING_ALLOC
  * is used. The caller should ensure that the returned string is freed
  * correctly after use.
  */
 char *hgl_sv_make_cstr_copy(HglStringView sv, void *(*mem_alloc)(size_t));
+
+/**
+ * Creates a NULL-terminated cstr from `sv`, places it in `buffer`, and returns
+ * a pointer to the beginning of the buffer. If `sv` does not fit into `buffer` of
+ * size `size` then NULL is returned, and nothing is placed into `buffer`. 
+ */
+char *hgl_sv_make_cstr_copy_in_buffer(HglStringView sv, char *buffer, size_t size);
 
 /**
  * (Re-)Start a reentrant string view operation (I.e. functions that have "next"
@@ -571,6 +578,16 @@ char *hgl_sv_make_cstr_copy(HglStringView sv, void *(*mem_alloc)(size_t))
     memcpy(cstr, sv.start, sv.length);
     cstr[sv.length] = '\0';
     return cstr;
+}
+
+char *hgl_sv_make_cstr_copy_in_buffer(HglStringView sv, char *buffer, size_t size)
+{
+    if (sv.length > (size - 1)) {
+        return NULL;
+    }
+    memcpy(buffer, sv.start, sv.length);
+    buffer[sv.length] = '\0';
+    return buffer;
 }
 
 void hgl_sv_op_begin(HglStringView *sv)
