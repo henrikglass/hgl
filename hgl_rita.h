@@ -2925,6 +2925,7 @@ static inline int hgl_rita_next_vbuf_index_internal_(void)
 
 #endif /* HGL_RITA_IMPLEMENTATION */
 
+// TODO Better (lockless) queues
 // TODO Documentation
 // TODO parallelize draw_text?
 // TODO HglRitaColor rgba8/r32 union?
