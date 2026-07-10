@@ -55,8 +55,8 @@
  *
  *     HGL_CMD_PRIVATE_DATA_T
  *
- * Note: The name of a command must not contain any whitespace. This can be verified
- * for the entire tree by calling `hgl_cmd_tree_verify`.
+ * Note: The name of a command must not contain any whitespace. This can be validated
+ * for the entire tree by calling `hgl_cmd_tree_validate`.
  *
  * You may provide a custom allocator hgl_cmd.h by redefining the following:
  *
@@ -78,12 +78,15 @@
  *         printf("Goodbye folks!\n");
  *     }
  *
- * The caller or `hgl_cmd_input` may parse additional data in the supplied input
- * buffer (`buf` in this case) by providing a pointer to `char *` as the last
- * argument (args). Upon returning, `hgl_cmd_input` will set args to point to
- * the first byte inside `buf` which is not part of the string corresponding
- * with a certain path in the command tree (`hgl_cmd_input` returns a pointer to
- * this command).
+ * The caller of `hgl_cmd_input` may parse additional data in input string by 
+ * providing a pointer to `char *` as the last argument (args). Upon returning, 
+ * `hgl_cmd_input` will set args to point to the first byte of the input string 
+ * which is not part of the string corresponding with a certain path in the command 
+ * tree (`hgl_cmd_input` returns a pointer to this command).
+ *
+ * Custom completers/completion buffers may be provided for `HGL_CMD_LEAF`-type commands
+ * by populating the `.compl_buffer` field with a pointer to a HglCmdComplBuffer object. 
+ * For more details, see the functions with the prefix `hgl_cmd_cb_` below.
  *
  * See the examples/ directory for a more complete example.
  *
@@ -99,6 +102,7 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 /*--- Public macros ---------------------------------------------------------------------*/
 
@@ -118,6 +122,12 @@
 
 typedef struct HglCommand HglCommand;
 
+typedef struct {
+    void *strs; 
+    int count;
+    int stride;
+} HglCmdComplBuffer;
+
 typedef enum
 {
     HGL_CMD_NODE,
@@ -134,6 +144,7 @@ struct HglCommand
         HGL_CMD_PRIVATE_DATA_T private_data;
         const HglCommand *sub_tree;
     };
+    HglCmdComplBuffer *compl_buffer;
 };
 
 /*--- Public variables ------------------------------------------------------------------*/
@@ -162,7 +173,7 @@ const HglCommand *hgl_cmd_input(const HglCommand *cmd_tree_root,
  * Verifies that the tree is valid (For now, that names follow the no whitespace rule).
  * Passing an invalid tree will terminate the program with a descriptive message.
  */
-void hgl_cmd_tree_verify(const HglCommand *cmd_tree_root);
+void hgl_cmd_tree_validate(const HglCommand *cmd_tree_root);
 
 /**
  * Pretty-prints the command tree `cmd_tree_root`. `indent` is the initial indentation
@@ -227,6 +238,57 @@ HglCommand *hgl_cmd_tree_get_child(const HglCommand *parent, const char *child_n
  */
 bool hgl_cmd_is_descendant(const HglCommand *cmd_tree_root, const HglCommand *cmd);
 
+/**
+ * Creates a completion buffer. `strs` must point to the first string (`char *`) in 
+ * a series of `count` strings, where each string is spaced `stride` bytes apart.
+ *
+ * E.g. to create a completition buffer from the standard command line arguments
+ * (argc and argv) you would do:
+ *
+ * HglCmdComplBuffer compl = hgl_cmd_cb_make(argv, argc, sizeof(argv[0]))
+ */
+HglCmdComplBuffer hgl_cmd_cb_make(void *strs, int count, int stride);
+
+/**
+ * Creates a completion buffer from the top level of a command tree (array of 
+ * HglCommands).
+ */
+HglCmdComplBuffer hgl_cmd_cb_make_from_cmd_tree(const HglCommand *cmd_tree);
+
+/**
+ * Creates a completion buffer by recursively descending the filesystem at `path` to
+ * the given maximum depth `max_depth`. Setting `max_depth` to -1 is equivalent to
+ * having no max depth. 'max_n_entries' specifies the maximum number of entries to 
+ * populate the completion buffer with; setting it to -1 is equivalent to having
+ * no upper limit.
+ *
+ * Optionally, a predicate-style filter function `filter` may be specified to filter
+ * the entries by some user-defined rule. 
+ *
+ * Example:
+ * 
+ *     static bool is_video_file(const char *str)
+ *     {
+ *         return (0 == memcmp(".mp4", str + strlen(str) - sizeof(".mp4") + 1, sizeof(".mp4") - 1)) ||
+ *                (0 == memcmp(".mov", str + strlen(str) - sizeof(".mov") + 1, sizeof(".mov") - 1)) ||
+ *                (0 == memcmp(".mkv", str + strlen(str) - sizeof(".mkv") + 1, sizeof(".mkv") - 1)) ||
+ *                (0 == memcmp(".avi", str + strlen(str) - sizeof(".avi") + 1, sizeof(".avi") - 1));
+ *     }
+ *
+ *                          .
+ *                          .
+ *                          .
+ * 
+ *     videos = hgl_cmd_cb_make_from_filesystem("/mnt", -1, -1, is_video_file);
+ *
+ * This function will allocate memory. It is assumed, however, that there no reason
+ * to ever free this data. So no function for freeing the underlying memory is provided.
+ */
+HglCmdComplBuffer hgl_cmd_cb_make_from_filesystem(const char *path, 
+                                                  int max_depth,
+                                                  int max_n_entries,
+                                                  bool (*filter)(const char *));
+
 #endif /* HGL_CMD_H */
 
 #ifdef HGL_CMD_IMPLEMENTATION
@@ -242,6 +304,7 @@ bool hgl_cmd_is_descendant(const HglCommand *cmd_tree_root, const HglCommand *cm
 #include <assert.h>
 #include <sys/types.h>
 #include <ctype.h>
+#include <dirent.h>
 
 /*--- Private macros --------------------------------------------------------------------*/
 
@@ -286,12 +349,6 @@ typedef struct {
 } MatchBuffer;
 
 typedef struct {
-    void *strs; 
-    int count;
-    int stride;
-} ComplBuffer;
-
-typedef struct {
     uint8_t *data; 
     uint32_t size;
     uint32_t first; 
@@ -328,9 +385,6 @@ static void gb_delete_right_all(GapBuffer *gbuf);
 static int gb_word_under_cursor(GapBuffer *gbuf, char *buf);
 static void gb_display(GapBuffer *gbuf, const char *prompt);
 #if 0
-static void gb_insert_cstr(GapBuffer *gbuf, const char *cstr);
-#endif
-#if 0
 static void gb_debug_print(GapBuffer *gbuf);
 #endif
 
@@ -339,19 +393,14 @@ static void mb_clear(MatchBuffer *mbuf);
 static void mb_free(MatchBuffer *mbuf);
 static void mb_display(MatchBuffer *mbuf);
 
-static ComplBuffer cb_make(void *strs, int count, int stride);
-static ComplBuffer cb_make_from_cmd_tree(const HglCommand *cmd_tree);
-static void cb_match_prefix(ComplBuffer *cbuf, const char *prefix, MatchBuffer *matches);
+static void cb_match_prefix(HglCmdComplBuffer *cbuf, const char *prefix, MatchBuffer *matches);
 #if 0
-static void cb_debug_print(ComplBuffer *cbuf);
+static void cb_debug_print(HglCmdComplBuffer *cbuf);
 #endif
 
 static void hb_append(HistBuffer *hbuf, const char *str, size_t length);
 static const char *hb_navigate_prev(HistBuffer *hbuf, uint32_t *length);
 static const char *hb_navigate_next(HistBuffer *hbuf, uint32_t *length);
-#if 0
-static HistBuffer hb_make(void *buffer, size_t size);
-#endif
 #if 0
 static void hb_debug_print(const HistBuffer *hbuf);
 #endif
@@ -383,17 +432,16 @@ const HglCommand *hgl_cmd_input(const HglCommand *cmd_tree_root,
     bool running = true;
     bool double_tab = false;
     const HglCommand *curr_tree = (const HglCommand *)cmd_tree_root;
-    HglCommand *curr_cmd = NULL;
 
     /* misc setup */
     history_scratch[0] = '\0';
     gbuf_data[HGL_CMD_GAP_BUFFER_SIZE - 1] = '\0';
 
     /* create gbuf + cbuf + mbuf */
-    GapBuffer gbuf   = gb_make(gbuf_data, HGL_CMD_GAP_BUFFER_SIZE - 1);
-    ComplBuffer cbuf = cb_make_from_cmd_tree(curr_tree);
+    GapBuffer gbuf = gb_make(gbuf_data, HGL_CMD_GAP_BUFFER_SIZE - 1);
+    HglCmdComplBuffer cbuf = hgl_cmd_cb_make_from_cmd_tree(curr_tree);
     MatchBuffer mbuf = {0};
-    
+
     /* set the terminal to raw mode */
     struct termios orig_term_attr;
     struct termios new_term_attr;
@@ -402,6 +450,10 @@ const HglCommand *hgl_cmd_input(const HglCommand *cmd_tree_root,
     new_term_attr.c_lflag &= ~(ECHO|ICANON);
     tcsetattr(fileno(stdin), TCSANOW, &new_term_attr);
 
+    /* . */
+    HglCommand *curr_cmd = NULL;
+    HglCmdComplBuffer *curr_cbuf = &cbuf;
+    
     while (running) {
         gb_display(&gbuf, prompt);
 
@@ -498,7 +550,7 @@ const HglCommand *hgl_cmd_input(const HglCommand *cmd_tree_root,
             case '\t': {
                 int n = gb_word_under_cursor(&gbuf, scratch); 
                 scratch[n] = '\0';
-                cb_match_prefix(&cbuf, scratch, &mbuf);
+                cb_match_prefix(curr_cbuf, scratch, &mbuf);
                 if ((mbuf.longest_common_prefix > n)) {
                     gb_delete_left(&gbuf, n);
                     gb_insert_many(&gbuf, mbuf.arr[0], mbuf.longest_common_prefix);
@@ -538,7 +590,14 @@ const HglCommand *hgl_cmd_input(const HglCommand *cmd_tree_root,
         } else {
             curr_tree = cmd_tree_root;
         }
-        cbuf = cb_make_from_cmd_tree(curr_tree);
+        cbuf = hgl_cmd_cb_make_from_cmd_tree(curr_tree);
+
+        /* Handle custom completions */
+        if (is_leaf && (curr_cmd->compl_buffer != NULL)) {
+            curr_cbuf = curr_cmd->compl_buffer;
+        } else {
+            curr_cbuf = &cbuf;
+        }
     }
 
     /* restore the original terminal attributes */
@@ -789,7 +848,7 @@ bool hgl_cmd_is_descendant(const HglCommand *cmd_tree_root, const HglCommand *cm
     }
 }
 
-void hgl_cmd_tree_verify(const HglCommand *cmd_tree_root)
+void hgl_cmd_tree_validate(const HglCommand *cmd_tree_root)
 {
     bool tree_invalid = false;
     int i = 0;
@@ -807,9 +866,10 @@ void hgl_cmd_tree_verify(const HglCommand *cmd_tree_root)
                 break;
             }
 
+            // TODO '/'
             if (cmd->name[j] == ' ') {
                 tree_invalid = true;
-                printf("[hgl_cmd_tree_verify] Error: Command names must not "
+                printf("[hgl_cmd_tree_validate] Error: Command names must not "
                        "contain spaces \"%s\"\n", cmd->name);
             }
 
@@ -817,7 +877,7 @@ void hgl_cmd_tree_verify(const HglCommand *cmd_tree_root)
         }
 
         if (cmd->kind == HGL_CMD_NODE) {
-            hgl_cmd_tree_verify(cmd->sub_tree);
+            hgl_cmd_tree_validate(cmd->sub_tree);
         }
     }
 
@@ -841,6 +901,133 @@ void hgl_cmd_tree_print(const HglCommand *cmd_tree_root, int indent, int desc_ma
         }
         cmd = cmd_tree_root[i++];
     }
+}
+
+HglCmdComplBuffer hgl_cmd_cb_make(void *strs, int count, int stride)
+{
+    return (HglCmdComplBuffer) {
+        .strs = strs,
+        .count = count,
+        .stride = stride,
+    };
+}
+
+HglCmdComplBuffer hgl_cmd_cb_make_from_cmd_tree(const HglCommand *cmd_tree)
+{
+    if (cmd_tree == NULL) {
+        return (HglCmdComplBuffer) {
+            .strs   = NULL,
+            .count  = 0,
+            .stride = 0,
+        };
+    }
+    int i = 0;
+    while (cmd_tree[i].kind != HGL_CMD_NONE) i++;
+    return hgl_cmd_cb_make((void *)&cmd_tree[0].name, i, sizeof(HglCommand));
+}
+
+#define DynamicArray(T)                                                                  \
+    struct {                                                                             \
+        T *arr;                                                                          \
+        size_t count;                                                                    \
+        size_t capacity;                                                                 \
+    }
+#define da_push(da, item)                                                                \
+    do {                                                                                 \
+        if ((da)->arr == NULL) {                                                         \
+            (da)->count = 0;                                                             \
+            (da)->capacity = 512;                                                        \
+            (da)->arr = HGL_CMD_ALLOC((da)->capacity * sizeof(*(da)->arr));              \
+        }                                                                                \
+        if ((da)->capacity < ((da)->count + 1)) {                                        \
+            (da)->capacity *= 2;                                                         \
+            (da)->arr = HGL_CMD_REALLOC((da)->arr, (da)->capacity * sizeof(*(da)->arr)); \
+        }                                                                                \
+        assert(((da)->arr != NULL) && "[hgl] Error: (re)alloc failed");                  \
+        (da)->arr[(da)->count++] = (item);                                               \
+    } while (0)
+#define da_pop(da) ((da)->arr[--(da)->count])
+#define da_free(da)                                                                      \
+    do {                                                                                 \
+        HGL_CMD_FREE((da)->arr);                                                         \
+    } while (0)
+
+static inline char *hgl_cmd_strcat_(const char *s1, const char *s2)
+{
+    size_t s1_len = strlen(s1);
+    size_t s2_len = strlen(s2);
+    size_t len = s1_len + s2_len + 2;
+    char *newstr = HGL_CMD_ALLOC(len);
+    memcpy(newstr, s1, s1_len);
+    newstr[s1_len] = '/';
+    memcpy(newstr + s1_len + 1, s2, s2_len);
+    newstr[len - 1] = '\0';
+    return newstr;
+}
+
+HglCmdComplBuffer hgl_cmd_cb_make_from_filesystem(const char *path, 
+                                                  int max_depth,
+                                                  int max_n_entries,
+                                                  bool (*filter)(const char *))
+{
+    typedef struct {
+        const char *path;
+        unsigned int depth;
+        bool should_be_freed;
+    } Directory;
+    
+    DynamicArray(Directory) dirs = {0};
+    DynamicArray(const char *) files = {0};
+    
+    if (path == NULL) {
+        da_push(&dirs, ((Directory){".", 0, false}));
+    } else {
+        da_push(&dirs, ((Directory){path, 0, false}));
+    }
+
+    DIR *dir = NULL;
+    struct dirent *file = NULL;
+    while (dirs.count > 0) {
+        Directory curr_dir = da_pop(&dirs);
+        dir = opendir(curr_dir.path);
+        if (dir == NULL) {
+            continue;
+        }
+
+        while((file = readdir(dir)) != NULL) {
+            if (file->d_name[0] == '.') {
+                continue;
+            }
+
+            const char *fpath = hgl_cmd_strcat_(curr_dir.path, file->d_name);
+            bool keep = (filter != NULL) ? filter(fpath) : true; 
+            if (keep) {
+                da_push(&files, fpath);
+            }
+
+            if ((file->d_type == DT_DIR) && curr_dir.depth < (unsigned int)max_depth) {
+                da_push(&dirs, ((Directory){fpath, curr_dir.depth + 1, !keep}));
+            }
+
+            /* arbitrary limit to keep things neat */
+            if (files.count > (unsigned int)max_n_entries) {
+                goto out;
+            } 
+        }
+
+        closedir(dir);
+        dir = NULL;
+        if (curr_dir.should_be_freed) {
+            HGL_CMD_FREE((char *)curr_dir.path);
+        }
+    }
+
+out:
+
+    if (dir != NULL) {
+        closedir(dir);
+    }
+    return hgl_cmd_cb_make(files.arr, files.count, sizeof(files.arr[0]));
 }
 
 /*--- Private functions -----------------------------------------------------------------*/
@@ -1075,13 +1262,6 @@ static void gb_display(GapBuffer *gbuf, const char *prompt)
 }
 
 #if 0
-static void gb_insert_cstr(GapBuffer *gbuf, const char *cstr)
-{
-    gb_insert_many(gbuf, cstr, (int)strlen(cstr));    
-}
-#endif
-
-#if 0
 static void gb_debug_print(GapBuffer *gbuf) 
 {
     int c = gbuf->cursor;
@@ -1175,6 +1355,7 @@ static void mb_display(MatchBuffer *mbuf)
 
     printf("\n");
     int cols = 80 / mbuf->longest_match;
+    cols = (cols < 1) ? 1 : cols;
     int rows = mbuf->count / cols;
     int rem  = mbuf->count % cols;
     for (int i = 0; i < rows; i++) {
@@ -1191,30 +1372,8 @@ static void mb_display(MatchBuffer *mbuf)
     }
 }
 
-static ComplBuffer cb_make(void *strs, int count, int stride)
-{
-    return (ComplBuffer) {
-        .strs = strs,
-        .count = count,
-        .stride = stride,
-    };
-}
 
-static ComplBuffer cb_make_from_cmd_tree(const HglCommand *cmd_tree)
-{
-    if (cmd_tree == NULL) {
-        return (ComplBuffer) {
-            .strs   = NULL,
-            .count  = 0,
-            .stride = 0,
-        };
-    }
-    int i = 0;
-    while (cmd_tree[i].kind != HGL_CMD_NONE) i++;
-    return cb_make((void *)&cmd_tree[0].name, i, sizeof(HglCommand));
-}
-
-static void cb_match_prefix(ComplBuffer *cbuf, const char *prefix, MatchBuffer *matches)
+static void cb_match_prefix(HglCmdComplBuffer *cbuf, const char *prefix, MatchBuffer *matches)
 {
     mb_clear(matches);
 
@@ -1222,8 +1381,8 @@ static void cb_match_prefix(ComplBuffer *cbuf, const char *prefix, MatchBuffer *
         return;
     }
 
-    uint8_t *strs8 = (uint8_t *) cbuf->strs;
     size_t prefix_len = strlen(prefix);
+    uint8_t *strs8 = (uint8_t *) cbuf->strs;
     for (int i = 0; i < cbuf->count; i++) {
         const char *candidate = *(const char **)(strs8 + i*cbuf->stride);
         size_t candidate_len = strlen(candidate);
@@ -1234,12 +1393,10 @@ static void cb_match_prefix(ComplBuffer *cbuf, const char *prefix, MatchBuffer *
             mb_push(matches, candidate);
         }
     }
-
-    return;
 }
 
 #if 0
-static void cb_debug_print(ComplBuffer *cbuf)
+static void cb_debug_print(HglCmdComplBuffer *cbuf)
 {
     uint8_t *strs8 = (uint8_t *) cbuf->strs;
     for (int i = 0; i < cbuf->count; i++) {
@@ -1326,20 +1483,6 @@ static void hb_append(HistBuffer *hbuf, const char *str, size_t length)
 }
 
 #if 0
-static HistBuffer hb_make(void *buffer, size_t size)
-{
-    return (HistBuffer) {
-        .data = buffer,
-        .size = size,
-        .first = 0u,
-        .last  = 0u,
-        .nav   = 0u,
-        .is_empty = true,
-    };
-}
-#endif
-
-#if 0
 static void hb_debug_print(const HistBuffer *hbuf)
 {
     if (hbuf->is_empty) {
@@ -1363,46 +1506,6 @@ static void hb_debug_print(const HistBuffer *hbuf)
     printf("\n");
 }
 #endif
-
-//static const char *hb_navigate_prev(HistBuffer *hbuf, uint32_t *length)
-//{
-//    if (hbuf->is_empty) {
-//        *length = 0;
-//        return NULL;
-//    }
-//
-//    HistEntryHeader *e = (HistEntryHeader *)&hbuf->data[hbuf->nav];
-//    *length = e->length;
-//    const char *str = (const char *)&hbuf->data[hbuf->nav + sizeof(HistEntryHeader)];
-//
-//    if (hbuf->nav != hbuf->first) {
-//        hbuf->nav = e->prev;
-//    }
-//
-//    return str;
-//}
-//
-//static const char *hb_navigate_next(HistBuffer *hbuf, uint32_t *length)
-//{
-//    if (hbuf->is_empty) {
-//        *length = 0;
-//        return NULL;
-//    }
-//
-//    HistEntryHeader *e = (HistEntryHeader *)&hbuf->data[hbuf->nav];
-//    if (hbuf->nav != hbuf->last) {
-//        hbuf->nav = e->next;
-//    } else {
-//        *length = 0;
-//        return NULL;
-//    }
-//
-//    e = (HistEntryHeader *)&hbuf->data[hbuf->nav];
-//    *length = e->length;
-//    const char *str = (const char *)&hbuf->data[hbuf->nav + sizeof(HistEntryHeader)];
-//
-//    return str;
-//}
 
 static const char *hb_navigate_prev(HistBuffer *hbuf, uint32_t *length)
 {

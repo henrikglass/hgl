@@ -116,7 +116,7 @@ process: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(EXAMPLES_DIR)/process.c -o $(EXAMPLES_BUILD_DIR)/process
 
 cmd: prep
-	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE -ggdb3 $(EXAMPLES_DIR)/cmd.c -o $(EXAMPLES_BUILD_DIR)/cmd
+	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O0 -D_DEFAULT_SOURCE -D_POSIX_C_SOURCE -ggdb3 $(EXAMPLES_DIR)/cmd.c -o $(EXAMPLES_BUILD_DIR)/cmd
 
 profile: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wpedantic -Wno-unused-variable -Werror -O3 -D_POSIX_C_SOURCE -ggdb3 $(EXAMPLES_DIR)/profile.c -o $(EXAMPLES_BUILD_DIR)/profile
@@ -237,7 +237,7 @@ test: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_hamming.c -o $(TEST_BUILD_DIR)/test_hamming
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_flags.c -o $(TEST_BUILD_DIR)/test_flags
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_hglm.c -o $(TEST_BUILD_DIR)/test_hglm -lm
-	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_cmd.c -o $(TEST_BUILD_DIR)/test_cmd -lm
+	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_cmd.c -o $(TEST_BUILD_DIR)/test_cmd -lm -D_DEFAULT_SOURCE
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_sockets.c -o $(TEST_BUILD_DIR)/test_sockets -lpthread
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_rle.c -o $(TEST_BUILD_DIR)/test_rle
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -ggdb3 $(TEST_DIR)/test_tq.c -o $(TEST_BUILD_DIR)/test_tq

@@ -73,13 +73,29 @@ static HglCommand command_tree[] =
         {HGL_CMD_LEAF, "door", "a door", .private_data = open_door},
         {HGL_CMD_NONE}
     }},
+    {HGL_CMD_LEAF, "files", "custom completion example"},
     {HGL_CMD_LEAF, "help", "prints help message"},
     {HGL_CMD_NONE}
 };
 #pragma GCC diagnostic pop
 
+static bool has_suffix(const char *str, const char *suffix)
+{
+    size_t str_len = strlen(str);
+    size_t suffix_len = strlen(suffix);
+    return 0 == memcmp(suffix, str + str_len - suffix_len, suffix_len);
+}
+
+static bool is_c_file(const char *str)
+{
+    return has_suffix(str, ".c") ||
+           has_suffix(str, ".h");
+}
+
 int main(void)
 {
+    HglCmdComplBuffer c_source_completer = hgl_cmd_cb_make_from_filesystem(".", 5, -1, is_c_file);
+    hgl_cmd_tree_at(command_tree, "files")->compl_buffer = &c_source_completer;
     hgl_cmd_tree_at(command_tree, "operate", "vehicle", "bike")->private_data = operate_bike;
 
     while (true) {
@@ -96,7 +112,16 @@ int main(void)
         }
 
         if (cmd == hgl_cmd_tree_at(command_tree, "help")) {
-            hgl_cmd_tree_print(command_tree, 2, 42);
+            const char *end;
+            const HglCommand *argscmd = hgl_cmd_tree_at_cstr(command_tree, args, &end);
+            if (argscmd != NULL) {
+                printf("%s - %s\n", argscmd->name, argscmd->desc);
+                if (argscmd->kind == HGL_CMD_NODE) {
+                    hgl_cmd_tree_print(argscmd->sub_tree, 2, 42);
+                }
+            } else {
+                hgl_cmd_tree_print(command_tree, 2, 42);
+            }
         }
     }
 }
