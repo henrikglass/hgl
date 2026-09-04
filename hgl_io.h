@@ -169,6 +169,11 @@ void hgl_io_file_free(HglFile *file);
 void hgl_io_file_munmap(HglFile *file);
 
 /**
+ * Vertically flips `image`.
+ */
+void hgl_io_image_flip_vertical(HglImage *image);
+
+/**
  * Reads the ppm/pgm file at `filepath`. On error, the HglImage object is
  * returned with `data` set to NULL.
  */
@@ -482,6 +487,26 @@ static inline int next_pbm_textvalue(FILE *fp, char *buffer, size_t size)
     }
 
     return EOF;
+}
+
+void hgl_io_image_flip_vertical(HglImage *image)
+{
+    static uint8_t scratch[0x10000];
+
+    size_t line_stride = image->width;
+    switch (image->format) {
+        case HGL_IO_PIXEL_FORMAT_R8: break;
+        case HGL_IO_PIXEL_FORMAT_RGB8:    line_stride *= 3;  break;
+        case HGL_IO_PIXEL_FORMAT_R32F:    line_stride *= 4;  break;
+        case HGL_IO_PIXEL_FORMAT_RGBA32F: line_stride *= 16; break;
+        case HGL_IO_PIXEL_FORMAT_RGBA8:   line_stride *= 4;  break;
+    }
+
+    for (size_t y = 0; y < image->height / 2; y++) {
+        memcpy((void *)scratch, image->data + y*line_stride, line_stride);
+        memcpy(image->data + y*line_stride, image->data + (image->height - y - 1) * line_stride, line_stride);
+        memcpy(image->data + (image->height - y - 1) * line_stride, scratch, line_stride);
+    }
 }
 
 HglImage hgl_io_image_read_netpbm(const char *filepath)
