@@ -131,6 +131,7 @@ static inline MyModel load_model_from_obj(const char *filepath)
             v.pos.w = 0.0f;
         }
         if (n_idx != 0) {
+#ifndef HGL_RITA_SIMPLER
             v.normal.x = mesh->normals[n_idx*3];
             v.normal.y = mesh->normals[n_idx*3 + 1];
             v.normal.z = mesh->normals[n_idx*3 + 2];
@@ -139,10 +140,13 @@ static inline MyModel load_model_from_obj(const char *filepath)
 #ifndef HGL_RITA_SIMPLE
             v.tangent = tan;
 #endif
+#endif
         }
         if (uv_idx != 0) {
+#ifndef HGL_RITA_SIMPLEST
             v.uv.x = mesh->texcoords[uv_idx*2];
             v.uv.y = mesh->texcoords[uv_idx*2 + 1];
+#endif
         }
         v.color = mtl_kd;
 

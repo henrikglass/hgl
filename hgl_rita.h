@@ -111,14 +111,32 @@
  *     HGL_RITA_PRESET_256X64X2048_PARALLEL_VERTEX_PROCESSING
  *     HGL_RITA_PRESET_256X64X4096_PARALLEL_VERTEX_PROCESSING
  *
- * The vertex and fragment specifications may be changed from DEFAULT to SIMPLE by defining:
+ * The vertex and fragment specifications may be changed from the DEFAULT by definining any of the 
+ * following, depending on your needs:
  *
  *     HGL_RITA_SIMPLE
+ *     HGL_RITA_SIMPLER
+ *     HGL_RITA_SIMPLEST
+ * 
+ * The DEFAULT vertex and fragment specifications include most of the information required to implement
+ * more advanced lighting models, such as the normal, tangent, and position of a vertex/fragment. The 
+ * HGL_RITA_SIMPLE, HGL_RITA_SIMPLER, and HGL_RITA_SIMPLEST macros define progressively more slimmed down
+ * specifications:
  *
- * The SIMPLE vertex and fragment specifications omit most of the attributes typically used when 
- * doing 3D rendering with lighting. The SIMPLE vertex and fragment specification may be used when
- * doing simpler 2D rendering, or when attributes such as tangent/bitangent vectors aren't needed,
- * to gain a tiny bit of performance.
+ *     HGL_RITA_SIMPLE   - Strips the tangent vector from the vertex spec. and the world space position
+ *                         and tangent vectors from the fragment spec. Still good enough for basic diffuse
+ *                         lightning.
+ *     HGL_RITA_SIMPLER  - In addition to HGL_RITA_SIMPLE also strips the normal vector from the vertex and
+ *                         fragment specs. Good enough for flat shaded textures.
+ *     HGL_RITA_SIMPLEST - In addition to HGL_RITA_SIMPLE and HGL_RITA_SIMPLER also strips the uv vector from
+ *                         the vertex and fragment specs. Good enough for flat shaded polygons and lines.
+ *
+ * You may choose to run hgl_rita.h in single-threaded mode by defining:
+ *
+ *     HGL_RITA_SINGLE_THREAD
+ * 
+ * In single-threaded mode, no additional worker threads will be started. All work required to produce
+ * an image is done by the calling thread (i.e. the thread that calls `hgl_rita_draw()`).
  *
  * USAGE:
  *
@@ -281,6 +299,20 @@
 #  define HGL_RITA_CACHE_LINE_SIZE 64
 #endif
 
+#ifdef HGL_RITA_SINGLE_THREAD
+#  undef HGL_RITA_PARALLEL_VERTEX_PROCESSING
+#endif
+
+#ifdef HGL_RITA_SIMPLEST
+#  define HGL_RITA_SIMPLER
+#  define HGL_RITA_SIMPLE
+#endif
+
+#ifdef HGL_RITA_SIMPLER
+#  define HGL_RITA_SIMPLE
+#endif
+
+
 /*---------------------------------------------------------------------------------------*/
 /*--- Dynamic buffer macro implementation -----------------------------------------------*/
 /*---------------------------------------------------------------------------------------*/
@@ -439,7 +471,9 @@ typedef enum
     HGL_RITA_SCREENCOORD,
     HGL_RITA_VIEW_DIR_RECTILINEAR,
     HGL_RITA_VIEW_DIR_CUBEMAP,
+#ifndef HGL_RITA_SIMPLEST
     HGL_RITA_SHADER,
+#endif
 } HglRitaBlitFBSampler;
 
 typedef struct
@@ -456,8 +490,12 @@ typedef struct
     Vec3 world_pos;
     Vec3 world_tangent;
 #endif
+#ifndef HGL_RITA_SIMPLER
     Vec3 world_normal;
+#endif
+#ifndef HGL_RITA_SIMPLEST
     Vec2 uv;
+#endif
     HglRitaColor color;
     int x;
     int y;
@@ -468,11 +506,15 @@ typedef struct
 typedef struct HglRitaVertex
 {
     Vec4 pos;
+#ifndef HGL_RITA_SIMPLER
     Vec3 normal;
+#endif
 #ifndef HGL_RITA_SIMPLE
     Vec3 tangent;
 #endif
+#ifndef HGL_RITA_SIMPLEST
     Vec2 uv;
+#endif
     HglRitaColor color;
 } HglRitaVertex;
 
@@ -560,7 +602,7 @@ typedef enum
     HGL_RITA_OP_PROCESS_VBUF_SEGMENT,
     HGL_RITA_OP_BLIT,
     HGL_RITA_OP_TERMINATE,
-} HglRitaTileOpKind;
+} HglRitaOpKind;
 
 typedef struct
 {
@@ -571,8 +613,8 @@ typedef struct
         HglRitaVertexBufferSegment vbuf_segment;
         HglRitaBlitInfo blit_info;
     };
-    HglRitaTileOpKind kind;
-} HglRitaTileOp;
+    HglRitaOpKind kind;
+} HglRitaOp;
 
 static_assert((HGL_RITA_TILE_OP_QUEUE_CAPACITY > 1) && (HGL_RITA_TILE_OP_QUEUE_CAPACITY <= UINT16_MAX), "HGL_RITA_TILE_OP_QUEUE_CAPACITY must be in the range [1, 0xFFFF].");
 static_assert((HGL_RITA_TILE_OP_QUEUE_CAPACITY & (HGL_RITA_TILE_OP_QUEUE_CAPACITY - 1)) == 0, "HGL_RITA_TILE_OP_QUEUE_CAPACITY must be a power of two.");
@@ -592,7 +634,7 @@ typedef struct
     _Alignas(HGL_RITA_CACHE_LINE_SIZE) _Atomic uint32_t wp;
     uint8_t PAD_2[HGL_RITA_CACHE_LINE_SIZE - sizeof(uint32_t)];
 
-    _Alignas(HGL_RITA_CACHE_LINE_SIZE) HglRitaTileOp arr[HGL_RITA_TILE_OP_QUEUE_CAPACITY];
+    _Alignas(HGL_RITA_CACHE_LINE_SIZE) HglRitaOp arr[HGL_RITA_TILE_OP_QUEUE_CAPACITY];
 } HglRitaOpQueue;
 
 typedef struct
@@ -655,11 +697,15 @@ typedef struct HglRitaContext
     HglRitaTexture *tex_unit[HGL_RITA_N_TEXTURE_UNITS];
 
     struct {
+#ifdef HGL_RITA_SINGLE_THREAD
+        HglRitaAABB framebuffer_bounds;
+#else
         HglRitaTile tile[HGL_RITA_MAX_N_TILES];
         int n_tiles;
         int n_tile_cols;
         int n_tile_rows;
         int n_procs;
+#endif
     } renderer;
 
 } HglRitaContext;
@@ -761,13 +807,14 @@ static inline HglRitaColor hgl_rita_sample_unit_cubemap(HglRitaTexUnit unit, Vec
 static inline void hgl_rita_op_queue_init(HglRitaOpQueue *q);                               /* Initialize queue */
 static inline void hgl_rita_op_queue_destroy(HglRitaOpQueue *q);                            /* Destroy queue */
 static inline void hgl_rita_op_queue_flush(HglRitaOpQueue *q);                              /* Force consumer end to start consuming ops until queue is empty. Must only be called from the producer end of the queue. */
-static inline void hgl_rita_op_queue_push(HglRitaOpQueue *q, HglRitaTileOp op);             /* Push op onto queue. */
-static inline HglRitaTileOp hgl_rita_op_queue_fetch(HglRitaOpQueue *q);                     /* Fetch op from queue, but don't step read pointer just yet. Must eventually be followed by a call to `ack` below. */
+static inline void hgl_rita_op_queue_push(HglRitaOpQueue *q, HglRitaOp op);                 /* Push op onto queue. */
+static inline HglRitaOp hgl_rita_op_queue_fetch(HglRitaOpQueue *q);                         /* Fetch op from queue, but don't step read pointer just yet. Must eventually be followed by a call to `ack` below. */
 static inline void hgl_rita_op_queue_ack(HglRitaOpQueue *q);                                /* Steps the read pointer. Basically Fetch + Ack is equivalent to a regular old `pop` */
 static inline void hgl_rita_op_queue_wait_until_empty_as_producer(HglRitaOpQueue *q);       /* Wait until `q` is empty. Must only be called from the producer end of the queue. */
 
 /* internal functions */
 static inline void *hgl_rita_tile_thread_internal_(void *arg);                              /* This function contains the main work-loop of each spawned tile thread. */
+static inline void hgl_rita_process_op_internal_(HglRitaOp op, HglRitaAABB bounds);         /* Performs the work for the given operation `op` within the given `bounds` of the framebuffer */
 static inline void hgl_rita_dispatch_point_internal_(HglRitaFragment f0);                   /* Dispatches a point/pixel primitive to the thread of the tile containing it */
 static inline void hgl_rita_dispatch_line_internal_(HglRitaFragment f0,
                                                     HglRitaFragment f1);                    /* Dispatches a line primitive to the threads of the tiles intersecting its AABB */
@@ -867,11 +914,15 @@ static inline void hgl_rita_init()
         hgl_rita_ctx__.tex_unit[0] = NULL;
     }
 
+#ifdef HGL_RITA_SINGLE_THREAD
+    hgl_rita_ctx__.renderer.framebuffer_bounds = (HglRitaAABB){0};
+#else
     /* Initialize renderer */
     hgl_rita_ctx__.renderer.n_tiles = 0;
     hgl_rita_ctx__.renderer.n_tile_cols = 0;
     hgl_rita_ctx__.renderer.n_tile_rows = 0;
     hgl_rita_ctx__.renderer.n_procs = get_nprocs();
+#endif
 }
 
 static inline void hgl_rita_final(void)
@@ -880,13 +931,16 @@ static inline void hgl_rita_final(void)
     hgl_rita_buf_destroy(&hgl_rita_ctx__.vertices.fbuf);
 #endif
 
+#ifdef HGL_RITA_SINGLE_THREAD
+#else
     for (int i = 0; i < hgl_rita_ctx__.renderer.n_tiles; i++) {
-        HglRitaTileOp op = { .kind = HGL_RITA_OP_TERMINATE };
+        HglRitaOp op = { .kind = HGL_RITA_OP_TERMINATE };
         hgl_rita_op_queue_push(&hgl_rita_ctx__.renderer.tile[i].op_queue, op);
         pthread_join(hgl_rita_ctx__.renderer.tile[i].thread, NULL);
         hgl_rita_op_queue_destroy(&hgl_rita_ctx__.renderer.tile[i].op_queue);
     }
     hgl_rita_ctx__.renderer.n_tiles = 0;
+#endif
 }
 
 static inline void hgl_rita_bind_buffer(HglRitaBuffer buffer, void *item)
@@ -906,6 +960,10 @@ static inline void hgl_rita_bind_texture(HglRitaTexUnit unit, HglRitaTexture *te
 {
     hgl_rita_finish();
     if (unit == HGL_RITA_TEX_FRAME_BUFFER) {
+
+#ifdef HGL_RITA_SINGLE_THREAD
+        hgl_rita_ctx__.renderer.framebuffer_bounds = hgl_rita_aabb_make(0, 0, tex->width, tex->height);
+#else
         assert(tex->format == HGL_RITA_RGBA8);
 
         int w = tex->width;
@@ -937,6 +995,7 @@ static inline void hgl_rita_bind_texture(HglRitaTexUnit unit, HglRitaTexture *te
         hgl_rita_ctx__.renderer.n_tiles = n_needed_tiles;
         hgl_rita_ctx__.renderer.n_tile_cols = cols;
         hgl_rita_ctx__.renderer.n_tile_rows = rows;
+#endif
     } else if (unit == HGL_RITA_TEX_DEPTH_BUFFER) {
         assert(tex->format == HGL_RITA_R32);
     }
@@ -1115,12 +1174,15 @@ static inline void hgl_rita_clear(uint32_t attachments)
 
 static inline void hgl_rita_finish(void)
 {
+#ifdef HGL_RITA_SINGLE_THREAD
+#else
     for (int i = 0; i < hgl_rita_ctx__.renderer.n_tiles; i++) {
         hgl_rita_op_queue_flush(&hgl_rita_ctx__.renderer.tile[i].op_queue);
     }
     for (int i = 0; i < hgl_rita_ctx__.renderer.n_tiles; i++) {
         hgl_rita_op_queue_wait_until_empty_as_producer(&hgl_rita_ctx__.renderer.tile[i].op_queue);
     }
+#endif
 }
 
 static inline void hgl_rita_draw_text(int pos_x, int pos_y, float scale, HglRitaColor color, const char *fmt, ...)
@@ -1336,6 +1398,9 @@ static inline void hgl_rita_draw(HglRitaPrimitiveMode primitive_mode)
      * If HGL_RITA_PARALLEL_VERTEX_PROCESSING is definied, vertices are processed
      * up-front and ahead-of-time. Otherwise, vertices are processed just-in-time
      * as primitives are dispatched.
+     *
+     * If HGL_RITA_SINGLE_THREAD is defined, then HGL_RITA_PARALLEL_VERTEX_PROCESSING
+     * is automatically undefined.
      */
 #ifdef HGL_RITA_PARALLEL_VERTEX_PROCESSING
     /*
@@ -1350,7 +1415,7 @@ static inline void hgl_rita_draw(HglRitaPrimitiveMode primitive_mode)
     int n_seg = min(hgl_rita_ctx__.renderer.n_procs - 1, hgl_rita_ctx__.renderer.n_tiles);
     int seg_sz = hgl_rita_ctx__.vertices.vbuf->length / n_seg;
     for (int i = 0; i < n_seg; i++) {
-        HglRitaTileOp op = {
+        HglRitaOp op = {
             .vbuf_segment = {
                 .start_idx = i * seg_sz,
                 .end_idx   = (i + 1) * seg_sz,
@@ -1570,7 +1635,7 @@ static inline void hgl_rita_blit(int x, int y, int w, int h,
                                  HglRitaFragShaderFunc shader)
 {
     HglRitaAABB blit_aabb = hgl_rita_aabb_make(x, y, w, h);
-    HglRitaTileOp op = {
+    HglRitaOp op = {
         .blit_info = {
             .aabb          = blit_aabb,
             .texture       = src,
@@ -1582,6 +1647,9 @@ static inline void hgl_rita_blit(int x, int y, int w, int h,
         .kind = HGL_RITA_OP_BLIT,
     };
 
+#ifdef HGL_RITA_SINGLE_THREAD
+    hgl_rita_process_op_internal_(op, hgl_rita_ctx__.renderer.framebuffer_bounds);
+#else
     /* dispatch blit operation to intersecting tiles */
     int fb_w = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER]->width;
     int fb_h = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER]->height;
@@ -1597,6 +1665,7 @@ static inline void hgl_rita_blit(int x, int y, int w, int h,
             hgl_rita_op_queue_push(&(hgl_rita_ctx__.renderer.tile[i].op_queue), op);
         }
     }
+#endif
 }
 
 /*---------------------------------------------------------------------------------------*/
@@ -1724,16 +1793,20 @@ static inline bool hgl_rita_vertex_eq(HglRitaVertex v0, HglRitaVertex v1)
            (v0.pos.y == v1.pos.y) &&
            (v0.pos.z == v1.pos.z) &&
            (v0.pos.w == v1.pos.w) &&
+#ifndef HGL_RITA_SIMPLER
            (v0.normal.x == v1.normal.x) &&
            (v0.normal.y == v1.normal.y) &&
            (v0.normal.z == v1.normal.z) &&
+#endif
 #ifndef HGL_RITA_SIMPLE
            (v0.tangent.x == v1.tangent.x) &&
            (v0.tangent.y == v1.tangent.y) &&
            (v0.tangent.z == v1.tangent.z) &&
 #endif
+#ifndef HGL_RITA_SIMPLEST
            (v0.uv.x == v1.uv.x) &&
            (v0.uv.y == v1.uv.y) &&
+#endif
            (v0.color.r == v1.color.r) &&
            (v0.color.g == v1.color.g) &&
            (v0.color.b == v1.color.b) &&
@@ -2231,7 +2304,7 @@ static inline void hgl_rita_op_queue_flush(HglRitaOpQueue *q)
 #endif
 }
 
-static inline void hgl_rita_op_queue_push(HglRitaOpQueue *q, HglRitaTileOp op)
+static inline void hgl_rita_op_queue_push(HglRitaOpQueue *q, HglRitaOp op)
 {
     const uint32_t m = (HGL_RITA_TILE_OP_QUEUE_CAPACITY - 1);
     uint32_t wp = atomic_load_explicit(&q->wp, memory_order_relaxed);
@@ -2253,7 +2326,7 @@ static inline void hgl_rita_op_queue_push(HglRitaOpQueue *q, HglRitaTileOp op)
     }
 }
 
-static inline HglRitaTileOp hgl_rita_op_queue_fetch(HglRitaOpQueue *q)
+static inline HglRitaOp hgl_rita_op_queue_fetch(HglRitaOpQueue *q)
 {
     uint32_t rp = atomic_load_explicit(&q->rp, memory_order_relaxed);
     uint32_t wp = atomic_load_explicit(&q->wp, memory_order_acquire);
@@ -2264,7 +2337,7 @@ static inline HglRitaTileOp hgl_rita_op_queue_fetch(HglRitaOpQueue *q)
         wp = atomic_load_explicit(&q->wp, memory_order_acquire);
     }
 
-    HglRitaTileOp op = q->arr[rp];
+    HglRitaOp op = q->arr[rp];
     return op;
 }
 
@@ -2304,387 +2377,395 @@ static inline void *hgl_rita_tile_thread_internal_(void *arg)
     HglRitaAABB tile_aabb = tile->aabb;
 
     for (;;) {
+        HglRitaOp op = hgl_rita_op_queue_fetch(q);
+        hgl_rita_process_op_internal_(op, tile_aabb);
+        hgl_rita_op_queue_ack(q);
 
-        HglRitaTileOp op = hgl_rita_op_queue_fetch(q);
+        /* handle termination */
+        if (op.kind == HGL_RITA_OP_TERMINATE) {
+            return NULL; 
+        }
+    }
+}
 
-        switch (op.kind) {
+static inline void hgl_rita_process_op_internal_(HglRitaOp op, HglRitaAABB bounds)
+{
+    switch (op.kind) {
 
-            /**
-             * Triangles
-             *
-             * TODO top left bias?
-             */
-            case HGL_RITA_OP_RASTERIZE_TRIANGLE: {
-                HglRitaFragment f0 = op.triangle.f0;
-                HglRitaFragment f1 = op.triangle.f1;
-                HglRitaFragment f2 = op.triangle.f2;
+        /**
+         * Triangles
+         *
+         * TODO top left bias?
+         */
+        case HGL_RITA_OP_RASTERIZE_TRIANGLE: {
+            HglRitaFragment f0 = op.triangle.f0;
+            HglRitaFragment f1 = op.triangle.f1;
+            HglRitaFragment f2 = op.triangle.f2;
 
-                HglRitaAABB aabb = hgl_rita_aabb_intersection(hgl_rita_aabb_from_tri(op.triangle), tile_aabb);
-                //aabb.max_x--;
-                //aabb.max_y--;
+            HglRitaAABB aabb = hgl_rita_aabb_intersection(hgl_rita_aabb_from_tri(op.triangle), bounds);
+            //aabb.max_x--;
+            //aabb.max_y--;
 
-                float det = hgl_rita_det_internal_(f2.x, f2.y, f1.x, f1.y, f0.x, f0.y);
-                if (fabsf(det) < 0.001f) break;
-                float r_area = 1.0f / hgl_rita_det_internal_(f2.x, f2.y, f1.x, f1.y, f0.x, f0.y);
-                bool frontfacing = r_area < 0;
+            float det = hgl_rita_det_internal_(f2.x, f2.y, f1.x, f1.y, f0.x, f0.y);
+            if (fabsf(det) < 0.001f) break;
+            float r_area = 1.0f / hgl_rita_det_internal_(f2.x, f2.y, f1.x, f1.y, f0.x, f0.y);
+            bool frontfacing = r_area < 0;
 
-                float delta_w0_col = (f2.y - f1.y);
-                float delta_w1_col = (f0.y - f2.y);
-                float delta_w2_col = (f1.y - f0.y);
-                float delta_w0_row = (f1.x - f2.x);
-                float delta_w1_row = (f2.x - f0.x);
-                float delta_w2_row = (f0.x - f1.x);
+            float delta_w0_col = (f2.y - f1.y);
+            float delta_w1_col = (f0.y - f2.y);
+            float delta_w2_col = (f1.y - f0.y);
+            float delta_w0_row = (f1.x - f2.x);
+            float delta_w1_row = (f2.x - f0.x);
+            float delta_w2_row = (f0.x - f1.x);
 
-                int x = aabb.min_x;
-                int y = aabb.min_y;
-                float w0_row = hgl_rita_det_internal_(x, y, f1.x, f1.y, f2.x, f2.y); // + bias0;
-                float w1_row = hgl_rita_det_internal_(f0.x, f0.y, x, y, f2.x, f2.y); // + bias1;
-                float w2_row = hgl_rita_det_internal_(f0.x, f0.y, f1.x, f1.y, x, y); // + bias2;
+            int x = aabb.min_x;
+            int y = aabb.min_y;
+            float w0_row = hgl_rita_det_internal_(x, y, f1.x, f1.y, f2.x, f2.y); // + bias0;
+            float w1_row = hgl_rita_det_internal_(f0.x, f0.y, x, y, f2.x, f2.y); // + bias1;
+            float w2_row = hgl_rita_det_internal_(f0.x, f0.y, f1.x, f1.y, x, y); // + bias2;
 
-                for (y = aabb.min_y; y < aabb.max_y; y++) {
-                    float w0 = w0_row;
-                    float w1 = w1_row;
-                    float w2 = w2_row;
-                    for (x = aabb.min_x; x < aabb.max_x; x++) {
-                        bool is_inside;
-                        if (frontfacing) {
-                            is_inside = w0 >= 0 && w1 >= 0 && w2 >= 0;
-                        } else {
-                            is_inside = w0 <= 0 && w1 <= 0 && w2 <= 0;
-                        }
-
-                        if (is_inside) {
-                            float u = -w0 * r_area;
-                            float v = -w1 * r_area;
-
-                            HglRitaFragment frag = hgl_rita_frag_berp_internal_(f0, f1, f2, u, v, x, y);
-                            hgl_rita_process_fragment_internal_(&frag);
-                        }
-
-                        w0 += delta_w0_col;
-                        w1 += delta_w1_col;
-                        w2 += delta_w2_col;
-                    }
-
-                    w0_row += delta_w0_row;
-                    w1_row += delta_w1_row;
-                    w2_row += delta_w2_row;
-                }
-            } break;
-
-            /**
-             * Lines
-             */
-            case HGL_RITA_OP_RASTERIZE_LINE: {
-                HglRitaFragment f0 = op.line.f0;
-                HglRitaFragment f1 = op.line.f1;
-
-                /* Cohen-Sutherland clip to AABB of tile */
-                const int INSIDE = 0b0000;
-                const int LEFT   = 0b0001;
-                const int RIGHT  = 0b0010;
-                const int BOTTOM = 0b0100;
-                const int TOP    = 0b1000;
-
-                int x0 = f0.x;
-                int y0 = f0.y;
-                int x1 = f1.x;
-                int y1 = f1.y;
-
-                int outcode0 = INSIDE;
-                if      (x0 < tile_aabb.min_x) outcode0 |= LEFT;
-                else if (x0 > tile_aabb.max_x) outcode0 |= RIGHT;
-                if      (y0 < tile_aabb.min_y) outcode0 |= BOTTOM;
-                else if (y0 > tile_aabb.max_y) outcode0 |= TOP;
-
-                int outcode1 = INSIDE;
-                if      (x1 < tile_aabb.min_x) outcode1 |= LEFT;
-                else if (x1 > tile_aabb.max_x) outcode1 |= RIGHT;
-                if      (y1 < tile_aabb.min_y) outcode1 |= BOTTOM;
-                else if (y1 > tile_aabb.max_y) outcode1 |= TOP;
-
-                bool accept = false;
-                while (true) {
-                    if (0 == (outcode0 | outcode1)) {
-                        /* trivial accept */
-                        accept = true;
-                        break;
-                    } else if (0 != (outcode0 & outcode1)) {
-                        /* trivial reject */
-                        break;
+            for (y = aabb.min_y; y < aabb.max_y; y++) {
+                float w0 = w0_row;
+                float w1 = w1_row;
+                float w2 = w2_row;
+                for (x = aabb.min_x; x < aabb.max_x; x++) {
+                    bool is_inside;
+                    if (frontfacing) {
+                        is_inside = w0 >= 0 && w1 >= 0 && w2 >= 0;
                     } else {
-                        /* non-trivial case: clip line */
-                        int x;
-                        int y;
+                        is_inside = w0 <= 0 && w1 <= 0 && w2 <= 0;
+                    }
 
-                        /* Pick any outside point */
-                        int outside_outcode = outcode0 > outcode1 ? outcode0 : outcode1;
+                    if (is_inside) {
+                        float u = -w0 * r_area;
+                        float v = -w1 * r_area;
 
-                        /* find intersection point */
-                        if ((outside_outcode & TOP) != 0) {
-                            x = x0 + (x1 - x0) * (tile_aabb.max_y - y0) / (y1 - y0);
-                            y = tile_aabb.max_y;
-                        } else if ((outside_outcode & BOTTOM) != 0) {
-                            x = x0 + (x1 - x0) * (tile_aabb.min_y - y0) / (y1 - y0);
-                            y = tile_aabb.min_y;
-                        } else if ((outside_outcode & RIGHT) != 0) {
-                            y = y0 + (y1 - y0) * (tile_aabb.max_x - x0) / (x1 - x0);
-                            x = tile_aabb.max_x;
-                        } else /* LEFT */ {
-                            y = y0 + (y1 - y0) * (tile_aabb.min_x - x0) / (x1 - x0);
-                            x = tile_aabb.min_x;
-                        }
+                        HglRitaFragment frag = hgl_rita_frag_berp_internal_(f0, f1, f2, u, v, x, y);
+                        hgl_rita_process_fragment_internal_(&frag);
+                    }
 
-                        if (outside_outcode == outcode0) {
-                            x0 = x;
-                            y0 = y;
-                            outcode0 = INSIDE;
-                            if      (x0 < tile_aabb.min_x) outcode0 |= LEFT;
-                            else if (x0 > tile_aabb.max_x) outcode0 |= RIGHT;
-                            if      (y0 < tile_aabb.min_y) outcode0 |= BOTTOM;
-                            else if (y0 > tile_aabb.max_y) outcode0 |= TOP;
-                        } else {
-                            x1 = x;
-                            y1 = y;
-                            outcode1 = INSIDE;
-                            if      (x1 < tile_aabb.min_x) outcode1 |= LEFT;
-                            else if (x1 > tile_aabb.max_x) outcode1 |= RIGHT;
-                            if      (y1 < tile_aabb.min_y) outcode1 |= BOTTOM;
-                            else if (y1 > tile_aabb.max_y) outcode1 |= TOP;
-                        }
+                    w0 += delta_w0_col;
+                    w1 += delta_w1_col;
+                    w2 += delta_w2_col;
+                }
+
+                w0_row += delta_w0_row;
+                w1_row += delta_w1_row;
+                w2_row += delta_w2_row;
+            }
+        } break;
+
+        /**
+         * Lines
+         */
+        case HGL_RITA_OP_RASTERIZE_LINE: {
+            HglRitaFragment f0 = op.line.f0;
+            HglRitaFragment f1 = op.line.f1;
+
+            /* Cohen-Sutherland clip to AABB of tile */
+            const int INSIDE = 0b0000;
+            const int LEFT   = 0b0001;
+            const int RIGHT  = 0b0010;
+            const int BOTTOM = 0b0100;
+            const int TOP    = 0b1000;
+
+            int x0 = f0.x;
+            int y0 = f0.y;
+            int x1 = f1.x;
+            int y1 = f1.y;
+
+            int outcode0 = INSIDE;
+            if      (x0 < bounds.min_x) outcode0 |= LEFT;
+            else if (x0 > bounds.max_x) outcode0 |= RIGHT;
+            if      (y0 < bounds.min_y) outcode0 |= BOTTOM;
+            else if (y0 > bounds.max_y) outcode0 |= TOP;
+
+            int outcode1 = INSIDE;
+            if      (x1 < bounds.min_x) outcode1 |= LEFT;
+            else if (x1 > bounds.max_x) outcode1 |= RIGHT;
+            if      (y1 < bounds.min_y) outcode1 |= BOTTOM;
+            else if (y1 > bounds.max_y) outcode1 |= TOP;
+
+            bool accept = false;
+            while (true) {
+                if (0 == (outcode0 | outcode1)) {
+                    /* trivial accept */
+                    accept = true;
+                    break;
+                } else if (0 != (outcode0 & outcode1)) {
+                    /* trivial reject */
+                    break;
+                } else {
+                    /* non-trivial case: clip line */
+                    int x;
+                    int y;
+
+                    /* Pick any outside point */
+                    int outside_outcode = outcode0 > outcode1 ? outcode0 : outcode1;
+
+                    /* find intersection point */
+                    if ((outside_outcode & TOP) != 0) {
+                        x = x0 + (x1 - x0) * (bounds.max_y - y0) / (y1 - y0);
+                        y = bounds.max_y;
+                    } else if ((outside_outcode & BOTTOM) != 0) {
+                        x = x0 + (x1 - x0) * (bounds.min_y - y0) / (y1 - y0);
+                        y = bounds.min_y;
+                    } else if ((outside_outcode & RIGHT) != 0) {
+                        y = y0 + (y1 - y0) * (bounds.max_x - x0) / (x1 - x0);
+                        x = bounds.max_x;
+                    } else /* LEFT */ {
+                        y = y0 + (y1 - y0) * (bounds.min_x - x0) / (x1 - x0);
+                        x = bounds.min_x;
+                    }
+
+                    if (outside_outcode == outcode0) {
+                        x0 = x;
+                        y0 = y;
+                        outcode0 = INSIDE;
+                        if      (x0 < bounds.min_x) outcode0 |= LEFT;
+                        else if (x0 > bounds.max_x) outcode0 |= RIGHT;
+                        if      (y0 < bounds.min_y) outcode0 |= BOTTOM;
+                        else if (y0 > bounds.max_y) outcode0 |= TOP;
+                    } else {
+                        x1 = x;
+                        y1 = y;
+                        outcode1 = INSIDE;
+                        if      (x1 < bounds.min_x) outcode1 |= LEFT;
+                        else if (x1 > bounds.max_x) outcode1 |= RIGHT;
+                        if      (y1 < bounds.min_y) outcode1 |= BOTTOM;
+                        else if (y1 > bounds.max_y) outcode1 |= TOP;
                     }
                 }
+            }
 
-                /* line was not accepted (outside AABB) */
-                if (!accept) {
-                    break;
+            /* line was not accepted (outside AABB) */
+            if (!accept) {
+                break;
+            }
+
+            /* recalculate fragments */
+            float t;
+            int dx = x1 - x0;
+            int dy = y1 - y0;
+            if (abs(dx) > abs(dy)) {
+                t = (float)(x0 - f0.x) / (float)(f1.x - f0.x);
+                f0 = hgl_rita_frag_lerp_internal_(x0, y0, f0, f1, t);
+                t = (float)(x1 - f0.x) / (float)(f1.x - f0.x);
+                f1 = hgl_rita_frag_lerp_internal_(x1, y1, f0, f1, t);
+            } else {
+                t = (float)(y0 - f0.y) / (float)(f1.y - f0.y);
+                f0 = hgl_rita_frag_lerp_internal_(x0, y0, f0, f1, t);
+                t = (float)(y1 - f0.y) / (float)(f1.y - f0.y);
+                f1 = hgl_rita_frag_lerp_internal_(x1, y1, f0, f1, t);
+            }
+
+            /* swap so that x0 < x1 */
+            HglRitaFragment temp_frag;
+            if (f0.x > f1.x) {
+                temp_frag = f0; f0 = f1; f1 = temp_frag;
+            }
+
+            dx = (int)f1.x - (int)f0.x;
+            dy = (int)f1.y - (int)f0.y;
+
+            if (dx > abs(dy)) {
+                float y_step = (float)dy / (float)dx;
+                for (int i = 0; i < dx; i++) {
+                    t = (float) i / (float) dx;
+                    int x = f0.x + i;
+                    int y = f0.y + i*y_step;
+                    HglRitaFragment frag = hgl_rita_frag_lerp_internal_(x, y, f0, f1, t);
+                    hgl_rita_process_fragment_internal_(&frag);
                 }
-
-                /* recalculate fragments */
-                float t;
-                int dx = x1 - x0;
-                int dy = y1 - y0;
-                if (abs(dx) > abs(dy)) {
-                    t = (float)(x0 - f0.x) / (float)(f1.x - f0.x);
-                    f0 = hgl_rita_frag_lerp_internal_(x0, y0, f0, f1, t);
-                    t = (float)(x1 - f0.x) / (float)(f1.x - f0.x);
-                    f1 = hgl_rita_frag_lerp_internal_(x1, y1, f0, f1, t);
-                } else {
-                    t = (float)(y0 - f0.y) / (float)(f1.y - f0.y);
-                    f0 = hgl_rita_frag_lerp_internal_(x0, y0, f0, f1, t);
-                    t = (float)(y1 - f0.y) / (float)(f1.y - f0.y);
-                    f1 = hgl_rita_frag_lerp_internal_(x1, y1, f0, f1, t);
-                }
-
-                /* swap so that x0 < x1 */
-                HglRitaFragment temp_frag;
-                if (f0.x > f1.x) {
+            } else {
+                /* swap so we iterate on y in the positive direction */
+                if (dy < 0) {
                     temp_frag = f0; f0 = f1; f1 = temp_frag;
                 }
 
-                dx = (int)f1.x - (int)f0.x;
-                dy = (int)f1.y - (int)f0.y;
-
-                if (dx > abs(dy)) {
-                    float y_step = (float)dy / (float)dx;
-                    for (int i = 0; i < dx; i++) {
-                        t = (float) i / (float) dx;
-                        int x = f0.x + i;
-                        int y = f0.y + i*y_step;
-                        HglRitaFragment frag = hgl_rita_frag_lerp_internal_(x, y, f0, f1, t);
-                        hgl_rita_process_fragment_internal_(&frag);
-                    }
-                } else {
-                    /* swap so we iterate on y in the positive direction */
-                    if (dy < 0) {
-                        temp_frag = f0; f0 = f1; f1 = temp_frag;
-                    }
-
-                    float x_step = (float)dx / (float)dy;
-                    for (int i = 0; i < abs(dy); i++) {
-                        t = (float) i / (float) abs(dy);
-                        int x = f0.x + i*x_step;
-                        int y = f0.y + i;
-                        HglRitaFragment frag = hgl_rita_frag_lerp_internal_(x, y, f0, f1, t);
-                        hgl_rita_process_fragment_internal_(&frag);
-                    }
+                float x_step = (float)dx / (float)dy;
+                for (int i = 0; i < abs(dy); i++) {
+                    t = (float) i / (float) abs(dy);
+                    int x = f0.x + i*x_step;
+                    int y = f0.y + i;
+                    HglRitaFragment frag = hgl_rita_frag_lerp_internal_(x, y, f0, f1, t);
+                    hgl_rita_process_fragment_internal_(&frag);
                 }
-            } break;
+            }
+        } break;
 
-            /**
-             * Points/Pixels
-             */
-            case HGL_RITA_OP_RASTERIZE_POINT: {
-                HglRitaFragment f0 = op.line.f0;
-                hgl_rita_process_fragment_internal_(&f0); // a bit more straight forward this time
-            } break;
+        /**
+         * Points/Pixels
+         */
+        case HGL_RITA_OP_RASTERIZE_POINT: {
+            HglRitaFragment f0 = op.line.f0;
+            hgl_rita_process_fragment_internal_(&f0); // a bit more straight forward this time
+        } break;
 
-            /**
-             * Vertex processing
-             */
-            case HGL_RITA_OP_PROCESS_VBUF_SEGMENT: {
+        /**
+         * Vertex processing
+         */
+        case HGL_RITA_OP_PROCESS_VBUF_SEGMENT: {
 #ifdef HGL_RITA_PARALLEL_VERTEX_PROCESSING
-                int start = op.vbuf_segment.start_idx;
-                int end = op.vbuf_segment.end_idx;
-                for (int i = start; i < end; i++) {
-                    const HglRitaVertex *v = &hgl_rita_ctx__.vertices.vbuf->arr[i];
-                    hgl_rita_ctx__.vertices.fbuf.arr[i] = hgl_rita_process_vertex_internal_(v);
-                }
+            int start = op.vbuf_segment.start_idx;
+            int end = op.vbuf_segment.end_idx;
+            for (int i = start; i < end; i++) {
+                const HglRitaVertex *v = &hgl_rita_ctx__.vertices.vbuf->arr[i];
+                hgl_rita_ctx__.vertices.fbuf.arr[i] = hgl_rita_process_vertex_internal_(v);
+            }
 #endif
-            } break;
+        } break;
 
-            /**
-             * Blit
-             */
-            case HGL_RITA_OP_BLIT: {
-                HglRitaTexture *fb = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER];
-                HglRitaTexture *db = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_DEPTH_BUFFER];
+        /**
+         * Blit
+         */
+        case HGL_RITA_OP_BLIT: {
+            HglRitaTexture *fb = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER];
+            HglRitaTexture *db = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_DEPTH_BUFFER];
 
-                HglRitaTexture *src                  = op.blit_info.texture;
-                HglRitaBlendMethod blend_method      = op.blit_info.blend_method;
-                HglRitaBlitFBMask mask               = op.blit_info.mask;
-                HglRitaBlitFBSampler sampling_method = op.blit_info.sampler;
+            HglRitaTexture *src                  = op.blit_info.texture;
+            HglRitaBlendMethod blend_method      = op.blit_info.blend_method;
+            HglRitaBlitFBMask mask               = op.blit_info.mask;
+            HglRitaBlitFBSampler sampling_method = op.blit_info.sampler;
 
-                int fb_w = fb->width;
-                int fb_h = fb->height;
-                int fb_s = fb->stride;
+            int fb_w = fb->width;
+            int fb_h = fb->height;
+            int fb_s = fb->stride;
 
-                //Mat4 view_to_world_dir;
-                //float z = hgl_rita_ctx__.tform.proj.m11;
+            //Mat4 view_to_world_dir;
+            //float z = hgl_rita_ctx__.tform.proj.m11;
 
-                //if ((sampling_method == HGL_RITA_VIEW_DIR_CUBEMAP) ||
-                //    (sampling_method == HGL_RITA_VIEW_DIR_RECTILINEAR)) {
-                //    view_to_world_dir = hgl_rita_ctx__.tform.view;
-                //    view_to_world_dir.c3.x = 0;
-                //    view_to_world_dir.c3.y = 0;
-                //    view_to_world_dir.c3.z = 0;
-                //    view_to_world_dir = mat4_transpose(view_to_world_dir);
-                //}
+            //if ((sampling_method == HGL_RITA_VIEW_DIR_CUBEMAP) ||
+            //    (sampling_method == HGL_RITA_VIEW_DIR_RECTILINEAR)) {
+            //    view_to_world_dir = hgl_rita_ctx__.tform.view;
+            //    view_to_world_dir.c3.x = 0;
+            //    view_to_world_dir.c3.y = 0;
+            //    view_to_world_dir.c3.z = 0;
+            //    view_to_world_dir = mat4_transpose(view_to_world_dir);
+            //}
 
-                HglRitaAABB aabb = hgl_rita_aabb_intersection(tile_aabb, op.blit_info.aabb);
-                int x = aabb.min_x;
-                int y = aabb.min_y;
-                int w = aabb.max_x - aabb.min_x;
-                int h = aabb.max_y - aabb.min_y;
-                int box_w = op.blit_info.aabb.max_x - op.blit_info.aabb.min_x - 1;
-                int box_h = op.blit_info.aabb.max_y - op.blit_info.aabb.min_y - 1;
+            HglRitaAABB aabb = hgl_rita_aabb_intersection(bounds, op.blit_info.aabb);
+            int x = aabb.min_x;
+            int y = aabb.min_y;
+            int w = aabb.max_x - aabb.min_x;
+            int h = aabb.max_y - aabb.min_y;
+            int box_w = op.blit_info.aabb.max_x - op.blit_info.aabb.min_x - 1;
+            int box_h = op.blit_info.aabb.max_y - op.blit_info.aabb.min_y - 1;
 
-                for (int j = 0; j < h; j++) {
-                    for (int i = 0; i < w; i++) {
-                        int screen_y =  y + j;
-                        int screen_x =  x + i;
-                        int box_y = screen_y - op.blit_info.aabb.min_y;
-                        int box_x = screen_x - op.blit_info.aabb.min_x;
-                        HglRitaColor src_color = HGL_RITA_BLACK;
-                        HglRitaColor *dst_color = NULL;
-                        float *dst_depth = NULL;
+            for (int j = 0; j < h; j++) {
+                for (int i = 0; i < w; i++) {
+                    int screen_y =  y + j;
+                    int screen_x =  x + i;
+                    int box_y = screen_y - op.blit_info.aabb.min_y;
+                    int box_x = screen_x - op.blit_info.aabb.min_x;
+                    HglRitaColor src_color = HGL_RITA_BLACK;
+                    HglRitaColor *dst_color = NULL;
+                    float *dst_depth = NULL;
 
-                        int idx = screen_y * fb_s + screen_x;
-                        dst_color = &fb->data.rgba8[idx];
+                    int idx = screen_y * fb_s + screen_x;
+                    dst_color = &fb->data.rgba8[idx];
 
-                        switch (mask) {
-                            case HGL_RITA_EVERYWHERE: break;
+                    switch (mask) {
+                        case HGL_RITA_EVERYWHERE: break;
 
-                            case HGL_RITA_CLEAR_COLOR: {
-                                if (!hgl_rita_color_eq(*dst_color, hgl_rita_ctx__.opts.clear_color)) {
-                                    continue;
-                                }
-                            } break;
+                        case HGL_RITA_CLEAR_COLOR: {
+                            if (!hgl_rita_color_eq(*dst_color, hgl_rita_ctx__.opts.clear_color)) {
+                                continue;
+                            }
+                        } break;
 
-                            case HGL_RITA_NON_CLEAR_COLOR: {
-                                if (hgl_rita_color_eq(*dst_color, hgl_rita_ctx__.opts.clear_color)) {
-                                    continue;
-                                }
-                            } break;
+                        case HGL_RITA_NON_CLEAR_COLOR: {
+                            if (hgl_rita_color_eq(*dst_color, hgl_rita_ctx__.opts.clear_color)) {
+                                continue;
+                            }
+                        } break;
 
-                            case HGL_RITA_DEPTH_INF: {
-                                assert(db != NULL && "Missing depth attachment in framebuffer (Note: Needed by HGL_RITA_DEPTH_INF mask)");
-                                dst_depth = &db->data.r32[idx];
-                                if (*dst_depth != 1.0f) {
-                                    continue;
-                                }
-                            } break;
+                        case HGL_RITA_DEPTH_INF: {
+                            assert(db != NULL && "Missing depth attachment in framebuffer (Note: Needed by HGL_RITA_DEPTH_INF mask)");
+                            dst_depth = &db->data.r32[idx];
+                            if (*dst_depth != 1.0f) {
+                                continue;
+                            }
+                        } break;
 
-                            case HGL_RITA_DEPTH_NON_INF: {
-                                assert(db != NULL && "Missing depth attachment in framebuffer (Note: Needed by HGL_RITA_DEPTH_NON_INF mask)");
-                                dst_depth = &db->data.r32[idx];
-                                if (*dst_depth != 1.0f) {
-                                    continue;
-                                }
-                            } break;
-                        }
-
-                        switch (sampling_method) {
-                            case HGL_RITA_BOXCOORD: {
-                                Vec2 uv = (Vec2) {
-                                    (float)box_x / (float)box_w,
-                                    ((float)box_y / (float)box_h),
-                                };
-                                src_color = hgl_rita_sample_uv(src, uv);
-                            } break;
-
-                            case HGL_RITA_SCREENCOORD: {
-                                Vec2 uv = (Vec2) {
-                                    (float)screen_x / (float)fb_w,
-                                    ((float)screen_y / (float)fb_h),
-                                };
-                                src_color = hgl_rita_sample_uv(src, uv);
-                            } break;
-
-                            case HGL_RITA_VIEW_DIR_RECTILINEAR: {
-                                float sn_x = 2.0f*((float)screen_x / (float)fb_w) - 1.0f;
-                                float sn_y = 2.0f*((float)screen_y / (float)fb_h) - 1.0f;
-                                float z = hgl_rita_ctx__.tform.proj.m11;
-                                Vec3 dir = vec3_make(hgl_rita_ctx__.tform.camera.aspect * sn_x, -sn_y, -z);
-                                dir = vec3_normalize(dir);
-                                dir = mat3_mul_vec3(hgl_rita_ctx__.tform.iview, dir);
-                                src_color = hgl_rita_sample_rectilinear(src, dir);
-                            } break;
-
-                            case HGL_RITA_VIEW_DIR_CUBEMAP: {
-                                float sn_x = 2.0f*((float)screen_x / (float)fb_w) - 1.0f;
-                                float sn_y = 2.0f*((float)screen_y / (float)fb_h) - 1.0f;
-                                float z = hgl_rita_ctx__.tform.proj.m11;
-                                Vec3 dir = vec3_make(hgl_rita_ctx__.tform.camera.aspect * sn_x, -sn_y, -z);
-                                //dir = vec3_normalize(dir); // not needed
-                                dir = mat3_mul_vec3(hgl_rita_ctx__.tform.iview, dir);
-                                src_color = hgl_rita_sample_cubemap(src, dir);
-                            } break;
-
-                            case HGL_RITA_SHADER: {
-                                HglRitaFragment frag;
-                                frag.x = screen_x;
-                                frag.y = screen_y;
-                                frag.inv_z = (db != NULL) ? db->data.r32[idx] : 0.0f;
-                                frag.uv = (Vec2) {
-                                    //(float)screen_x / (float)(fb_w - 1),
-                                    //((float)screen_y / (float)(fb_h - 1)),
-                                    (float)box_x / (float)(box_w),
-                                    ((float)box_y / (float)(box_h)),
-                                };
-                                frag.color = hgl_rita_sample_uv(src, frag.uv);
-                                src_color = op.blit_info.shader(&hgl_rita_ctx__, &frag);
-                            } break;
-                        }
-
-                        *dst_color = hgl_rita_color_blend(*dst_color, src_color, blend_method);
+                        case HGL_RITA_DEPTH_NON_INF: {
+                            assert(db != NULL && "Missing depth attachment in framebuffer (Note: Needed by HGL_RITA_DEPTH_NON_INF mask)");
+                            dst_depth = &db->data.r32[idx];
+                            if (*dst_depth != 1.0f) {
+                                continue;
+                            }
+                        } break;
                     }
+
+                    switch (sampling_method) {
+                        case HGL_RITA_BOXCOORD: {
+                            Vec2 uv = (Vec2) {
+                                (float)box_x / (float)box_w,
+                                ((float)box_y / (float)box_h),
+                            };
+                            src_color = hgl_rita_sample_uv(src, uv);
+                        } break;
+
+                        case HGL_RITA_SCREENCOORD: {
+                            Vec2 uv = (Vec2) {
+                                (float)screen_x / (float)fb_w,
+                                ((float)screen_y / (float)fb_h),
+                            };
+                            src_color = hgl_rita_sample_uv(src, uv);
+                        } break;
+
+                        case HGL_RITA_VIEW_DIR_RECTILINEAR: {
+                            float sn_x = 2.0f*((float)screen_x / (float)fb_w) - 1.0f;
+                            float sn_y = 2.0f*((float)screen_y / (float)fb_h) - 1.0f;
+                            float z = hgl_rita_ctx__.tform.proj.m11;
+                            Vec3 dir = vec3_make(hgl_rita_ctx__.tform.camera.aspect * sn_x, -sn_y, -z);
+                            dir = vec3_normalize(dir);
+                            dir = mat3_mul_vec3(hgl_rita_ctx__.tform.iview, dir);
+                            src_color = hgl_rita_sample_rectilinear(src, dir);
+                        } break;
+
+                        case HGL_RITA_VIEW_DIR_CUBEMAP: {
+                            float sn_x = 2.0f*((float)screen_x / (float)fb_w) - 1.0f;
+                            float sn_y = 2.0f*((float)screen_y / (float)fb_h) - 1.0f;
+                            float z = hgl_rita_ctx__.tform.proj.m11;
+                            Vec3 dir = vec3_make(hgl_rita_ctx__.tform.camera.aspect * sn_x, -sn_y, -z);
+                            //dir = vec3_normalize(dir); // not needed
+                            dir = mat3_mul_vec3(hgl_rita_ctx__.tform.iview, dir);
+                            src_color = hgl_rita_sample_cubemap(src, dir);
+                        } break;
+
+#ifndef HGL_RITA_SIMPLEST
+                        case HGL_RITA_SHADER: {
+                            HglRitaFragment frag;
+                            frag.x = screen_x;
+                            frag.y = screen_y;
+                            frag.inv_z = (db != NULL) ? db->data.r32[idx] : 0.0f;
+                            frag.uv = (Vec2) {
+                                //(float)screen_x / (float)(fb_w - 1),
+                                //((float)screen_y / (float)(fb_h - 1)),
+                                (float)box_x / (float)(box_w),
+                                ((float)box_y / (float)(box_h)),
+                            };
+                            frag.color = hgl_rita_sample_uv(src, frag.uv);
+                            src_color = op.blit_info.shader(&hgl_rita_ctx__, &frag);
+                        } break;
+#endif
+                    }
+
+                    *dst_color = hgl_rita_color_blend(*dst_color, src_color, blend_method);
                 }
-            } break;
+            }
+        } break;
 
-            case HGL_RITA_OP_TERMINATE: {
-                hgl_rita_op_queue_ack(q);
-                return NULL;
-            } break;
-        }
-
-        hgl_rita_op_queue_ack(q);
+        case HGL_RITA_OP_TERMINATE: {
+            /* special case: not handled here */
+        } break;
     }
 }
 
 static inline void hgl_rita_dispatch_point_internal_(HglRitaFragment f0)
 {
-    HglRitaTileOp op = {
+    HglRitaOp op = {
         .point = {f0},
         .kind = HGL_RITA_OP_RASTERIZE_POINT,
     };
@@ -2694,17 +2775,21 @@ static inline void hgl_rita_dispatch_point_internal_(HglRitaFragment f0)
         return;
     }
 
+#ifdef HGL_RITA_SINGLE_THREAD
+    hgl_rita_process_op_internal_(op, hgl_rita_ctx__.renderer.framebuffer_bounds);
+#else
     /* dispatch point primitive to intersecting tile */
     int x = f0.x / HGL_RITA_TILE_SIZE_X;
     int y = f0.y / HGL_RITA_TILE_SIZE_Y;
     int stride = hgl_rita_ctx__.renderer.n_tile_cols;
     int i = y*stride + x;
     hgl_rita_op_queue_push(&(hgl_rita_ctx__.renderer.tile[i].op_queue), op);
+#endif
 }
 
 static inline void hgl_rita_dispatch_line_internal_(HglRitaFragment f0, HglRitaFragment f1)
 {
-    HglRitaTileOp op = {
+    HglRitaOp op = {
         .line = {f0, f1},
         .kind = HGL_RITA_OP_RASTERIZE_LINE,
     };
@@ -2715,6 +2800,9 @@ static inline void hgl_rita_dispatch_line_internal_(HglRitaFragment f0, HglRitaF
     //    return;
     //}
 
+#ifdef HGL_RITA_SINGLE_THREAD
+    hgl_rita_process_op_internal_(op, hgl_rita_ctx__.renderer.framebuffer_bounds);
+#else
     /* dispatch line primitive to intersecting tiles */
     int w = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER]->width;
     int h = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER]->height;
@@ -2730,6 +2818,7 @@ static inline void hgl_rita_dispatch_line_internal_(HglRitaFragment f0, HglRitaF
             hgl_rita_op_queue_push(&(hgl_rita_ctx__.renderer.tile[i].op_queue), op);
         }
     }
+#endif
 }
 
 static inline void hgl_rita_dispatch_tri_internal_(HglRitaFragment f0, HglRitaFragment f1, HglRitaFragment f2)
@@ -2741,7 +2830,7 @@ static inline void hgl_rita_dispatch_tri_internal_(HglRitaFragment f0, HglRitaFr
         return;
     }
 
-    HglRitaTileOp op = {
+    HglRitaOp op = {
         .triangle = {f0, f1, f2},
         .kind = HGL_RITA_OP_RASTERIZE_TRIANGLE,
     };
@@ -2762,6 +2851,9 @@ static inline void hgl_rita_dispatch_tri_internal_(HglRitaFragment f0, HglRitaFr
         }
     }
 
+#ifdef HGL_RITA_SINGLE_THREAD
+    hgl_rita_process_op_internal_(op, hgl_rita_ctx__.renderer.framebuffer_bounds);
+#else
     /* dispatch triangle primitive to intersecting tiles */
     int w = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER]->width;
     int h = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER]->height;
@@ -2777,6 +2869,7 @@ static inline void hgl_rita_dispatch_tri_internal_(HglRitaFragment f0, HglRitaFr
             hgl_rita_op_queue_push(&(hgl_rita_ctx__.renderer.tile[i].op_queue), op);
         }
     }
+#endif
 }
 
 static inline HglRitaFragment hgl_rita_process_vertex_internal_(const HglRitaVertex *in)
@@ -2795,14 +2888,20 @@ static inline HglRitaFragment hgl_rita_process_vertex_internal_(const HglRitaVer
     /* vertex shader */
     if (hgl_rita_ctx__.shaders.vert == NULL) {
         Mat4 m_mvp     = hgl_rita_ctx__.tform.mvp;
+#ifndef HGL_RITA_SIMPLER
         Mat3 m_normals = hgl_rita_ctx__.tform.normals;
+#endif
 
         vert_out.pos     = mat4_mul_vec4(m_mvp, v_ls);
+#ifndef HGL_RITA_SIMPLER
         vert_out.normal  = mat3_mul_vec3(m_normals, in->normal);
+#endif
 #ifndef HGL_RITA_SIMPLE
         vert_out.tangent = mat3_mul_vec3(m_normals, in->tangent);
 #endif
+#ifndef HGL_RITA_SIMPLEST
         vert_out.uv      = in->uv;
+#endif
         vert_out.color   = in->color;
     } else {
         vert_out = hgl_rita_ctx__.shaders.vert(&hgl_rita_ctx__, in);
@@ -2830,8 +2929,12 @@ static inline HglRitaFragment hgl_rita_process_vertex_internal_(const HglRitaVer
     frag_out.world_pos     = mat4_mul_vec4(hgl_rita_ctx__.tform.model, v_ls).xyz; // TODO v_ls here is a 'lil sus...
     frag_out.world_tangent = vert_out.tangent;
 #endif
+#ifndef HGL_RITA_SIMPLER
     frag_out.world_normal  = vert_out.normal;
+#endif
+#ifndef HGL_RITA_SIMPLEST
     frag_out.uv            = vert_out.uv;
+#endif
     frag_out.color         = vert_out.color;
     frag_out.x             = v_ss.x;
     frag_out.y             = v_ss.y;
@@ -2869,7 +2972,11 @@ static inline void hgl_rita_process_fragment_internal_(HglRitaFragment *in)
     if (hgl_rita_ctx__.shaders.frag == NULL) {
         /* do default shading */
         if (hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_DIFFUSE] != NULL) {
+#ifndef HGL_RITA_SIMPLEST
             color = hgl_rita_color_mul(in->color, hgl_rita_sample_unit_uv(HGL_RITA_TEX_DIFFUSE, in->uv));
+#else
+            color = in->color;
+#endif
         } else {
             color = in->color;
         }
@@ -2899,8 +3006,12 @@ static inline HglRitaFragment hgl_rita_frag_lerp_internal_(int x, int y, HglRita
         .world_pos = vec3_lerp(f0.world_pos, f1.world_pos, t),
         .world_tangent = vec3_lerp(f0.world_tangent, f1.world_tangent, t),
 #endif
+#ifndef HGL_RITA_SIMPLER
         .world_normal = vec3_lerp(f0.world_normal, f1.world_normal, t),
+#endif
+#ifndef HGL_RITA_SIMPLEST
         .uv = vec2_lerp(f0.uv, f1.uv, t),
+#endif
         .x = x,
         .y = y,
         .inv_z = lerp(f0.inv_z, f1.inv_z, t),
@@ -2926,11 +3037,15 @@ static inline HglRitaFragment hgl_rita_frag_berp_internal_(HglRitaFragment f0,
     f.world_tangent.y = u*f0.world_tangent.y + v*f1.world_tangent.y + w*f2.world_tangent.y;
     f.world_tangent.z = u*f0.world_tangent.z + v*f1.world_tangent.z + w*f2.world_tangent.z;
 #endif
+#ifndef HGL_RITA_SIMPLER
     f.world_normal.x = u*f0.world_normal.x + v*f1.world_normal.x + w*f2.world_normal.x;
     f.world_normal.y = u*f0.world_normal.y + v*f1.world_normal.y + w*f2.world_normal.y;
     f.world_normal.z = u*f0.world_normal.z + v*f1.world_normal.z + w*f2.world_normal.z;
+#endif
+#ifndef HGL_RITA_SIMPLEST
     f.uv.x = u*f0.uv.x + v*f1.uv.x + w*f2.uv.x;
     f.uv.y = u*f0.uv.y + v*f1.uv.y + w*f2.uv.y;
+#endif
     f.color.r = u*f0.color.r + v*f1.color.r + w*f2.color.r;
     f.color.g = u*f0.color.g + v*f1.color.g + w*f2.color.g;
     f.color.b = u*f0.color.b + v*f1.color.b + w*f2.color.b;

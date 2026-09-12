@@ -125,7 +125,7 @@ int main()
     };
     Texture2D color_tex = LoadTextureFromImage(color_image);
 
-    SetTargetFPS(60);
+    //SetTargetFPS(60);
     bool pause_animation = false;
     while (!WindowShouldClose() && !IsKeyPressed(KEY_Q))
     {

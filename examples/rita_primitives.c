@@ -1,6 +1,8 @@
 #define _DEFAULT_SOURCE
 
 //#define HGL_RITA_PARALLEL_VERTEX_PROCESSING
+#define HGL_RITA_SINGLE_THREAD
+#define HGL_RITA_SIMPLEST
 #define HGL_RITA_IMPLEMENTATION
 //#include "hgl_rita.h"
 #include "hgl_rita.h"

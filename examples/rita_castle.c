@@ -1,7 +1,8 @@
 #define _DEFAULT_SOURCE
 
-#define HGL_RITA_SIMPLE
+#define HGL_RITA_SIMPLER
 #define HGL_RITA_PRESET_256X64X2048_PARALLEL_VERTEX_PROCESSING
+
 #define HGL_RITA_IMPLEMENTATION
 #include "hgl_rita.h"
 #include "hgl_rita_shaders.h"
@@ -19,6 +20,15 @@
 
 int main()
 {
+    printf("%zu\n", sizeof(HglRitaOp));
+    printf("%zu\n", sizeof(HglRitaOpKind));
+    printf("%zu\n", sizeof(HglRitaTriangle));
+    printf("%zu\n", sizeof(HglRitaLine));
+    printf("%zu\n", sizeof(HglRitaPoint));
+    printf("%zu\n", sizeof(HglRitaVertexBufferSegment));
+    printf("%zu\n", sizeof(HglRitaBlitInfo));
+    printf("%zu\n", sizeof(HglRitaFragment));
+    //exit(0);
 
     /* rita stuff */
     hgl_rita_init();
