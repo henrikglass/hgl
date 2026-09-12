@@ -123,7 +123,6 @@ int main()
 
         hgl_rita_finish();
        
-        //sleep(1);
         /* raylib stuff: IGNORE */
         UpdateTexture(color_tex, color_image.data);
         BeginDrawing();

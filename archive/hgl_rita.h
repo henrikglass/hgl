@@ -148,8 +148,6 @@
 
 #include <stdbool.h>
 #include <stdarg.h>
-#include <stdatomic.h>
-#include <semaphore.h>
 
 /*--- Public macros ---------------------------------------------------------------------*/
 
@@ -265,20 +263,16 @@
     !defined(HGL_RITA_REALLOC) && \
     !defined(HGL_RITA_FREE)
 #include <stdlib.h>
-#  define HGL_RITA_ALLOC    malloc
-#  define HGL_RITA_REALLOC  realloc
-#  define HGL_RITA_FREE     free
+#define HGL_RITA_ALLOC    malloc
+#define HGL_RITA_REALLOC  realloc
+#define HGL_RITA_FREE     free
 #endif
 
 #ifndef max
-#  define max(a, b) ((a) > (b) ? (a) : (b))
+#define max(a, b) ((a) > (b) ? (a) : (b))
 #endif
 #ifndef min
-#  define min(a, b) ((a) < (b) ? (a) : (b))
-#endif
-
-#ifndef HGL_RITA_CACHE_LINE_SIZE
-#  define HGL_RITA_CACHE_LINE_SIZE 64
+#define min(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
 /*---------------------------------------------------------------------------------------*/
@@ -337,6 +331,93 @@
         if ((da)->arr != NULL) {                                                          \
             HGL_RITA_FREE((da)->arr);                                                     \
         }                                                                                 \
+    } while (0)
+
+/*---------------------------------------------------------------------------------------*/
+/*--- Thread queue macro implementation -------------------------------------------------*/
+/*---------------------------------------------------------------------------------------*/
+
+#define HGL_RITA_TQ_ARR_DECL_ASSERT(T, N) T arr[(N > 1 && N <= UINT16_MAX) ? N : -1] // Assert that N is in the range [2, 2^16]
+
+#define HglRitaThreadQueue(T, N)                                                          \
+    struct                                                                                \
+    {                                                                                     \
+        HGL_RITA_TQ_ARR_DECL_ASSERT(T, N);                                                \
+        pthread_mutex_t mutex;                                                            \
+        pthread_cond_t cvar_writable;                                                     \
+        pthread_cond_t cvar_readable;                                                     \
+        uint16_t wp;                                                                      \
+        uint16_t rp;                                                                      \
+        _Atomic int n_idle;                                                               \
+    }
+
+#define hgl_rita_queue_capacity(q) (sizeof((q)->arr) / sizeof((q)->arr[0]))
+#define hgl_rita_queue_is_empty(q) ((q)->rp == (q)->wp)
+#define hgl_rita_queue_is_full(q) ((((q)->wp + 1) & (hgl_rita_queue_capacity(q) - 1)) == (q)->rp)
+
+#define hgl_rita_queue_init(q)                                                            \
+    do {                                                                                  \
+        (q)->wp = 0;                                                                      \
+        (q)->rp = 0;                                                                      \
+        (q)->n_idle = 0;                                                                  \
+        pthread_mutexattr_t attr_;                                                        \
+        assert(0 == pthread_mutexattr_init(&attr_));                                      \
+        assert(0 == pthread_mutexattr_settype(&attr_, PTHREAD_MUTEX_ADAPTIVE_NP));        \
+        assert(0 == pthread_mutex_init(&(q)->mutex, &attr_));                             \
+        assert(0 == pthread_cond_init(&(q)->cvar_writable, NULL));                        \
+        assert(0 == pthread_cond_init(&(q)->cvar_readable, NULL));                        \
+        assert(0 == pthread_mutexattr_destroy(&attr_));                                   \
+    } while (0)
+
+#define hgl_rita_queue_destroy(q)                                                         \
+    do {                                                                                  \
+        pthread_mutex_lock(&(q)->mutex);                                                  \
+        pthread_mutex_unlock(&(q)->mutex);                                                \
+        assert(0 == pthread_mutex_destroy(&(q)->mutex));                                  \
+        assert(0 == pthread_cond_destroy(&(q)->cvar_writable));                           \
+        assert(0 == pthread_cond_destroy(&(q)->cvar_readable));                           \
+    } while (0)
+
+#define hgl_rita_queue_push(q, item)                                                      \
+    do {                                                                                  \
+        pthread_mutex_lock(&(q)->mutex);                                                  \
+        while(hgl_rita_queue_is_full(q)) {                                                \
+            pthread_cond_wait(&(q)->cvar_writable, &(q)->mutex);                          \
+        }                                                                                 \
+        (q)->arr[(q)->wp] = item;                                                         \
+        (q)->wp = ((q)->wp + 1) & (hgl_rita_queue_capacity(q) - 1);                       \
+        pthread_cond_signal(&(q)->cvar_readable);                                         \
+        pthread_mutex_unlock(&(q)->mutex);                                                \
+    } while (0)
+
+#define hgl_rita_queue_pop(q, T)                                                          \
+    ({                                                                                    \
+        pthread_mutex_lock(&(q)->mutex);                                                  \
+        while(hgl_rita_queue_is_empty(q)) {                                               \
+            (q)->n_idle++;                                                                \
+            pthread_cond_wait(&(q)->cvar_readable, &(q)->mutex);                          \
+            (q)->n_idle--;                                                                \
+        }                                                                                 \
+        T item = (q)->arr[(q)->rp];                                                       \
+        (q)->rp = ((q)->rp + 1) & (hgl_rita_queue_capacity(q) - 1);                       \
+        pthread_cond_signal(&(q)->cvar_writable);                                         \
+        pthread_mutex_unlock(&(q)->mutex);                                                \
+        item;                                                                             \
+    })
+
+#define hgl_rita_queue_wait_until_empty(q)                                                \
+    do {                                                                                  \
+        pthread_mutex_lock(&(q)->mutex);                                                  \
+        while(!hgl_rita_queue_is_empty(q)) {                                              \
+            pthread_cond_wait(&(q)->cvar_writable, &(q)->mutex);                          \
+        }                                                                                 \
+        pthread_mutex_unlock(&(q)->mutex);                                                \
+    } while (0)
+
+#define hgl_rita_queue_wait_until_idle(q, n)                                              \
+    do {                                                                                  \
+        hgl_rita_queue_wait_until_empty(q);                                               \
+        while((q)->n_idle < n);                                                           \
     } while (0)
 
 /*--- Public type definitions -----------------------------------------------------------*/
@@ -574,31 +655,12 @@ typedef struct
     HglRitaTileOpKind kind;
 } HglRitaTileOp;
 
-static_assert((HGL_RITA_TILE_OP_QUEUE_CAPACITY > 1) && (HGL_RITA_TILE_OP_QUEUE_CAPACITY <= UINT16_MAX), "HGL_RITA_TILE_OP_QUEUE_CAPACITY must be in the range [1, 0xFFFF].");
-static_assert((HGL_RITA_TILE_OP_QUEUE_CAPACITY & (HGL_RITA_TILE_OP_QUEUE_CAPACITY - 1)) == 0, "HGL_RITA_TILE_OP_QUEUE_CAPACITY must be a power of two.");
-
-typedef struct
-{ 
-    /**
-     * Note: I tried using a `cached_rp` and `cached_wp`, but with no additional performance benefits. This
-     * queue is probably performant enough, and the bottleneck is elsewhere.
-     */
-    _Alignas(HGL_RITA_CACHE_LINE_SIZE) sem_t go_work; // 0 = idle, 1 = active
-    uint8_t PAD_0[HGL_RITA_CACHE_LINE_SIZE - sizeof(sem_t)];
-
-    _Alignas(HGL_RITA_CACHE_LINE_SIZE) _Atomic uint32_t rp;
-    uint8_t PAD_1[HGL_RITA_CACHE_LINE_SIZE - sizeof(uint32_t)];
-
-    _Alignas(HGL_RITA_CACHE_LINE_SIZE) _Atomic uint32_t wp;
-    uint8_t PAD_2[HGL_RITA_CACHE_LINE_SIZE - sizeof(uint32_t)];
-
-    _Alignas(HGL_RITA_CACHE_LINE_SIZE) HglRitaTileOp arr[HGL_RITA_TILE_OP_QUEUE_CAPACITY];
-} HglRitaOpQueue;
+typedef HglRitaThreadQueue(HglRitaTileOp, HGL_RITA_TILE_OP_QUEUE_CAPACITY) HglRitaTileOpQueue;
 
 typedef struct
 {
     pthread_t thread;
-    HglRitaOpQueue op_queue;
+    HglRitaTileOpQueue op_queue;
     HglRitaAABB aabb;
 } HglRitaTile;
 
@@ -757,15 +819,6 @@ static inline HglRitaColor hgl_rita_sample_unit_uv(HglRitaTexUnit unit, Vec2 uv)
 static inline HglRitaColor hgl_rita_sample_unit_rectilinear(HglRitaTexUnit unit, Vec3 dir); /* Samples the texture bound to texture unit `unit` using rectilinear projection at the 3D view direction `dir` */
 static inline HglRitaColor hgl_rita_sample_unit_cubemap(HglRitaTexUnit unit, Vec3 dir);     /* Samples the texture bound to texture unit `unit` using cubemap projection at the 3D view direction `dir` */
 
-/* Op queue */
-static inline void hgl_rita_op_queue_init(HglRitaOpQueue *q);                               /* Initialize queue */
-static inline void hgl_rita_op_queue_destroy(HglRitaOpQueue *q);                            /* Destroy queue */
-static inline void hgl_rita_op_queue_flush(HglRitaOpQueue *q);                              /* Force consumer end to start consuming ops until queue is empty. Must only be called from the producer end of the queue. */
-static inline void hgl_rita_op_queue_push(HglRitaOpQueue *q, HglRitaTileOp op);             /* Push op onto queue. */
-static inline HglRitaTileOp hgl_rita_op_queue_fetch(HglRitaOpQueue *q);                     /* Fetch op from queue, but don't step read pointer just yet. Must eventually be followed by a call to `ack` below. */
-static inline void hgl_rita_op_queue_ack(HglRitaOpQueue *q);                                /* Steps the read pointer. Basically Fetch + Ack is equivalent to a regular old `pop` */
-static inline void hgl_rita_op_queue_wait_until_empty_as_producer(HglRitaOpQueue *q);       /* Wait until `q` is empty. Must only be called from the producer end of the queue. */
-
 /* internal functions */
 static inline void *hgl_rita_tile_thread_internal_(void *arg);                              /* This function contains the main work-loop of each spawned tile thread. */
 static inline void hgl_rita_dispatch_point_internal_(HglRitaFragment f0);                   /* Dispatches a point/pixel primitive to the thread of the tile containing it */
@@ -882,9 +935,9 @@ static inline void hgl_rita_final(void)
 
     for (int i = 0; i < hgl_rita_ctx__.renderer.n_tiles; i++) {
         HglRitaTileOp op = { .kind = HGL_RITA_OP_TERMINATE };
-        hgl_rita_op_queue_push(&hgl_rita_ctx__.renderer.tile[i].op_queue, op);
+        hgl_rita_queue_push(&hgl_rita_ctx__.renderer.tile[i].op_queue, op);
         pthread_join(hgl_rita_ctx__.renderer.tile[i].thread, NULL);
-        hgl_rita_op_queue_destroy(&hgl_rita_ctx__.renderer.tile[i].op_queue);
+        hgl_rita_queue_destroy(&hgl_rita_ctx__.renderer.tile[i].op_queue);
     }
     hgl_rita_ctx__.renderer.n_tiles = 0;
 }
@@ -925,8 +978,7 @@ static inline void hgl_rita_bind_texture(HglRitaTexUnit unit, HglRitaTexture *te
         /* Spawn more tile workers if necessary */
         for (int i = n_active_tiles; i < n_needed_tiles; i++) {
             HglRitaTile *tile = &hgl_rita_ctx__.renderer.tile[i];
-            //hgl_rita_queue_init(&tile->op_queue);
-            hgl_rita_op_queue_init(&tile->op_queue);
+            hgl_rita_queue_init(&tile->op_queue);
             tile->aabb = hgl_rita_aabb_make((i%cols)*HGL_RITA_TILE_SIZE_X,
                                             (i/cols)*HGL_RITA_TILE_SIZE_Y,
                                             HGL_RITA_TILE_SIZE_X,
@@ -1116,10 +1168,7 @@ static inline void hgl_rita_clear(uint32_t attachments)
 static inline void hgl_rita_finish(void)
 {
     for (int i = 0; i < hgl_rita_ctx__.renderer.n_tiles; i++) {
-        hgl_rita_op_queue_flush(&hgl_rita_ctx__.renderer.tile[i].op_queue);
-    }
-    for (int i = 0; i < hgl_rita_ctx__.renderer.n_tiles; i++) {
-        hgl_rita_op_queue_wait_until_empty_as_producer(&hgl_rita_ctx__.renderer.tile[i].op_queue);
+        hgl_rita_queue_wait_until_idle(&hgl_rita_ctx__.renderer.tile[i].op_queue, 1);
     }
 }
 
@@ -1357,7 +1406,7 @@ static inline void hgl_rita_draw(HglRitaPrimitiveMode primitive_mode)
             },
             .kind = HGL_RITA_OP_PROCESS_VBUF_SEGMENT,
         };
-        hgl_rita_op_queue_push(&hgl_rita_ctx__.renderer.tile[i].op_queue, op);
+        hgl_rita_queue_push(&hgl_rita_ctx__.renderer.tile[i].op_queue, op);
     }
 
     /* process remaining vertices in current thread */
@@ -1370,10 +1419,7 @@ static inline void hgl_rita_draw(HglRitaPrimitiveMode primitive_mode)
 
     /* rendezvous with the parallel workers */
     for (int i = 0; i < n_seg; i++) {
-        hgl_rita_op_queue_flush(&hgl_rita_ctx__.renderer.tile[i].op_queue);
-    }
-    for (int i = 0; i < n_seg; i++) {
-        hgl_rita_op_queue_wait_until_empty_as_producer(&hgl_rita_ctx__.renderer.tile[i].op_queue);
+        hgl_rita_queue_wait_until_idle(&hgl_rita_ctx__.renderer.tile[i].op_queue, 1);
     }
 #endif
 
@@ -1555,11 +1601,6 @@ static inline void hgl_rita_draw(HglRitaPrimitiveMode primitive_mode)
 
         default: assert(0 && "Unsupported primitive");
     }
-
-    /* Flush all ops */
-    //for (int i = 0; i < hgl_rita_ctx__.renderer.n_tiles; i++) {
-    //    hgl_rita_op_queue_flush(&hgl_rita_ctx__.renderer.tile[i].op_queue);
-    //}
 }
 
 static inline void hgl_rita_blit(int x, int y, int w, int h,
@@ -1594,7 +1635,7 @@ static inline void hgl_rita_blit(int x, int y, int w, int h,
     for (y = start_y; y < end_y; y++) {
         for (x = start_x; x < end_x; x++) {
             int i = y*stride + x;
-            hgl_rita_op_queue_push(&(hgl_rita_ctx__.renderer.tile[i].op_queue), op);
+            hgl_rita_queue_push(&(hgl_rita_ctx__.renderer.tile[i].op_queue), op);
         }
     }
 }
@@ -2198,94 +2239,6 @@ static inline HglRitaColor hgl_rita_sample_unit_cubemap(HglRitaTexUnit unit, Vec
     return hgl_rita_sample_cubemap(hgl_rita_ctx__.tex_unit[unit], dir);
 }
 
-/*---------------------------------------------------------------------------------------*/
-/*--- New Lock-free queue (sans `go_work`... ) ------------------------------------------*/
-/*---------------------------------------------------------------------------------------*/
-
-static inline void hgl_rita_op_queue_init(HglRitaOpQueue *q)
-{
-    assert(atomic_is_lock_free(&q->wp));
-    assert(atomic_is_lock_free(&q->rp));
-    sem_init(&q->go_work, 0, 0);
-    q->wp = 0;
-    q->rp = 0;
-}
-
-static inline void hgl_rita_op_queue_destroy(HglRitaOpQueue *q)
-{
-    (void) q;
-    sem_destroy(&q->go_work);
-}
-
-static inline void hgl_rita_op_queue_flush(HglRitaOpQueue *q)
-{
-#if 0
-    /* This doesn't seem to help anything */
-    int consumer_state;
-    sem_getvalue(&q->go_work, &consumer_state);
-    if (consumer_state == 0 /* idle */) {
-        sem_post(&q->go_work); /* wake up consumer */
-    }
-#else 
-    sem_post(&q->go_work); /* wake up consumer */
-#endif
-}
-
-static inline void hgl_rita_op_queue_push(HglRitaOpQueue *q, HglRitaTileOp op)
-{
-    const uint32_t m = (HGL_RITA_TILE_OP_QUEUE_CAPACITY - 1);
-    uint32_t wp = atomic_load_explicit(&q->wp, memory_order_relaxed);
-    uint32_t rp = atomic_load_explicit(&q->rp, memory_order_acquire);
-
-    /* spin while queue is full */
-    while (((wp + 1) & m) == rp) {
-        rp = atomic_load_explicit(&q->rp, memory_order_acquire);
-        hgl_rita_op_queue_flush(q);
-    }
-
-    q->arr[wp] = op;
-
-    atomic_store_explicit(&q->wp, (wp + 1) & m, memory_order_release);
-
-    /* queue was empty - kickstart consumer thread */
-    if (wp == rp) {
-        hgl_rita_op_queue_flush(q);
-    }
-}
-
-static inline HglRitaTileOp hgl_rita_op_queue_fetch(HglRitaOpQueue *q)
-{
-    uint32_t rp = atomic_load_explicit(&q->rp, memory_order_relaxed);
-    uint32_t wp = atomic_load_explicit(&q->wp, memory_order_acquire);
-
-    /* Queue empty? Become idle */
-    while (wp == rp) {
-        sem_wait(&q->go_work);
-        wp = atomic_load_explicit(&q->wp, memory_order_acquire);
-    }
-
-    HglRitaTileOp op = q->arr[rp];
-    return op;
-}
-
-static inline void hgl_rita_op_queue_ack(HglRitaOpQueue *q)
-{
-    const uint32_t m = (HGL_RITA_TILE_OP_QUEUE_CAPACITY - 1);
-    uint32_t rp = atomic_load_explicit(&q->rp, memory_order_relaxed);
-    atomic_store_explicit(&q->rp, (rp + 1) & m, memory_order_release);
-}
-
-static inline void hgl_rita_op_queue_wait_until_empty_as_producer(HglRitaOpQueue *q)
-{
-    uint32_t wp = atomic_load_explicit(&q->wp, memory_order_relaxed);
-    uint32_t rp = atomic_load_explicit(&q->rp, memory_order_acquire);
-
-    /* spin while queue is not empty */
-    while (wp != rp) {
-        rp = atomic_load_explicit(&q->rp, memory_order_acquire);
-    }
-}
-
 
 /*---------------------------------------------------------------------------------------*/
 /*--- Internal functions ----------------------------------------------------------------*/
@@ -2300,12 +2253,12 @@ static inline void *hgl_rita_tile_thread_internal_(void *arg)
     }
 
     HglRitaTile *tile = (HglRitaTile *) arg;
-    HglRitaOpQueue *q = &tile->op_queue;
+    HglRitaTileOpQueue *q = &tile->op_queue;
     HglRitaAABB tile_aabb = tile->aabb;
 
     for (;;) {
 
-        HglRitaTileOp op = hgl_rita_op_queue_fetch(q);
+        HglRitaTileOp op = hgl_rita_queue_pop(q, HglRitaTileOp);
 
         switch (op.kind) {
 
@@ -2673,12 +2626,9 @@ static inline void *hgl_rita_tile_thread_internal_(void *arg)
             } break;
 
             case HGL_RITA_OP_TERMINATE: {
-                hgl_rita_op_queue_ack(q);
                 return NULL;
             } break;
         }
-
-        hgl_rita_op_queue_ack(q);
     }
 }
 
@@ -2699,7 +2649,7 @@ static inline void hgl_rita_dispatch_point_internal_(HglRitaFragment f0)
     int y = f0.y / HGL_RITA_TILE_SIZE_Y;
     int stride = hgl_rita_ctx__.renderer.n_tile_cols;
     int i = y*stride + x;
-    hgl_rita_op_queue_push(&(hgl_rita_ctx__.renderer.tile[i].op_queue), op);
+    hgl_rita_queue_push(&(hgl_rita_ctx__.renderer.tile[i].op_queue), op);
 }
 
 static inline void hgl_rita_dispatch_line_internal_(HglRitaFragment f0, HglRitaFragment f1)
@@ -2727,7 +2677,7 @@ static inline void hgl_rita_dispatch_line_internal_(HglRitaFragment f0, HglRitaF
     for (int y = start_y; y < end_y; y++) {
         for (int x = start_x; x < end_x; x++) {
             int i = y*stride + x;
-            hgl_rita_op_queue_push(&(hgl_rita_ctx__.renderer.tile[i].op_queue), op);
+            hgl_rita_queue_push(&(hgl_rita_ctx__.renderer.tile[i].op_queue), op);
         }
     }
 }
@@ -2774,7 +2724,7 @@ static inline void hgl_rita_dispatch_tri_internal_(HglRitaFragment f0, HglRitaFr
     for (int y = start_y; y < end_y; y++) {
         for (int x = start_x; x < end_x; x++) {
             int i = y*stride + x;
-            hgl_rita_op_queue_push(&(hgl_rita_ctx__.renderer.tile[i].op_queue), op);
+            hgl_rita_queue_push(&(hgl_rita_ctx__.renderer.tile[i].op_queue), op);
         }
     }
 }
@@ -2975,7 +2925,7 @@ static inline int hgl_rita_next_vbuf_index_internal_(void)
 
 #endif /* HGL_RITA_IMPLEMENTATION */
 
-// TODO Better (lockless) queues? Probably not the bottleneck. The entire hgl_rita_draw() function is.
+// TODO Better (lockless) queues
 // TODO Documentation
 // TODO parallelize draw_text?
 // TODO HglRitaColor rgba8/r32 union?
