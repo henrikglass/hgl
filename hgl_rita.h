@@ -35,21 +35,21 @@
  *
  *     - An OpenGL-esque render pipeline, with support for optional user-programmable
  *       vertex and fragment shaders.
- *     - A set of two fixed vertex specifications, DEFAULT and SIMPLE. The DEFAULT vertex
- *       specification contains most of the commonly used vertex attributes. The SIMPLE 
- *       vertex specification is a subset of the DEFAULT vertex specification:
+ *     - A set of fixed vertex specifications, DEFAULT, SIMPLE, SIMPLER, and SIMPLEST. 
+ *       The DEFAULT vertex specification contains most of the commonly used vertex 
+ *       attributes: 
  *          - pos           : vertex position vector
- *          - normal        : vertex normal vector
+ *          - normal        : vertex normal vector (Omitted in the SIMPLER vertex specification)
  *          - tangent       : vertex tangent vector (Omitted in the SIMPLE vertex specification)
- *          - uv            : vertex texture coordinate
+ *          - uv            : vertex texture coordinate (Omitted in the SIMPLEST vertex specification)
  *          - color         : vertex color
- *     - A set of two fixed fragment specifications, DEFAULT and SIMPLE. The DEFAULT fragment
- *       specification contains most of the commonly used fragment attributes. The SIMPLE 
- *       fragment specification is a subset of the DEFAULT fragment specification:
+ *     - A set of fixed fragment specifications, DEFAULT, SIMPLE, SIMPLER, and SIMPLES. 
+ *       The DEFAULT fragment specification contains most of the commonly used fragment 
+ *       attributes:
  *          - world_pos     : fragment world position vector (Omitted in the SIMPLE vertex specification)
- *          - world_normal  : fragment world normal vector
+ *          - world_normal  : fragment world normal vector (Omitted in the SIMPLER vertex specification)
  *          - world_tangent : fragment world tangent vector (Omitted in the SIMPLE vertex specification)
- *          - uv            : fragment texture coordinate
+ *          - uv            : fragment texture coordinate (Omitted in the SIMPLEST vertex specification)
  *          - x             : fragment screen space x-coordinate
  *          - y             : fragment screen space y-coordinate
  *          - inv_z         : fragment depth
@@ -2463,11 +2463,11 @@ static inline void hgl_rita_process_op_internal_(HglRitaOp op, HglRitaAABB bound
             HglRitaFragment f1 = op.line.f1;
 
             /* Cohen-Sutherland clip to AABB of tile */
-            const int INSIDE = 0b0000;
-            const int LEFT   = 0b0001;
-            const int RIGHT  = 0b0010;
-            const int BOTTOM = 0b0100;
-            const int TOP    = 0b1000;
+            const int INSIDE = 0; // 0b0000;
+            const int LEFT   = 1; // 0b0001;
+            const int RIGHT  = 2; // 0b0010;
+            const int BOTTOM = 4; // 0b0100;
+            const int TOP    = 8; // 0b1000;
 
             int x0 = f0.x;
             int y0 = f0.y;

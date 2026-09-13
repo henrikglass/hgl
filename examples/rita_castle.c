@@ -69,7 +69,7 @@ int main()
     HglRitaTexture skybox;
     skybox = load_texture("assets/skybox_cubemap.png");
 
-    SetTargetFPS(60);
+    //SetTargetFPS(60);
     int frame_count = 0;
     while (!WindowShouldClose() && !IsKeyPressed(KEY_Q))
     {
