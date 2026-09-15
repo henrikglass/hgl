@@ -603,7 +603,9 @@ typedef struct
 #endif
     int x;
     int y;
+#ifdef HGL_RITA_VERTEX_USE_3D
     float inv_z;
+#endif
     bool clipping; // TODO figure something else out?
 } HglRitaFragment;
 
@@ -2861,7 +2863,9 @@ static inline void hgl_rita_process_op_internal_(HglRitaOp op, HglRitaAABB bound
                             HglRitaFragment frag;
                             frag.x = screen_x;
                             frag.y = screen_y;
+#ifdef HGL_RITA_VERTEX_USE_3D
                             frag.inv_z = (db != NULL) ? db->data.r32[idx] : 0.0f;
+#endif
                             frag.uv = (Vec2) {
                                 //(float)screen_x / (float)(fb_w - 1),
                                 //((float)screen_y / (float)(fb_h - 1)),
@@ -3087,7 +3091,9 @@ static inline HglRitaFragment hgl_rita_process_vertex_internal_(const HglRitaVer
 #endif
     frag_out.x             = v_ss.x;
     frag_out.y             = v_ss.y;
+#ifdef HGL_RITA_VERTEX_USE_3D
     frag_out.inv_z         = 1.0f / v_ndc.z; // <-- N.B.
+#endif
 
     return frag_out;
 }
@@ -3096,7 +3102,11 @@ static inline void hgl_rita_process_fragment_internal_(HglRitaFragment *in)
 {
     int x = in->x;
     int y = in->y;
+#ifdef HGL_RITA_VERTEX_USE_3D
     float depth = clamp(0, 1, 1.0f / in->inv_z);
+#else
+    float depth = 0.0f;
+#endif
     int s = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER]->stride;
     int idx = y * s + x;
 
@@ -3173,7 +3183,9 @@ static inline HglRitaFragment hgl_rita_frag_lerp_internal_(int x, int y, HglRita
 #endif
         .x = x,
         .y = y,
+#ifdef HGL_RITA_VERTEX_USE_3D
         .inv_z = lerp(f0.inv_z, f1.inv_z, t),
+#endif
 #ifdef HGL_RITA_FRAGMENT_USE_COLOR
         .color = hgl_rita_color_lerp(f0.color, f1.color, t),
 #endif
@@ -3217,7 +3229,9 @@ static inline HglRitaFragment hgl_rita_frag_berp_internal_(HglRitaFragment f0,
 #endif
     f.x = x;
     f.y = y;
+#ifdef HGL_RITA_VERTEX_USE_3D
     f.inv_z = u*f0.inv_z + v*f1.inv_z + w*f2.inv_z;
+#endif
     f.clipping = false;
 
     return f;
