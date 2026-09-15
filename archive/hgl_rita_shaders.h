@@ -48,59 +48,40 @@
 #define HGL_RITA_SHADERS_H
 
 /* vertex shaders */
-#if defined(HGL_RITA_VERTEX_USE_3D)
 static inline HglRitaVertex HGL_RITA_VERTEX_SNAP_SHADER(const HglRitaContext *ctx, const HglRitaVertex *in);
-#endif
-#if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_VERTEX_USE_NORMAL)
+#ifndef HGL_RITA_SIMPLER
 static inline HglRitaVertex HGL_RITA_VERTEX_DIRECTIONAL_LIGHT_SHADER(const HglRitaContext *ctx, const HglRitaVertex *in);
 #endif
- 
+
 /* fragment shaders */
-#if defined(HGL_RITA_FRAGMENT_USE_UV)
+#ifndef HGL_RITA_SIMPLEST
 static inline HglRitaColor HGL_RITA_UV_SHADER(const HglRitaContext *ctx, const HglRitaFragment *in);
 #endif
-#if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_FRAGMENT_USE_WORLD_NORMAL)
-static inline HglRitaColor HGL_RITA_NORMAL_SHADER(const HglRitaContext *ctx, const HglRitaFragment *in);
-#endif
-#if defined(HGL_RITA_VERTEX_USE_3D)
 static inline HglRitaColor HGL_RITA_DEPTH_SHADER(const HglRitaContext *ctx, const HglRitaFragment *in);
-#endif
- 
-#if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_FRAGMENT_USE_WORLD_NORMAL)
+
+#ifndef HGL_RITA_SIMPLER
+static inline HglRitaColor HGL_RITA_NORMAL_SHADER(const HglRitaContext *ctx, const HglRitaFragment *in);
 static inline HglRitaColor HGL_RITA_LAMBERT_DIFFUSE(const HglRitaContext *ctx, const HglRitaFragment *in);
 #endif
-#if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_FRAGMENT_USE_WORLD_NORMAL) && defined(HGL_RITA_FRAGMENT_USE_WORLD_POS)
+#ifndef HGL_RITA_SIMPLE
 static inline HglRitaColor HGL_RITA_PHONG(const HglRitaContext *ctx, const HglRitaFragment *in);
-#endif
-#if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_FRAGMENT_USE_WORLD_NORMAL) && defined(HGL_RITA_FRAGMENT_USE_WORLD_POS)
 static inline HglRitaColor HGL_RITA_BLINN_PHONG(const HglRitaContext *ctx, const HglRitaFragment *in);
-#endif
-#if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_FRAGMENT_USE_WORLD_NORMAL) && defined(HGL_RITA_FRAGMENT_USE_WORLD_POS)
 static inline HglRitaColor HGL_RITA_GOOCH(const HglRitaContext *ctx, const HglRitaFragment *in);
 #endif
- 
+
 /* filter/post-processing fragment shaders */
 static inline HglRitaColor HGL_RITA_GRAY_SHADER(const HglRitaContext *ctx, const HglRitaFragment *in);
-#if defined(HGL_RITA_FRAGMENT_USE_COLOR)
 static inline HglRitaColor HGL_RITA_MONOCHROME(const HglRitaContext *ctx, const HglRitaFragment *in);
-#endif
-#if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_FRAGMENT_USE_COLOR)
 static inline HglRitaColor HGL_RITA_FOG(const HglRitaContext *ctx, const HglRitaFragment *in);
-#endif
-#if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_FRAGMENT_USE_COLOR)
 static inline HglRitaColor HGL_RITA_DEPTH_BASED_BORDERS(const HglRitaContext *ctx, const HglRitaFragment *in);
-#endif
-#if defined(HGL_RITA_FRAGMENT_USE_COLOR)
 static inline HglRitaColor HGL_RITA_DITHER_4X4_1BPP(const HglRitaContext *ctx, const HglRitaFragment *in);
 static inline HglRitaColor HGL_RITA_DITHER_4X4_2BPP(const HglRitaContext *ctx, const HglRitaFragment *in);
 static inline HglRitaColor HGL_RITA_DITHER_4X4_3BPP(const HglRitaContext *ctx, const HglRitaFragment *in);
-#endif
 
 #endif /* HGL_RITA_SHADERS_H */
 
 #ifdef HGL_RITA_IMPLEMENTATION
 
-#ifdef HGL_RITA_VERTEX_USE_3D
 static inline HglRitaVertex HGL_RITA_VERTEX_SNAP_SHADER(const HglRitaContext *ctx, const HglRitaVertex *in)
 {
     HglRitaVertex out;
@@ -122,24 +103,21 @@ static inline HglRitaVertex HGL_RITA_VERTEX_SNAP_SHADER(const HglRitaContext *ct
     v = mat4_mul_vec4(ctx->tform.proj, v);
 
     out.pos     = v;
-#ifdef HGL_RITA_VERTEX_USE_NORMAL
+#ifndef HGL_RITA_SIMPLER
     out.normal  = in->normal;
 #endif
-#ifdef HGL_RITA_VERTEX_USE_TANGENT
+#ifndef HGL_RITA_SIMPLE
     out.tangent = in->tangent;
 #endif
-#ifdef HGL_RITA_VERTEX_USE_UV
+#ifndef HGL_RITA_SIMPLEST
     out.uv      = in->uv;
 #endif
-#ifdef HGL_RITA_VERTEX_USE_COLOR
     out.color   = in->color;
-#endif
 
     return out;
 }
-#endif
 
-#if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_VERTEX_USE_NORMAL)
+#ifndef HGL_RITA_SIMPLER
 static inline HglRitaVertex HGL_RITA_VERTEX_DIRECTIONAL_LIGHT_SHADER(const HglRitaContext *ctx, const HglRitaVertex *in)
 {
     HglRitaVertex out;
@@ -154,15 +132,11 @@ static inline HglRitaVertex HGL_RITA_VERTEX_DIRECTIONAL_LIGHT_SHADER(const HglRi
 
     out.pos     = v;
     out.normal  = in->normal;
-#ifdef HGL_RITA_VERTEX_USE_TANGENT
+#ifndef HGL_RITA_SIMPLE
     out.tangent = in->tangent;
 #endif
-#ifdef HGL_RITA_VERTEX_USE_UV
     out.uv      = in->uv;
-#endif
-#ifdef HGL_RITA_VERTEX_USE_COLOR
     out.color   = in->color;
-#endif
 
     Vec3 n = mat3_mul_vec3(ctx->tform.normals, in->normal);
     float light = 0.2f + 0.8f*clamp(0, 1, vec3_dot(n, vec3_normalize(vec3_make(1,1,1))));
@@ -173,7 +147,7 @@ static inline HglRitaVertex HGL_RITA_VERTEX_DIRECTIONAL_LIGHT_SHADER(const HglRi
 }
 #endif
 
-#if defined(HGL_RITA_FRAGMENT_USE_UV)
+#ifndef HGL_RITA_SIMPLEST
 static inline HglRitaColor HGL_RITA_UV_SHADER(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
     (void) ctx;
@@ -187,7 +161,7 @@ static inline HglRitaColor HGL_RITA_UV_SHADER(const HglRitaContext *ctx, const H
 }
 #endif
 
-#if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_FRAGMENT_USE_WORLD_NORMAL)
+#ifndef HGL_RITA_SIMPLER
 static inline HglRitaColor HGL_RITA_NORMAL_SHADER(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
     (void) ctx;
@@ -201,7 +175,6 @@ static inline HglRitaColor HGL_RITA_NORMAL_SHADER(const HglRitaContext *ctx, con
 }
 #endif
 
-#if defined(HGL_RITA_VERTEX_USE_3D)
 static inline HglRitaColor HGL_RITA_DEPTH_SHADER(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
     (void) ctx;
@@ -213,23 +186,15 @@ static inline HglRitaColor HGL_RITA_DEPTH_SHADER(const HglRitaContext *ctx, cons
     };
     return color;
 }
-#endif
 
-#if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_FRAGMENT_USE_WORLD_NORMAL)
+#ifndef HGL_RITA_SIMPLER
 static inline HglRitaColor HGL_RITA_LAMBERT_DIFFUSE(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
     (void) ctx;
-    HglRitaColor color = {0};
-#if !defined(HGL_RITA_FRAGMENT_USE_COLOR)
-    color = HGL_RITA_MORTEL_WHITE;
-#else
-    color = in->color;
-#endif
-#if defined(HGL_RITA_FRAGMENT_USE_UV)
+    HglRitaColor color = in->color;
     if (hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_DIFFUSE] != NULL) {
         color = hgl_rita_color_mul(color, hgl_rita_sample_unit_uv(HGL_RITA_TEX_DIFFUSE, in->uv));
     }
-#endif
     float light = 0.2f + 0.8f*clamp(0, 1, vec3_dot(in->world_normal, vec3_normalize(vec3_make(1,1,1))));
     color.r *= light;
     color.g *= light;
@@ -238,7 +203,7 @@ static inline HglRitaColor HGL_RITA_LAMBERT_DIFFUSE(const HglRitaContext *ctx, c
 }
 #endif
 
-#if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_FRAGMENT_USE_WORLD_NORMAL) && defined(HGL_RITA_FRAGMENT_USE_WORLD_POS)
+#ifndef HGL_RITA_SIMPLE
 static inline HglRitaColor HGL_RITA_PHONG(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
     (void) ctx;
@@ -249,16 +214,10 @@ static inline HglRitaColor HGL_RITA_PHONG(const HglRitaContext *ctx, const HglRi
     float shinyness = 0.5f;
     float specular_exponent = 25.0f;
 
-#ifdef HGL_RITA_FRAGMENT_USE_COLOR
     HglRitaColor diffuse_color = in->color;
-#else
-    HglRitaColor diffuse_color = HGL_RITA_LIGHT_GRAY;
-#endif
     HglRitaColor specular_color = HGL_RITA_WHITE;
 
-#ifdef HGL_RITA_FRAGMENT_USE_UV
     diffuse_color = hgl_rita_sample_unit_uv(HGL_RITA_TEX_DIFFUSE, in->uv);
-#endif
     float diffuse_light = clamp(0.1f, 1.0f, fmaxf(0, vec3_dot(N, L))); // Lambertian
     float specular_light = powf(fmaxf(0, vec3_dot(vec3_reflect(IV, N), L)), specular_exponent); // Phong
 
@@ -272,9 +231,7 @@ static inline HglRitaColor HGL_RITA_PHONG(const HglRitaContext *ctx, const HglRi
 
     return hgl_rita_color_add(diffuse_color, specular_color);
 }
-#endif
 
-#if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_FRAGMENT_USE_WORLD_NORMAL) && defined(HGL_RITA_FRAGMENT_USE_WORLD_POS)
 static inline HglRitaColor HGL_RITA_BLINN_PHONG(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
     Vec3 L = vec3_normalize(vec3_make(1,1,1));
@@ -285,16 +242,10 @@ static inline HglRitaColor HGL_RITA_BLINN_PHONG(const HglRitaContext *ctx, const
     float shinyness = 0.5f;
     float specular_exponent = 70.0f;
 
-#ifdef HGL_RITA_FRAGMENT_USE_COLOR
     HglRitaColor diffuse_color = in->color;
-#else
-    HglRitaColor diffuse_color = HGL_RITA_LIGHT_GRAY;
-#endif
     HglRitaColor specular_color = HGL_RITA_WHITE;
 
-#ifdef HGL_RITA_FRAGMENT_USE_UV
     diffuse_color = hgl_rita_sample_unit_uv(HGL_RITA_TEX_DIFFUSE, in->uv);
-#endif
     float diffuse_light = clamp(0.1f, 1.0f, fmaxf(0, vec3_dot(N, L))); // Lambertian
     float specular_light = powf(fmaxf(0, vec3_dot(H, N)), specular_exponent); // Blinn-Phong
 
@@ -308,9 +259,7 @@ static inline HglRitaColor HGL_RITA_BLINN_PHONG(const HglRitaContext *ctx, const
 
     return hgl_rita_color_add(diffuse_color, specular_color);
 }
-#endif
 
-#if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_FRAGMENT_USE_WORLD_NORMAL) && defined(HGL_RITA_FRAGMENT_USE_WORLD_POS)
 static inline HglRitaColor HGL_RITA_GOOCH(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
     Vec3 L  = vec3_normalize(vec3_make(1,1,1)); // light vector
@@ -333,7 +282,6 @@ static inline HglRitaColor HGL_RITA_GRAY_SHADER(const HglRitaContext *ctx, const
     return HGL_RITA_DARK_GRAY;
 }
 
-#if defined(HGL_RITA_FRAGMENT_USE_COLOR)
 static inline HglRitaColor HGL_RITA_MONOCHROME(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
     (void) ctx;
@@ -347,17 +295,13 @@ static inline HglRitaColor HGL_RITA_MONOCHROME(const HglRitaContext *ctx, const 
         .a = 255,
     };
 }
-#endif
 
-#if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_FRAGMENT_USE_COLOR)
 static inline HglRitaColor HGL_RITA_FOG(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
     (void) ctx;
     return hgl_rita_color_lerp(in->color, HGL_RITA_LIGHT_GRAY, powf(in->inv_z, 40));
 }
-#endif
 
-#if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_FRAGMENT_USE_COLOR)
 static inline HglRitaColor HGL_RITA_DEPTH_BASED_BORDERS(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
     int spread = 2;
@@ -380,9 +324,7 @@ static inline HglRitaColor HGL_RITA_DEPTH_BASED_BORDERS(const HglRitaContext *ct
 
     return in->color;
 }
-#endif
 
-#if defined(HGL_RITA_FRAGMENT_USE_COLOR)
 static inline HglRitaColor HGL_RITA_DITHER_4X4_1BPP(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
     (void) ctx;
@@ -411,9 +353,7 @@ static inline HglRitaColor HGL_RITA_DITHER_4X4_1BPP(const HglRitaContext *ctx, c
         .a = 255,
     };
 }
-#endif
 
-#if defined(HGL_RITA_FRAGMENT_USE_COLOR)
 static inline HglRitaColor HGL_RITA_DITHER_4X4_2BPP(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
     (void) ctx;
@@ -442,9 +382,7 @@ static inline HglRitaColor HGL_RITA_DITHER_4X4_2BPP(const HglRitaContext *ctx, c
         .a = 255,
     };
 }
-#endif
 
-#if defined(HGL_RITA_FRAGMENT_USE_COLOR)
 static inline HglRitaColor HGL_RITA_DITHER_4X4_3BPP(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
     (void) ctx;
@@ -473,6 +411,5 @@ static inline HglRitaColor HGL_RITA_DITHER_4X4_3BPP(const HglRitaContext *ctx, c
         .a = 255,
     };
 }
-#endif
 
 #endif

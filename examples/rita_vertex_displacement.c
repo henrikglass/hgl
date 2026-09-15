@@ -1,8 +1,8 @@
 #define _DEFAULT_SOURCE
 
 #define HGL_RITA_IMPLEMENTATION
-#define HGL_RITA_SHADERS_IMPLEMENTATION
 #include "hgl_rita.h"
+#define HGL_RITA_SHADERS_IMPLEMENTATION
 #include "hgl_rita_shaders.h"
 
 #include "rita_helpers.h"
@@ -69,15 +69,15 @@ int main()
                     HGL_RITA_DEPTH_BUFFER_WRITING |
                     HGL_RITA_Z_CLIPPING);
 
-    /* Load a teapot model */
-    MyModel teapot = load_model_from_obj("assets/plane16x16.obj");
+    /* Load a plane model */
+    MyModel plane = load_model_from_obj("assets/plane16x16.obj");
 
     /* Setup hgl_rita to render our model */
     hgl_rita_use_vertex_buffer_mode(HGL_RITA_INDEXED);
-    hgl_rita_bind_buffer(HGL_RITA_VERTEX_BUFFER, &teapot.vbuf);
-    hgl_rita_bind_buffer(HGL_RITA_INDEX_BUFFER, &teapot.ibuf);
-    hgl_rita_use_frontface_winding_order(teapot.winding_order);
-    hgl_rita_use_model_matrix(teapot.tform);
+    hgl_rita_bind_buffer(HGL_RITA_VERTEX_BUFFER, &plane.vbuf);
+    hgl_rita_bind_buffer(HGL_RITA_INDEX_BUFFER, &plane.ibuf);
+    hgl_rita_use_frontface_winding_order(plane.winding_order);
+    hgl_rita_use_model_matrix(plane.tform);
    
     /* bind our vertex displacement shader */
     hgl_rita_bind_vert_shader(my_vertex_displacement_shader);

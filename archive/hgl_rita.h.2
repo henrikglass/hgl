@@ -100,68 +100,51 @@
  * hgl_rita.h includes a handful of presets for these settings, as well as HGL_RITA_PARALLEL_VERTEX_PROCESSING
  * which may be defined instead, before including hgl_rita.h:
  *
- *     HGL_RITA_RENDERER_PRESET_128X64X64_SERIAL_VERTEX_PROCESSING
- *     HGL_RITA_RENDERER_PRESET_194X64X128_SERIAL_VERTEX_PROCESSING
- *     HGL_RITA_RENDERER_PRESET_256X64X256_SERIAL_VERTEX_PROCESSING
- *     HGL_RITA_RENDERER_PRESET_256X64X2048_SERIAL_VERTEX_PROCESSING
- *     HGL_RITA_RENDERER_PRESET_256X64X4096_SERIAL_VERTEX_PROCESSING
- *     HGL_RITA_RENDERER_PRESET_128X64X64_PARALLEL_VERTEX_PROCESSING
- *     HGL_RITA_RENDERER_PRESET_194X64X128_PARALLEL_VERTEX_PROCESSING
- *     HGL_RITA_RENDERER_PRESET_256X64X256_PARALLEL_VERTEX_PROCESSING
- *     HGL_RITA_RENDERER_PRESET_256X64X2048_PARALLEL_VERTEX_PROCESSING
- *     HGL_RITA_RENDERER_PRESET_256X64X4096_PARALLEL_VERTEX_PROCESSING
+ *     HGL_RITA_PRESET_128X64X64_SERIAL_VERTEX_PROCESSING
+ *     HGL_RITA_PRESET_194X64X128_SERIAL_VERTEX_PROCESSING
+ *     HGL_RITA_PRESET_256X64X256_SERIAL_VERTEX_PROCESSING
+ *     HGL_RITA_PRESET_256X64X2048_SERIAL_VERTEX_PROCESSING
+ *     HGL_RITA_PRESET_256X64X4096_SERIAL_VERTEX_PROCESSING
+ *     HGL_RITA_PRESET_128X64X64_PARALLEL_VERTEX_PROCESSING
+ *     HGL_RITA_PRESET_194X64X128_PARALLEL_VERTEX_PROCESSING
+ *     HGL_RITA_PRESET_256X64X256_PARALLEL_VERTEX_PROCESSING
+ *     HGL_RITA_PRESET_256X64X2048_PARALLEL_VERTEX_PROCESSING
+ *     HGL_RITA_PRESET_256X64X4096_PARALLEL_VERTEX_PROCESSING
  *
- * You may also choose to run hgl_rita.h completely in single-threaded mode by defining:
+ * The vertex and fragment specifications may be changed from the DEFAULT by definining any of the 
+ * following, depending on your needs:
  *
- *     HGL_RITA_RENDERER_PRESET_SINGLE_THREAD_SINGLE_THREAD
+ *     HGL_RITA_SIMPLE
+ *     HGL_RITA_SIMPLER
+ *     HGL_RITA_SIMPLEST
+ * 
+ * The DEFAULT vertex and fragment specifications include most of the information required to implement
+ * more advanced lighting models, such as the normal, tangent, and position of a vertex/fragment. The 
+ * HGL_RITA_SIMPLE, HGL_RITA_SIMPLER, and HGL_RITA_SIMPLEST macros define progressively more slimmed down
+ * specifications:
+ *
+ *     HGL_RITA_SIMPLE   - Strips the tangent vector from the vertex spec. and the world space position
+ *                         and tangent vectors from the fragment spec. Still good enough for basic diffuse
+ *                         lightning.
+ *     HGL_RITA_SIMPLER  - In addition to HGL_RITA_SIMPLE also strips the normal vector from the vertex and
+ *                         fragment specs. Good enough for flat shaded textures.
+ *     HGL_RITA_SIMPLEST - In addition to HGL_RITA_SIMPLE and HGL_RITA_SIMPLER also strips the uv vector from
+ *                         the vertex and fragment specs. Good enough for flat shaded polygons and lines.
+ *
+ * You may choose to run hgl_rita.h in single-threaded mode by defining:
+ *
+ *     HGL_RITA_SINGLE_THREAD
  * 
  * In single-threaded mode, no additional worker threads will be started. All work required to produce
  * an image is done by the calling thread (i.e. the thread that calls `hgl_rita_draw()`).
- *
- * The vertex and fragment specifications may tailored to any specific needs be definining any of the 
- * following:
- *
- *     HGL_RITA_VERTEX_USE_2D
- *     HGL_RITA_VERTEX_USE_3D
- *     HGL_RITA_VERTEX_USE_UV
- *     HGL_RITA_VERTEX_USE_COLOR
- *     HGL_RITA_VERTEX_USE_NORMAL
- *     HGL_RITA_VERTEX_USE_TANGENT
- *     HGL_RITA_FRAGMENT_USE_UV
- *     HGL_RITA_FRAGMENT_USE_COLOR
- *     HGL_RITA_FRAGMENT_USE_WORLD_NORMAL
- *     HGL_RITA_FRAGMENT_USE_WORLD_TANGENT
- *     HGL_RITA_FRAGMENT_USE_WORLD_POS
- *
- * To keep it simpler for the used, a handful of vertex+fragment specification presets are provided which 
- * may be defined inplace of the above:
- *
- *     HGL_RITA_VERTEX_SPEC_PRESET_2D_POS
- *     HGL_RITA_VERTEX_SPEC_PRESET_2D_POS_UV
- *     HGL_RITA_VERTEX_SPEC_PRESET_2D_POS_COLOR
- *     HGL_RITA_VERTEX_SPEC_PRESET_2D_POS_UV_COLOR
- *     HGL_RITA_VERTEX_SPEC_PRESET_3D_POS
- *     HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV
- *     HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_COLOR
- *     HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV_COLOR
- *     HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV_COLOR_NORMAL
- *     HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV_COLOR_NORMAL_TANGENT
- *
- * If none of the HGL_RITA_VERTEX_SPEC_*, HGL_RITA_VERTEX_USE_*, or HGL_RITA_FRAGMENT_USE_*  macros are 
- * defined before including hgl_rita.h, HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV_COLOR_NORMAL_TANGENT will
- * be used by default.
- *
  *
  * USAGE:
  *
  * Import hgl_rita.h like this:
  *
- *     #define HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV     // optional
- *     #define HGL_RITA_RENDERER_PRESET_SINGLE_THREAD    // optional
  *     #define HGL_RITA_IMPLEMENTATION
  *     #include "hgl_rita.h"
- *     #define HGL_RITA_SHADERS_IMPLEMENTATION           // optional
- *     #include "hgl_rita_shaders.h"                     // optional
+ *     #include "hgl_rita_shaders.h" // optional
  *
  *
  * EXAMPLES:
@@ -216,74 +199,71 @@
 #  define HGL_RITA_MAX_N_TILES               1024
 #endif
 
-#ifdef HGL_RITA_RENDERER_PRESET_128X64X64_SERIAL_VERTEX_PROCESSING
+#ifdef HGL_RITA_PRESET_128X64X64_SERIAL_VERTEX_PROCESSING
 #  define HGL_RITA_TILE_SIZE_X                128
 #  define HGL_RITA_TILE_SIZE_Y                 64
 #  define HGL_RITA_TILE_OP_QUEUE_CAPACITY      64
 #endif
 
-#ifdef HGL_RITA_RENDERER_PRESET_192X64X128_SERIAL_VERTEX_PROCESSING
+#ifdef HGL_RITA_PRESET_192X64X128_SERIAL_VERTEX_PROCESSING
 #  define HGL_RITA_TILE_SIZE_X                192
 #  define HGL_RITA_TILE_SIZE_Y                 64
 #  define HGL_RITA_TILE_OP_QUEUE_CAPACITY     128
 #endif
 
-#ifdef HGL_RITA_RENDERER_PRESET_256X64X256_SERIAL_VERTEX_PROCESSING
+#ifdef HGL_RITA_PRESET_256X64X256_SERIAL_VERTEX_PROCESSING
 #  define HGL_RITA_TILE_SIZE_X                256
 #  define HGL_RITA_TILE_SIZE_Y                 64
 #  define HGL_RITA_TILE_OP_QUEUE_CAPACITY     256
 #endif
 
-#ifdef HGL_RITA_RENDERER_PRESET_256X64X2048_SERIAL_VERTEX_PROCESSING
+#ifdef HGL_RITA_PRESET_256X64X2048_SERIAL_VERTEX_PROCESSING
 #  define HGL_RITA_TILE_SIZE_X                256
 #  define HGL_RITA_TILE_SIZE_Y                 64
 #  define HGL_RITA_TILE_OP_QUEUE_CAPACITY    2048
 #endif
 
-#ifdef HGL_RITA_RENDERER_PRESET_256X64X4096_SERIAL_VERTEX_PROCESSING
+#ifdef HGL_RITA_PRESET_256X64X4096_SERIAL_VERTEX_PROCESSING
 #  define HGL_RITA_TILE_SIZE_X                256
 #  define HGL_RITA_TILE_SIZE_Y                 64
 #  define HGL_RITA_TILE_OP_QUEUE_CAPACITY    4096
 #endif
 
-#ifdef HGL_RITA_RENDERER_PRESET_128X64X64_PARALLEL_VERTEX_PROCESSING
+#ifdef HGL_RITA_PRESET_128X64X64_PARALLEL_VERTEX_PROCESSING
 #  define HGL_RITA_PARALLEL_VERTEX_PROCESSING
 #  define HGL_RITA_TILE_SIZE_X                128
 #  define HGL_RITA_TILE_SIZE_Y                 64
 #  define HGL_RITA_TILE_OP_QUEUE_CAPACITY      64
 #endif
 
-#ifdef HGL_RITA_RENDERER_PRESET_192X64X128_PARALLEL_VERTEX_PROCESSING
+#ifdef HGL_RITA_PRESET_192X64X128_PARALLEL_VERTEX_PROCESSING
 #  define HGL_RITA_PARALLEL_VERTEX_PROCESSING
 #  define HGL_RITA_TILE_SIZE_X                192
 #  define HGL_RITA_TILE_SIZE_Y                 64
 #  define HGL_RITA_TILE_OP_QUEUE_CAPACITY     128
 #endif
 
-#ifdef HGL_RITA_RENDERER_PRESET_256X64X256_PARALLEL_VERTEX_PROCESSING
+#ifdef HGL_RITA_PRESET_256X64X256_PARALLEL_VERTEX_PROCESSING
 #  define HGL_RITA_PARALLEL_VERTEX_PROCESSING
 #  define HGL_RITA_TILE_SIZE_X                256
 #  define HGL_RITA_TILE_SIZE_Y                 64
 #  define HGL_RITA_TILE_OP_QUEUE_CAPACITY     256
 #endif
 
-#ifdef HGL_RITA_RENDERER_PRESET_256X64X2048_PARALLEL_VERTEX_PROCESSING
+#ifdef HGL_RITA_PRESET_256X64X2048_PARALLEL_VERTEX_PROCESSING
 #  define HGL_RITA_PARALLEL_VERTEX_PROCESSING
 #  define HGL_RITA_TILE_SIZE_X                256
 #  define HGL_RITA_TILE_SIZE_Y                 64
 #  define HGL_RITA_TILE_OP_QUEUE_CAPACITY    2048
 #endif
 
-#ifdef HGL_RITA_RENDERER_PRESET_256X64X4096_PARALLEL_VERTEX_PROCESSING
+#ifdef HGL_RITA_PRESET_256X64X4096_PARALLEL_VERTEX_PROCESSING
 #  define HGL_RITA_PARALLEL_VERTEX_PROCESSING
 #  define HGL_RITA_TILE_SIZE_X                256
 #  define HGL_RITA_TILE_SIZE_Y                 64
 #  define HGL_RITA_TILE_OP_QUEUE_CAPACITY    4096
 #endif
 
-#ifdef HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
-#  undef HGL_RITA_PARALLEL_VERTEX_PROCESSING
-#endif
 
 #ifndef HGL_RITA_TILE_SIZE_X
 #  define HGL_RITA_TILE_SIZE_X                256
@@ -319,99 +299,19 @@
 #  define HGL_RITA_CACHE_LINE_SIZE 64
 #endif
 
-#if !defined(HGL_RITA_VERTEX_SPEC_PRESET_2D_POS)                          && \
-    !defined(HGL_RITA_VERTEX_SPEC_PRESET_2D_POS_UV)                       && \
-    !defined(HGL_RITA_VERTEX_SPEC_PRESET_2D_POS_COLOR)                    && \
-    !defined(HGL_RITA_VERTEX_SPEC_PRESET_2D_POS_UV_COLOR)                 && \
-    !defined(HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV)                       && \
-    !defined(HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV_COLOR)                 && \
-    !defined(HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV_COLOR_NORMAL)          && \
-    !defined(HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV_COLOR_NORMAL_TANGENT)  && \
-    !defined(HGL_RITA_VERTEX_USE_2D)                                      && \
-    !defined(HGL_RITA_VERTEX_USE_3D)                                      && \
-    !defined(HGL_RITA_VERTEX_USE_UV)                                      && \
-    !defined(HGL_RITA_VERTEX_USE_COLOR)                                   && \
-    !defined(HGL_RITA_VERTEX_USE_NORMAL)                                  && \
-    !defined(HGL_RITA_VERTEX_USE_TANGENT)                                 && \
-    !defined(HGL_RITA_FRAGMENT_USE_UV)                                    && \
-    !defined(HGL_RITA_FRAGMENT_USE_COLOR)                                 && \
-    !defined(HGL_RITA_FRAGMENT_USE_WORLD_NORMAL)                          && \
-    !defined(HGL_RITA_FRAGMENT_USE_WORLD_TANGENT)                         && \
-    !defined(HGL_RITA_FRAGMENT_USE_WORLD_POS)
-#  define HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV_COLOR_NORMAL_TANGENT
+#ifdef HGL_RITA_SINGLE_THREAD
+#  undef HGL_RITA_PARALLEL_VERTEX_PROCESSING
 #endif
 
-#ifdef HGL_RITA_VERTEX_SPEC_PRESET_2D_POS
-#  define HGL_RITA_VERTEX_USE_2D
+#ifdef HGL_RITA_SIMPLEST
+#  define HGL_RITA_SIMPLER
+#  define HGL_RITA_SIMPLE
 #endif
 
-#ifdef HGL_RITA_VERTEX_SPEC_PRESET_2D_POS_UV
-#  define HGL_RITA_VERTEX_USE_2D
-#  define HGL_RITA_VERTEX_USE_UV
-#  define HGL_RITA_FRAGMENT_USE_UV
+#ifdef HGL_RITA_SIMPLER
+#  define HGL_RITA_SIMPLE
 #endif
 
-#ifdef HGL_RITA_VERTEX_SPEC_PRESET_2D_POS_COLOR
-#  define HGL_RITA_VERTEX_USE_2D
-#  define HGL_RITA_VERTEX_USE_COLOR
-#  define HGL_RITA_FRAGMENT_USE_COLOR
-#endif
-
-#ifdef HGL_RITA_VERTEX_SPEC_PRESET_2D_POS_UV_COLOR
-#  define HGL_RITA_VERTEX_USE_2D
-#  define HGL_RITA_VERTEX_USE_UV
-#  define HGL_RITA_VERTEX_USE_COLOR
-#  define HGL_RITA_FRAGMENT_USE_UV
-#  define HGL_RITA_FRAGMENT_USE_COLOR
-#endif
-
-#ifdef HGL_RITA_VERTEX_SPEC_PRESET_3D_POS
-#  define HGL_RITA_VERTEX_USE_3D
-#endif
-
-#ifdef HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV
-#  define HGL_RITA_VERTEX_USE_3D
-#  define HGL_RITA_VERTEX_USE_UV
-#  define HGL_RITA_FRAGMENT_USE_UV
-#endif
-
-#ifdef HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV_COLOR
-#  define HGL_RITA_VERTEX_USE_3D
-#  define HGL_RITA_VERTEX_USE_UV
-#  define HGL_RITA_VERTEX_USE_COLOR
-#  define HGL_RITA_FRAGMENT_USE_UV
-#  define HGL_RITA_FRAGMENT_USE_COLOR
-#endif
-
-#ifdef HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV_COLOR_NORMAL
-#  define HGL_RITA_VERTEX_USE_3D
-#  define HGL_RITA_VERTEX_USE_UV
-#  define HGL_RITA_VERTEX_USE_COLOR
-#  define HGL_RITA_VERTEX_USE_NORMAL
-#  define HGL_RITA_FRAGMENT_USE_UV
-#  define HGL_RITA_FRAGMENT_USE_COLOR
-#  define HGL_RITA_FRAGMENT_USE_WORLD_POS
-#  define HGL_RITA_FRAGMENT_USE_WORLD_NORMAL
-#endif
-
-#ifdef HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV_COLOR_NORMAL_TANGENT
-#  define HGL_RITA_VERTEX_USE_3D
-#  define HGL_RITA_VERTEX_USE_UV
-#  define HGL_RITA_VERTEX_USE_COLOR
-#  define HGL_RITA_VERTEX_USE_NORMAL
-#  define HGL_RITA_VERTEX_USE_TANGENT
-#  define HGL_RITA_FRAGMENT_USE_UV
-#  define HGL_RITA_FRAGMENT_USE_COLOR
-#  define HGL_RITA_FRAGMENT_USE_WORLD_NORMAL
-#  define HGL_RITA_FRAGMENT_USE_WORLD_TANGENT
-#  define HGL_RITA_FRAGMENT_USE_WORLD_POS
-#endif
-
-#if defined(HGL_RITA_VERTEX_USE_2D)
-#  undef HGL_RITA_VERTEX_USE_3D
-#elif defined(HGL_RITA_VERTEX_USE_3D)
-#  undef HGL_RITA_VERTEX_USE_2D
-#endif
 
 /*---------------------------------------------------------------------------------------*/
 /*--- Dynamic buffer macro implementation -----------------------------------------------*/
@@ -571,7 +471,7 @@ typedef enum
     HGL_RITA_SCREENCOORD,
     HGL_RITA_VIEW_DIR_RECTILINEAR,
     HGL_RITA_VIEW_DIR_CUBEMAP,
-#if defined(HGL_RITA_FRAGMENT_USE_UV) && defined(HGL_RITA_FRAGMENT_USE_COLOR)
+#ifndef HGL_RITA_SIMPLEST
     HGL_RITA_SHADER,
 #endif
 } HglRitaBlitFBSampler;
@@ -586,21 +486,17 @@ typedef struct
 
 typedef struct
 {
-#ifdef HGL_RITA_FRAGMENT_USE_WORLD_POS
+#ifndef HGL_RITA_SIMPLE
     Vec3 world_pos;
-#endif
-#ifdef HGL_RITA_FRAGMENT_USE_WORLD_TANGENT
     Vec3 world_tangent;
 #endif
-#ifdef HGL_RITA_FRAGMENT_USE_WORLD_NORMAL
+#ifndef HGL_RITA_SIMPLER
     Vec3 world_normal;
 #endif
-#ifdef HGL_RITA_FRAGMENT_USE_UV
+#ifndef HGL_RITA_SIMPLEST
     Vec2 uv;
 #endif
-#ifdef HGL_RITA_FRAGMENT_USE_COLOR
     HglRitaColor color;
-#endif
     int x;
     int y;
     float inv_z;
@@ -609,22 +505,17 @@ typedef struct
 
 typedef struct HglRitaVertex
 {
-#ifdef HGL_RITA_VERTEX_USE_3D
     Vec4 pos;
-#endif
-#ifdef HGL_RITA_VERTEX_USE_NORMAL
+#ifndef HGL_RITA_SIMPLER
     Vec3 normal;
 #endif
+#ifndef HGL_RITA_SIMPLE
     Vec3 tangent;
-#ifdef HGL_RITA_VERTEX_USE_2D
-    Vec2 pos;
 #endif
-#ifdef HGL_RITA_VERTEX_USE_UV
+#ifndef HGL_RITA_SIMPLEST
     Vec2 uv;
 #endif
-#ifdef HGL_RITA_VERTEX_USE_COLOR
     HglRitaColor color;
-#endif
 } HglRitaVertex;
 
 typedef HglRitaDynamicBuffer(HglRitaVertex) HglRitaVertexBuffer;
@@ -772,7 +663,6 @@ typedef struct HglRitaContext
 
     struct {
         HglRitaWindingOrder frontface_winding;
-        HglRitaColor default_color;
         HglRitaColor clear_color;
         HglRitaTextureFilter texture_filter;
         HglRitaTextureWrapping texture_wrapping;
@@ -834,7 +724,6 @@ static inline void hgl_rita_bind_frag_shader(HglRitaFragShaderFunc frag);       
 static inline void hgl_rita_enable(uint32_t opts);                                          /* Enables the specified options in the current context (options may be bitwise OR:ed together. See HglRitaOpt.). */
 static inline void hgl_rita_disable(uint32_t opts);                                         /* Disables the specified options in the current context (options may be bitwise OR:ed together. See HglRitaOpt.). */
 static inline void hgl_rita_use_frontface_winding_order(HglRitaWindingOrder winding_order); /* Use the specified winding order to determine which triangle faces are front-facing in the current context. */
-static inline void hgl_rita_use_default_color(HglRitaColor color);                          /* Use the specified color when HGL_RITA_FRAGMENT_USE_COLOR is not defined. */
 static inline void hgl_rita_use_clear_color(HglRitaColor color);                            /* Use the specified color when clearing the framebuffer color attachment in the current context. */
 static inline void hgl_rita_use_texture_filter(HglRitaTextureFilter filter);                /* Use the specified texture filtering algorithm for texture sampling functions in the current context. */
 static inline void hgl_rita_use_texture_wrapping(HglRitaTextureWrapping wrap_mode);         /* Use the specified texture wrapping for texture sampling functions in the current context. */
@@ -995,7 +884,6 @@ static inline void hgl_rita_init()
 
     /* setup default opts */
     hgl_rita_ctx__.opts.frontface_winding                       = HGL_RITA_CCW;
-    hgl_rita_ctx__.opts.default_color                           = HGL_RITA_MORTEL_WHITE;
     hgl_rita_ctx__.opts.clear_color                             = HGL_RITA_MORTEL_BLACK;
     hgl_rita_ctx__.opts.texture_filter                          = HGL_RITA_NEAREST;
     hgl_rita_ctx__.opts.texture_wrapping                        = HGL_RITA_NO_WRAPPING;
@@ -1172,11 +1060,6 @@ static inline void hgl_rita_disable(uint32_t opts)
 static inline void hgl_rita_use_frontface_winding_order(HglRitaWindingOrder winding_order)
 {
     hgl_rita_ctx__.opts.frontface_winding = winding_order;
-}
-
-static inline void hgl_rita_use_default_color(HglRitaColor color)
-{
-    hgl_rita_ctx__.opts.default_color = color;
 }
 
 static inline void hgl_rita_use_clear_color(HglRitaColor color)
@@ -1908,31 +1791,26 @@ static inline bool hgl_rita_vertex_eq(HglRitaVertex v0, HglRitaVertex v1)
 {
     return (v0.pos.x == v1.pos.x) &&
            (v0.pos.y == v1.pos.y) &&
-#ifdef HGL_RITA_VERTEX_USE_3D
            (v0.pos.z == v1.pos.z) &&
            (v0.pos.w == v1.pos.w) &&
-#endif
-#ifdef HGL_RITA_VERTEX_USE_NORMAL
+#ifndef HGL_RITA_SIMPLER
            (v0.normal.x == v1.normal.x) &&
            (v0.normal.y == v1.normal.y) &&
            (v0.normal.z == v1.normal.z) &&
 #endif
-#ifdef HGL_RITA_VERTEX_USE_TANGENT
+#ifndef HGL_RITA_SIMPLE
            (v0.tangent.x == v1.tangent.x) &&
            (v0.tangent.y == v1.tangent.y) &&
            (v0.tangent.z == v1.tangent.z) &&
 #endif
-#ifdef HGL_RITA_VERTEX_USE_UV
+#ifndef HGL_RITA_SIMPLEST
            (v0.uv.x == v1.uv.x) &&
            (v0.uv.y == v1.uv.y) &&
 #endif
-#ifdef HGL_RITA_VERTEX_USE_COLOR
            (v0.color.r == v1.color.r) &&
            (v0.color.g == v1.color.g) &&
            (v0.color.b == v1.color.b) &&
-           (v0.color.a == v1.color.a) &&
-#endif
-           true;
+           (v0.color.a == v1.color.a);
 }
 
 
@@ -2856,7 +2734,7 @@ static inline void hgl_rita_process_op_internal_(HglRitaOp op, HglRitaAABB bound
                             src_color = hgl_rita_sample_cubemap(src, dir);
                         } break;
 
-#if defined(HGL_RITA_FRAGMENT_USE_UV) && defined(HGL_RITA_FRAGMENT_USE_COLOR)
+#ifndef HGL_RITA_SIMPLEST
                         case HGL_RITA_SHADER: {
                             HglRitaFragment frag;
                             frag.x = screen_x;
@@ -3004,57 +2882,34 @@ static inline HglRitaFragment hgl_rita_process_vertex_internal_(const HglRitaVer
     Vec4 v_ss;
 
     /* get local space vertex pos and extend to 4D */
-#ifdef HGL_RITA_VERTEX_USE_2D
-    v_ls.xy = in->pos;
-    v_ls.z = 0.0f;
-    v_ls.w = 1.0f;
-#endif
-#ifdef HGL_RITA_VERTEX_USE_3D
     v_ls = in->pos;
     v_ls.w = 1.0f;
-#endif
-
 
     /* vertex shader */
     if (hgl_rita_ctx__.shaders.vert == NULL) {
         Mat4 m_mvp     = hgl_rita_ctx__.tform.mvp;
-#if defined(HGL_RITA_VERTEX_USE_NORMAL) || defined(HGL_RITA_VERTEX_USE_TANGENT)
+#ifndef HGL_RITA_SIMPLER
         Mat3 m_normals = hgl_rita_ctx__.tform.normals;
 #endif
 
-#ifdef HGL_RITA_VERTEX_USE_2D
-        vert_out.pos     = mat4_mul_vec4(m_mvp, v_ls).xy;
-#endif
-#ifdef HGL_RITA_VERTEX_USE_3D
         vert_out.pos     = mat4_mul_vec4(m_mvp, v_ls);
-#endif
-#ifdef HGL_RITA_VERTEX_USE_NORMAL
+#ifndef HGL_RITA_SIMPLER
         vert_out.normal  = mat3_mul_vec3(m_normals, in->normal);
 #endif
-#ifdef HGL_RITA_VERTEX_USE_TANGENT
+#ifndef HGL_RITA_SIMPLE
         vert_out.tangent = mat3_mul_vec3(m_normals, in->tangent);
 #endif
-#ifdef HGL_RITA_VERTEX_USE_UV
+#ifndef HGL_RITA_SIMPLEST
         vert_out.uv      = in->uv;
 #endif
-#ifdef HGL_RITA_VERTEX_USE_COLOR
         vert_out.color   = in->color;
-#endif
     } else {
         vert_out = hgl_rita_ctx__.shaders.vert(&hgl_rita_ctx__, in);
     }
 
     /* clip space -> NDC space */
-#ifdef HGL_RITA_VERTEX_USE_2D
-    v_cs.xy = vert_out.pos;
-    v_cs.z = 0.0f;
-    v_cs.w = 1.0f;
-    v_ndc = v_cs; // equivalent of perspective divide with w == 1.0f
-#endif
-#ifdef HGL_RITA_VERTEX_USE_3D
     v_cs = vert_out.pos;
     v_ndc = vec4_perspective_divide(v_cs);
-#endif
 
     /* discard clipping vertices */
     frag_out.clipping = false;
@@ -3070,21 +2925,17 @@ static inline HglRitaFragment hgl_rita_process_vertex_internal_(const HglRitaVer
     v_ss = mat4_mul_vec4(hgl_rita_ctx__.tform.viewport, v_ndc);
 
     /* populate fragment */
-#ifdef HGL_RITA_FRAGMENT_USE_WORLD_POS
+#ifndef HGL_RITA_SIMPLE
     frag_out.world_pos     = mat4_mul_vec4(hgl_rita_ctx__.tform.model, v_ls).xyz; // TODO v_ls here is a 'lil sus...
-#endif
-#ifdef HGL_RITA_FRAGMENT_USE_WORLD_TANGENT
     frag_out.world_tangent = vert_out.tangent;
 #endif
-#ifdef HGL_RITA_FRAGMENT_USE_WORLD_NORMAL
+#ifndef HGL_RITA_SIMPLER
     frag_out.world_normal  = vert_out.normal;
 #endif
-#ifdef HGL_RITA_FRAGMENT_USE_UV
+#ifndef HGL_RITA_SIMPLEST
     frag_out.uv            = vert_out.uv;
 #endif
-#ifdef HGL_RITA_FRAGMENT_USE_COLOR
     frag_out.color         = vert_out.color;
-#endif
     frag_out.x             = v_ss.x;
     frag_out.y             = v_ss.y;
     frag_out.inv_z         = 1.0f / v_ndc.z; // <-- N.B.
@@ -3120,23 +2971,15 @@ static inline void hgl_rita_process_fragment_internal_(HglRitaFragment *in)
     HglRitaColor color;
     if (hgl_rita_ctx__.shaders.frag == NULL) {
         /* do default shading */
-#if defined(HGL_RITA_FRAGMENT_USE_UV) && defined(HGL_RITA_FRAGMENT_USE_COLOR)
         if (hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_DIFFUSE] != NULL) {
+#ifndef HGL_RITA_SIMPLEST
             color = hgl_rita_color_mul(in->color, hgl_rita_sample_unit_uv(HGL_RITA_TEX_DIFFUSE, in->uv));
+#else
+            color = in->color;
+#endif
         } else {
             color = in->color;
         }
-#elif defined(HGL_RITA_FRAGMENT_USE_UV) && !defined(HGL_RITA_FRAGMENT_USE_COLOR)
-        if (hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_DIFFUSE] != NULL) {
-            color = hgl_rita_sample_unit_uv(HGL_RITA_TEX_DIFFUSE, in->uv);
-        } else {
-            color = HGL_RITA_MORTEL_MAGENTA;
-        }
-#elif defined(HGL_RITA_FRAGMENT_USE_COLOR) && !defined(HGL_RITA_FRAGMENT_USE_UV)
-        color = in->color;
-#else
-        color = hgl_rita_ctx__.opts.default_color;
-#endif
     } else {
         color = hgl_rita_ctx__.shaders.frag(&hgl_rita_ctx__, in);
     }
@@ -3159,24 +3002,20 @@ static inline void hgl_rita_process_fragment_internal_(HglRitaFragment *in)
 static inline HglRitaFragment hgl_rita_frag_lerp_internal_(int x, int y, HglRitaFragment f0, HglRitaFragment f1, float t)
 {
     return (HglRitaFragment) {
-#ifdef HGL_RITA_FRAGMENT_USE_WORLD_POS
+#ifndef HGL_RITA_SIMPLE
         .world_pos = vec3_lerp(f0.world_pos, f1.world_pos, t),
-#endif
-#ifdef HGL_RITA_FRAGMENT_USE_WORLD_TANGENT
         .world_tangent = vec3_lerp(f0.world_tangent, f1.world_tangent, t),
 #endif
-#ifdef HGL_RITA_FRAGMENT_USE_WORLD_NORMAL
+#ifndef HGL_RITA_SIMPLER
         .world_normal = vec3_lerp(f0.world_normal, f1.world_normal, t),
 #endif
-#ifdef HGL_RITA_FRAGMENT_USE_UV
+#ifndef HGL_RITA_SIMPLEST
         .uv = vec2_lerp(f0.uv, f1.uv, t),
 #endif
         .x = x,
         .y = y,
         .inv_z = lerp(f0.inv_z, f1.inv_z, t),
-#ifdef HGL_RITA_FRAGMENT_USE_COLOR
         .color = hgl_rita_color_lerp(f0.color, f1.color, t),
-#endif
         .clipping = false, // TODO remove
     };
 }
@@ -3190,31 +3029,27 @@ static inline HglRitaFragment hgl_rita_frag_berp_internal_(HglRitaFragment f0,
     float w = 1.0f - u - v;
     HglRitaFragment f;
 
-#ifdef HGL_RITA_FRAGMENT_USE_WORLD_POS
+#ifndef HGL_RITA_SIMPLE
     f.world_pos.x = u*f0.world_pos.x + v*f1.world_pos.x + w*f2.world_pos.x;
     f.world_pos.y = u*f0.world_pos.y + v*f1.world_pos.y + w*f2.world_pos.y;
     f.world_pos.z = u*f0.world_pos.z + v*f1.world_pos.z + w*f2.world_pos.z;
-#endif
-#ifdef HGL_RITA_FRAGMENT_USE_WORLD_TANGENT
     f.world_tangent.x = u*f0.world_tangent.x + v*f1.world_tangent.x + w*f2.world_tangent.x;
     f.world_tangent.y = u*f0.world_tangent.y + v*f1.world_tangent.y + w*f2.world_tangent.y;
     f.world_tangent.z = u*f0.world_tangent.z + v*f1.world_tangent.z + w*f2.world_tangent.z;
 #endif
-#ifdef HGL_RITA_FRAGMENT_USE_WORLD_NORMAL
+#ifndef HGL_RITA_SIMPLER
     f.world_normal.x = u*f0.world_normal.x + v*f1.world_normal.x + w*f2.world_normal.x;
     f.world_normal.y = u*f0.world_normal.y + v*f1.world_normal.y + w*f2.world_normal.y;
     f.world_normal.z = u*f0.world_normal.z + v*f1.world_normal.z + w*f2.world_normal.z;
 #endif
-#ifdef HGL_RITA_FRAGMENT_USE_UV
+#ifndef HGL_RITA_SIMPLEST
     f.uv.x = u*f0.uv.x + v*f1.uv.x + w*f2.uv.x;
     f.uv.y = u*f0.uv.y + v*f1.uv.y + w*f2.uv.y;
 #endif
-#ifdef HGL_RITA_FRAGMENT_USE_COLOR
     f.color.r = u*f0.color.r + v*f1.color.r + w*f2.color.r;
     f.color.g = u*f0.color.g + v*f1.color.g + w*f2.color.g;
     f.color.b = u*f0.color.b + v*f1.color.b + w*f2.color.b;
     f.color.a = u*f0.color.a + v*f1.color.a + w*f2.color.a;
-#endif
     f.x = x;
     f.y = y;
     f.inv_z = u*f0.inv_z + v*f1.inv_z + w*f2.inv_z;

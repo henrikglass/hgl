@@ -1,5 +1,6 @@
 #define _DEFAULT_SOURCE
 
+#define HGL_RITA_VERTEX_SPEC_PRESET_2D_POS_UV_COLOR
 #define HGL_RITA_IMPLEMENTATION
 #include "hgl_rita.h"
 

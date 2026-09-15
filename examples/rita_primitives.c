@@ -1,11 +1,12 @@
 #define _DEFAULT_SOURCE
 
 //#define HGL_RITA_PARALLEL_VERTEX_PROCESSING
-#define HGL_RITA_SINGLE_THREAD
-#define HGL_RITA_SIMPLEST
+#define HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
+#define HGL_RITA_VERTEX_SPEC_PRESET_2D_POS_COLOR
 #define HGL_RITA_IMPLEMENTATION
 //#include "hgl_rita.h"
 #include "hgl_rita.h"
+#include "hgl_rita_shaders.h"
 
 #include "raylib.h"
 #include "stb_image.h"
