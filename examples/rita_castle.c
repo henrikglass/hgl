@@ -45,6 +45,7 @@ int main()
                 RITA_BACKFACE_CULLING |
                 RITA_DEPTH_TESTING |
                 RITA_ORDER_DEPENDENT_ALPHA_BLEND);
+    rita_disable(RITA_Z_CLIPPING | RITA_ORDER_DEPENDENT_ALPHA_BLEND);
     MyModel model = load_model_from_obj("assets/castle.obj");
     model.diffuse = load_texture("assets/castle4k.png");
     model.winding_order = RITA_CCW;
@@ -56,6 +57,7 @@ int main()
     rita_use_model_matrix(model.tform);
     rita_use_frontface_winding_order(model.winding_order);
     rita_bind_texture(RITA_TEX_DIFFUSE, &model.diffuse);
+    rita_use_texture_filter(RITA_NEAREST);
     
     RitaTexture skybox;
     skybox = load_texture("assets/skybox_cubemap.png");
@@ -67,7 +69,6 @@ int main()
         /* draw */
         rita_clear(RITA_DEPTH);
         rita_draw(RITA_TRIANGLES);
-        rita_use_texture_filter(RITA_NEAREST);
         rita_blit(0, 0, WIDTH, HEIGHT, &skybox, 
                   RITA_REPLACE, 
                   RITA_DEPTH_INF, 

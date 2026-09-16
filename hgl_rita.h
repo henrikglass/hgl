@@ -497,6 +497,7 @@ typedef enum
     HGL_RITA_Z_CLIPPING                  = (1 << 3),
     HGL_RITA_DEPTH_BUFFER_WRITING        = (1 << 4),
     HGL_RITA_WIRE_FRAMES                 = (1 << 5),
+    HGL_RITA_SHOW_TILE_OUTLINES          = (1 << 6),
 } HglRitaOpt;
 
 typedef enum
@@ -716,6 +717,7 @@ typedef enum
     HGL_RITA_OP_RASTERIZE_POINT,
     HGL_RITA_OP_PROCESS_VBUF_SEGMENT,
     HGL_RITA_OP_BLIT,
+    HGL_RITA_OP_DRAW_TILE_BORDER,
     HGL_RITA_OP_TERMINATE,
 } HglRitaOpKind;
 
@@ -790,6 +792,7 @@ typedef struct HglRitaContext
         bool z_clipping_enabled;
         bool depth_buffer_writing_enabled;
         bool draw_wire_frames;
+        bool show_tile_outlines;
     } opts;
 
     struct {
@@ -1013,6 +1016,7 @@ static inline void hgl_rita_init()
     hgl_rita_ctx__.opts.z_clipping_enabled                      = false;
     hgl_rita_ctx__.opts.depth_buffer_writing_enabled            = true;
     hgl_rita_ctx__.opts.draw_wire_frames                        = false;
+    hgl_rita_ctx__.opts.show_tile_outlines                      = false;
 
     /* setup default transforms */
     hgl_rita_ctx__.tform.model           = mat4_make_identity();
@@ -1153,6 +1157,9 @@ static inline void hgl_rita_enable(uint32_t opts)
     if (opts & HGL_RITA_WIRE_FRAMES) {
         hgl_rita_ctx__.opts.draw_wire_frames = true;
     }
+    if (opts & HGL_RITA_SHOW_TILE_OUTLINES) {
+        hgl_rita_ctx__.opts.show_tile_outlines = true;
+    }
 }
 
 static inline void hgl_rita_disable(uint32_t opts)
@@ -1174,6 +1181,9 @@ static inline void hgl_rita_disable(uint32_t opts)
     }
     if (opts & HGL_RITA_WIRE_FRAMES) {
         hgl_rita_ctx__.opts.draw_wire_frames = false;
+    }
+    if (opts & HGL_RITA_SHOW_TILE_OUTLINES) {
+        hgl_rita_ctx__.opts.show_tile_outlines = false;
     }
 }
 
@@ -1301,6 +1311,13 @@ static inline void hgl_rita_finish(void)
 {
 #ifdef HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
 #else
+    if (hgl_rita_ctx__.opts.show_tile_outlines) {
+        HglRitaOp op = { .kind = HGL_RITA_OP_DRAW_TILE_BORDER};
+        for (int i = 0; i < hgl_rita_ctx__.renderer.n_tiles; i++) {
+            hgl_rita_op_queue_push(&hgl_rita_ctx__.renderer.tile[i].op_queue, op);
+        }
+    }
+
     for (int i = 0; i < hgl_rita_ctx__.renderer.n_tiles; i++) {
         hgl_rita_op_queue_flush(&hgl_rita_ctx__.renderer.tile[i].op_queue);
     }
@@ -2889,6 +2906,19 @@ static inline void hgl_rita_process_op_internal_(HglRitaOp op, HglRitaAABB bound
             }
         } break;
 
+        case HGL_RITA_OP_DRAW_TILE_BORDER: {
+            int stride = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER]->stride;
+            HglRitaColor *fb_color = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER]->data.rgba8;
+            for (int x = bounds.min_x; x < bounds.max_x; x++) {
+                fb_color[bounds.min_y * stride + x]       = HGL_RITA_MORTEL_RED;
+                fb_color[(bounds.max_y - 1) * stride + x] = HGL_RITA_MORTEL_BLUE;
+            } 
+            for (int y = bounds.min_y; y < bounds.max_y; y++) {
+                fb_color[y * stride + bounds.min_x]       = HGL_RITA_MORTEL_MAGENTA;
+                fb_color[y * stride + (bounds.max_x - 1)] = HGL_RITA_MORTEL_GREEN;
+            } 
+        } break;
+
         case HGL_RITA_OP_TERMINATE: {
             /* special case: not handled here */
         } break;
@@ -3421,6 +3451,7 @@ static inline int hgl_rita_next_vbuf_index_internal_(void)
 #  define RITA_Z_CLIPPING                    HGL_RITA_Z_CLIPPING
 #  define RITA_DEPTH_BUFFER_WRITING          HGL_RITA_DEPTH_BUFFER_WRITING
 #  define RITA_WIRE_FRAMES                   HGL_RITA_WIRE_FRAMES
+#  define RITA_SHOW_TILE_OUTLINES            HGL_RITA_SHOW_TILE_OUTLINES 
 
 #  define RITA_TEX_DEFAULT                   HGL_RITA_TEX_DEFAULT
 #  define RITA_TEX_DIFFUSE                   HGL_RITA_TEX_DIFFUSE

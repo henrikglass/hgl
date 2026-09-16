@@ -114,6 +114,9 @@ int main()
                 RITA_DEPTH_BUFFER_WRITING |
                 RITA_Z_CLIPPING);
 
+    /* debug */
+    rita_enable(RITA_SHOW_TILE_OUTLINES);
+
     /* Load a model */
     MyModel model = load_model_from_obj("assets/plane64x64.obj");
 

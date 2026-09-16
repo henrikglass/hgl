@@ -1,7 +1,7 @@
 #define _DEFAULT_SOURCE
 
 //#define HGL_RITA_PARALLEL_VERTEX_PROCESSING
-#define HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
+//#define HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
 #define HGL_RITA_VERTEX_SPEC_PRESET_2D_POS_COLOR
 #define HGL_RITA_IMPLEMENTATION
 //#include "hgl_rita.h"
@@ -29,7 +29,6 @@ int main()
     hgl_rita_disable(HGL_RITA_DEPTH_TESTING);
     hgl_rita_enable(HGL_RITA_BACKFACE_CULLING);
     hgl_rita_use_vertex_buffer_mode(HGL_RITA_ARRAY);
-
 
     /* vertex buffer: Triangles */
     HglRitaVertexBuffer vbuf_tris = {0};
