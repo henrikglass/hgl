@@ -41,11 +41,8 @@ int main()
     Texture2D color_tex = LoadTextureFromImage(color_image);
 
     rita_use_perspective_proj(3.14f/4, (float)(WIDTH)/(float)(HEIGHT), 2.0f, 1000.0f);
-    rita_enable(RITA_Z_CLIPPING |
-                RITA_BACKFACE_CULLING |
-                RITA_DEPTH_TESTING |
-                RITA_ORDER_DEPENDENT_ALPHA_BLEND);
-    rita_disable(RITA_Z_CLIPPING | RITA_ORDER_DEPENDENT_ALPHA_BLEND);
+    rita_enable(RITA_BACKFACE_CULLING |
+                RITA_DEPTH_TESTING);
     MyModel model = load_model_from_obj("assets/castle.obj");
     model.diffuse = load_texture("assets/castle4k.png");
     model.winding_order = RITA_CCW;
