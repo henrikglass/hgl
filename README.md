@@ -24,6 +24,8 @@ A collection of small (except maybe hgl\_rita.h) easy-to-use header only librari
 | hgl\_worker\_pool.h    | Multithreading/Utility        | Thread/Worker pool.                                                                                      |
 | hgl\_barrier.h         | Multithreading/Utility        | Barrier synchronization primitive.                                                                       |
 | hgl\_waitgroup.h       | Multithreading/Utility        | Go-style waitgroup synchronization primitive.                                                            |
+| hgl\_io.h              | Utility                       | Basic functions for reading/writing files and images.                                                    |
+| hgl\_fsm.h             | Utility                       | Quick and easy finite state machine.                                                                     |
 | hgl\_hotload.h         | Utility                       | Quick and easy hotloading.                                                                               |
 | hgl\_profile.h         | Utility                       | Quick and dirty profiling.                                                                               |
 | hgl\_process.h         | Utility                       | Utility for spawning, running, and chaining together subprocesses. Basically execvp minus the headache.  |
@@ -39,6 +41,7 @@ A collection of small (except maybe hgl\_rita.h) easy-to-use header only librari
 | hgl\_base64.h          | Algorithm                     | Base64 encoding and decoding.                                                                            |
 | hgl\_rle.h             | Algorithm                     | Run-length encoding and decoding. Supports multiple data and run-length block sizes.                     |
 | hgl\_hamming.h         | Algorithm                     | Hamming(16,11) encoding and decoding system.                                                             |
+| hgl\_earchop.h         | Algorithm                     | Simple polygon triangulation using an earclipping style algorithm.                                       |
 | hglm.h                 | Math                          | Vector math library with some SIMD support.                                                              |
 | hgl\_test.h            | Unit Testing Framework.       | Simple but powerful unit testing framework.                                                              |
 | hgl.h                  | Utility/Misc.                 | Misc. stuff that might be useful from time to time.                                                      |
