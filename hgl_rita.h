@@ -113,7 +113,7 @@
  *
  * You may also choose to run hgl_rita.h completely in single-threaded mode by defining:
  *
- *     HGL_RITA_RENDERER_PRESET_SINGLE_THREAD_SINGLE_THREAD
+ *     HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
  * 
  * In single-threaded mode, no additional worker threads will be started. All work required to produce
  * an image is done by the calling thread (i.e. the thread that calls `hgl_rita_draw()`).
@@ -284,6 +284,9 @@
 
 #ifdef HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
 #  undef HGL_RITA_PARALLEL_VERTEX_PROCESSING
+#  define HGL_RITA_TILE_SIZE_X                  0
+#  define HGL_RITA_TILE_SIZE_Y                  0
+#  define HGL_RITA_TILE_OP_QUEUE_CAPACITY       0
 #endif
 
 #ifndef HGL_RITA_TILE_SIZE_X
@@ -728,8 +731,10 @@ typedef struct
     HglRitaOpKind kind;
 } HglRitaOp;
 
+#ifndef HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
 static_assert((HGL_RITA_TILE_OP_QUEUE_CAPACITY > 1) && (HGL_RITA_TILE_OP_QUEUE_CAPACITY <= UINT16_MAX), "HGL_RITA_TILE_OP_QUEUE_CAPACITY must be in the range [1, 0xFFFF].");
 static_assert((HGL_RITA_TILE_OP_QUEUE_CAPACITY & (HGL_RITA_TILE_OP_QUEUE_CAPACITY - 1)) == 0, "HGL_RITA_TILE_OP_QUEUE_CAPACITY must be a power of two.");
+#endif
 
 typedef struct
 { 
@@ -810,7 +815,7 @@ typedef struct HglRitaContext
     HglRitaTexture *tex_unit[HGL_RITA_N_TEXTURE_UNITS];
 
     struct {
-#ifdef HGL_RITA_SINGLE_THREAD
+#ifdef HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
         HglRitaAABB framebuffer_bounds;
 #else
         HglRitaTile tile[HGL_RITA_MAX_N_TILES];
@@ -1029,7 +1034,7 @@ static inline void hgl_rita_init()
         hgl_rita_ctx__.tex_unit[0] = NULL;
     }
 
-#ifdef HGL_RITA_SINGLE_THREAD
+#ifdef HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
     hgl_rita_ctx__.renderer.framebuffer_bounds = (HglRitaAABB){0};
 #else
     /* Initialize renderer */
@@ -1046,7 +1051,7 @@ static inline void hgl_rita_final(void)
     hgl_rita_buf_destroy(&hgl_rita_ctx__.vertices.fbuf);
 #endif
 
-#ifdef HGL_RITA_SINGLE_THREAD
+#ifdef HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
 #else
     for (int i = 0; i < hgl_rita_ctx__.renderer.n_tiles; i++) {
         HglRitaOp op = { .kind = HGL_RITA_OP_TERMINATE };
@@ -1076,7 +1081,7 @@ static inline void hgl_rita_bind_texture(HglRitaTexUnit unit, HglRitaTexture *te
     hgl_rita_finish();
     if (unit == HGL_RITA_TEX_FRAME_BUFFER) {
 
-#ifdef HGL_RITA_SINGLE_THREAD
+#ifdef HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
         hgl_rita_ctx__.renderer.framebuffer_bounds = hgl_rita_aabb_make(0, 0, tex->width, tex->height);
 #else
         assert(tex->format == HGL_RITA_RGBA8);
@@ -1294,7 +1299,7 @@ static inline void hgl_rita_clear(uint32_t attachments)
 
 static inline void hgl_rita_finish(void)
 {
-#ifdef HGL_RITA_SINGLE_THREAD
+#ifdef HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
 #else
     for (int i = 0; i < hgl_rita_ctx__.renderer.n_tiles; i++) {
         hgl_rita_op_queue_flush(&hgl_rita_ctx__.renderer.tile[i].op_queue);
@@ -1519,7 +1524,7 @@ static inline void hgl_rita_draw(HglRitaPrimitiveMode primitive_mode)
      * up-front and ahead-of-time. Otherwise, vertices are processed just-in-time
      * as primitives are dispatched.
      *
-     * If HGL_RITA_SINGLE_THREAD is defined, then HGL_RITA_PARALLEL_VERTEX_PROCESSING
+     * If HGL_RITA_RENDERER_PRESET_SINGLE_THREAD is defined, then HGL_RITA_PARALLEL_VERTEX_PROCESSING
      * is automatically undefined.
      */
 #ifdef HGL_RITA_PARALLEL_VERTEX_PROCESSING
@@ -1767,7 +1772,7 @@ static inline void hgl_rita_blit(int x, int y, int w, int h,
         .kind = HGL_RITA_OP_BLIT,
     };
 
-#ifdef HGL_RITA_SINGLE_THREAD
+#ifdef HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
     hgl_rita_process_op_internal_(op, hgl_rita_ctx__.renderer.framebuffer_bounds);
 #else
     /* dispatch blit operation to intersecting tiles */
@@ -2902,7 +2907,7 @@ static inline void hgl_rita_dispatch_point_internal_(HglRitaFragment f0)
         return;
     }
 
-#ifdef HGL_RITA_SINGLE_THREAD
+#ifdef HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
     hgl_rita_process_op_internal_(op, hgl_rita_ctx__.renderer.framebuffer_bounds);
 #else
     /* dispatch point primitive to intersecting tile */
@@ -2927,7 +2932,7 @@ static inline void hgl_rita_dispatch_line_internal_(HglRitaFragment f0, HglRitaF
     //    return;
     //}
 
-#ifdef HGL_RITA_SINGLE_THREAD
+#ifdef HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
     hgl_rita_process_op_internal_(op, hgl_rita_ctx__.renderer.framebuffer_bounds);
 #else
     /* dispatch line primitive to intersecting tiles */
@@ -2978,7 +2983,7 @@ static inline void hgl_rita_dispatch_tri_internal_(HglRitaFragment f0, HglRitaFr
         }
     }
 
-#ifdef HGL_RITA_SINGLE_THREAD
+#ifdef HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
     hgl_rita_process_op_internal_(op, hgl_rita_ctx__.renderer.framebuffer_bounds);
 #else
     /* dispatch triangle primitive to intersecting tiles */
