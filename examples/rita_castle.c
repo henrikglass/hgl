@@ -2,6 +2,7 @@
 
 #define HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV
 #define HGL_RITA_RENDERER_PRESET_256X64X2048_PARALLEL_VERTEX_PROCESSING
+#define HGL_RITA_STRIP_PREFIX
 #define HGL_RITA_IMPLEMENTATION
 #include "hgl_rita.h"
 #include "hgl_rita_shaders.h"
@@ -19,23 +20,14 @@
 
 int main()
 {
-    printf("%zu\n", sizeof(HglRitaOp));
-    printf("%zu\n", sizeof(HglRitaOpKind));
-    printf("%zu\n", sizeof(HglRitaTriangle));
-    printf("%zu\n", sizeof(HglRitaLine));
-    printf("%zu\n", sizeof(HglRitaPoint));
-    printf("%zu\n", sizeof(HglRitaVertexBufferSegment));
-    printf("%zu\n", sizeof(HglRitaBlitInfo));
-    printf("%zu\n", sizeof(HglRitaFragment));
-    //exit(0);
 
     /* rita stuff */
-    hgl_rita_init();
-    HglRitaTexture fb_color = hgl_rita_texture_make(WIDTH, HEIGHT, HGL_RITA_RGBA8);
-    HglRitaTexture fb_depth = hgl_rita_texture_make(WIDTH, HEIGHT, HGL_RITA_R32);
-    hgl_rita_bind_texture(HGL_RITA_TEX_FRAME_BUFFER, &fb_color);
-    hgl_rita_bind_texture(HGL_RITA_TEX_DEPTH_BUFFER, &fb_depth);
-    hgl_rita_use_viewport(WIDTH, HEIGHT);
+    rita_init();
+    RitaTexture fb_color = rita_texture_make(WIDTH, HEIGHT, RITA_RGBA8);
+    RitaTexture fb_depth = rita_texture_make(WIDTH, HEIGHT, RITA_R32);
+    rita_bind_texture(RITA_TEX_FRAME_BUFFER, &fb_color);
+    rita_bind_texture(RITA_TEX_DEPTH_BUFFER, &fb_depth);
+    rita_use_viewport(WIDTH, HEIGHT);
 
     /* raylib stuff */
     InitWindow(DISPLAY_SCALE*WIDTH, DISPLAY_SCALE*HEIGHT, "HglRita test");
@@ -48,24 +40,24 @@ int main()
     };
     Texture2D color_tex = LoadTextureFromImage(color_image);
 
-    hgl_rita_use_perspective_proj(3.14f/4, (float)(WIDTH)/(float)(HEIGHT), 2.0f, 1000.0f);
-    hgl_rita_enable(HGL_RITA_Z_CLIPPING |
-                    HGL_RITA_BACKFACE_CULLING |
-                    HGL_RITA_DEPTH_TESTING |
-                    HGL_RITA_ORDER_DEPENDENT_ALPHA_BLEND);
+    rita_use_perspective_proj(3.14f/4, (float)(WIDTH)/(float)(HEIGHT), 2.0f, 1000.0f);
+    rita_enable(RITA_Z_CLIPPING |
+                RITA_BACKFACE_CULLING |
+                RITA_DEPTH_TESTING |
+                RITA_ORDER_DEPENDENT_ALPHA_BLEND);
     MyModel model = load_model_from_obj("assets/castle.obj");
     model.diffuse = load_texture("assets/castle4k.png");
-    model.winding_order = HGL_RITA_CCW;
+    model.winding_order = RITA_CCW;
     model.tform = mat4_scale(model.tform, vec3_make(1.8f, 1.8f, 1.8f));
     model.tform = mat4_translate(model.tform, vec3_make(0.0, -30.0, 0));
-    hgl_rita_use_vertex_buffer_mode(HGL_RITA_INDEXED);
-    hgl_rita_bind_buffer(HGL_RITA_VERTEX_BUFFER, &model.vbuf);
-    hgl_rita_bind_buffer(HGL_RITA_INDEX_BUFFER, &model.ibuf);
-    hgl_rita_use_model_matrix(model.tform);
-    hgl_rita_use_frontface_winding_order(model.winding_order);
-    hgl_rita_bind_texture(HGL_RITA_TEX_DIFFUSE, &model.diffuse);
+    rita_use_vertex_buffer_mode(RITA_INDEXED);
+    rita_bind_buffer(RITA_VERTEX_BUFFER, &model.vbuf);
+    rita_bind_buffer(RITA_INDEX_BUFFER, &model.ibuf);
+    rita_use_model_matrix(model.tform);
+    rita_use_frontface_winding_order(model.winding_order);
+    rita_bind_texture(RITA_TEX_DIFFUSE, &model.diffuse);
     
-    HglRitaTexture skybox;
+    RitaTexture skybox;
     skybox = load_texture("assets/skybox_cubemap.png");
 
     //SetTargetFPS(60);
@@ -73,23 +65,23 @@ int main()
     while (!WindowShouldClose() && !IsKeyPressed(KEY_Q))
     {
         /* draw */
-        hgl_rita_clear(HGL_RITA_DEPTH);
-        hgl_rita_draw(HGL_RITA_TRIANGLES);
-        hgl_rita_use_texture_filter(HGL_RITA_NEAREST);
-        hgl_rita_blit(0, 0, WIDTH, HEIGHT, &skybox, 
-                      HGL_RITA_REPLACE, 
-                      HGL_RITA_DEPTH_INF, 
-                      HGL_RITA_VIEW_DIR_CUBEMAP,
-                      NULL);
-        hgl_rita_finish();
+        rita_clear(RITA_DEPTH);
+        rita_draw(RITA_TRIANGLES);
+        rita_use_texture_filter(RITA_NEAREST);
+        rita_blit(0, 0, WIDTH, HEIGHT, &skybox, 
+                  RITA_REPLACE, 
+                  RITA_DEPTH_INF, 
+                  RITA_VIEW_DIR_CUBEMAP,
+                  NULL);
+        rita_finish();
 
 
         /* update */
         float d = 80;
         //Mat4 view = mat4_look_at(vec3_make(d*sinf(0.01*frame_count), 20, d*cosf(0.01*frame_count)), 
         //                         vec3_make(0, 0, 0), vec3_make(0,1,0));
-        hgl_rita_use_camera_view(vec3_make(d*sinf(0.01*frame_count), 20, d*cosf(0.01*frame_count)), 
-                                 vec3_make(0, 0, 0), vec3_make(0,1,0));
+        rita_use_camera_view(vec3_make(d*sinf(0.01*frame_count), 20, d*cosf(0.01*frame_count)), 
+                             vec3_make(0, 0, 0), vec3_make(0,1,0));
 
         /* raylib stuff */
         UpdateTexture(color_tex, color_image.data);
@@ -103,7 +95,7 @@ int main()
 
 
     CloseWindow();
-    hgl_rita_final();
+    rita_final();
 
     return 0;
 }

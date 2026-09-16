@@ -158,6 +158,7 @@
  *
  *     #define HGL_RITA_VERTEX_SPEC_PRESET_3D_POS_UV     // optional
  *     #define HGL_RITA_RENDERER_PRESET_SINGLE_THREAD    // optional
+ *     #define HGL_RITA_STRIP_PREFIX                     // optional
  *     #define HGL_RITA_IMPLEMENTATION
  *     #include "hgl_rita.h"
  *     #define HGL_RITA_SHADERS_IMPLEMENTATION           // optional
@@ -916,7 +917,7 @@ static inline HglRitaColor hgl_rita_sample_unit_uv(HglRitaTexUnit unit, Vec2 uv)
 static inline HglRitaColor hgl_rita_sample_unit_rectilinear(HglRitaTexUnit unit, Vec3 dir); /* Samples the texture bound to texture unit `unit` using rectilinear projection at the 3D view direction `dir` */
 static inline HglRitaColor hgl_rita_sample_unit_cubemap(HglRitaTexUnit unit, Vec3 dir);     /* Samples the texture bound to texture unit `unit` using cubemap projection at the 3D view direction `dir` */
 
-/* Op queue */
+/* Op queue - internal */
 static inline void hgl_rita_op_queue_init(HglRitaOpQueue *q);                               /* Initialize queue */
 static inline void hgl_rita_op_queue_destroy(HglRitaOpQueue *q);                            /* Destroy queue */
 static inline void hgl_rita_op_queue_flush(HglRitaOpQueue *q);                              /* Force consumer end to start consuming ops until queue is empty. Must only be called from the producer end of the queue. */
@@ -3268,6 +3269,210 @@ static inline int hgl_rita_next_vbuf_index_internal_(void)
 }
 
 #endif /* HGL_RITA_IMPLEMENTATION */
+
+#ifdef HGL_RITA_STRIP_PREFIX
+
+#  define RITA_TRANSPARENT                   HGL_RITA_TRANSPARENT
+#  define RITA_WHITE                         HGL_RITA_WHITE
+#  define RITA_BLACK                         HGL_RITA_BLACK
+#  define RITA_RED                           HGL_RITA_RED
+#  define RITA_GREEN                         HGL_RITA_GREEN
+#  define RITA_BLUE                          HGL_RITA_BLUE
+#  define RITA_DARK_RED                      HGL_RITA_DARK_RED
+#  define RITA_DARK_GREEN                    HGL_RITA_DARK_GREEN
+#  define RITA_DARK_BLUE                     HGL_RITA_DARK_BLUE
+#  define RITA_MAGENTA                       HGL_RITA_MAGENTA
+#  define RITA_CYAN                          HGL_RITA_CYAN
+#  define RITA_YELLOW                        HGL_RITA_YELLOW
+#  define RITA_DARK_GRAY                     HGL_RITA_DARK_GRAY
+#  define RITA_GRAY                          HGL_RITA_GRAY
+#  define RITA_LIGHT_GRAY                    HGL_RITA_LIGHT_GRAY
+#  define RITA_MORTEL_BLACK                  HGL_RITA_MORTEL_BLACK
+#  define RITA_MORTEL_WHITE                  HGL_RITA_MORTEL_WHITE
+#  define RITA_MORTEL_RED                    HGL_RITA_MORTEL_RED
+#  define RITA_MORTEL_GREEN                  HGL_RITA_MORTEL_GREEN
+#  define RITA_MORTEL_BLUE                   HGL_RITA_MORTEL_BLUE
+#  define RITA_MORTEL_MAGENTA                HGL_RITA_MORTEL_MAGENTA
+#  define RITA_MORTEL_CYAN                   HGL_RITA_MORTEL_CYAN
+#  define RITA_MORTEL_YELLOW                 HGL_RITA_MORTEL_YELLOW
+
+#  define RitaBuffer                         HglRitaBuffer
+#  define RitaFramebufferAttachment          HglRitaFramebufferAttachment
+#  define RitaOpt                            HglRitaOpt
+#  define RitaTexUnit                        HglRitaTexUnit
+#  define RitaVertexBufferMode               HglRitaVertexBufferMode
+#  define RitaWindingOrder                   HglRitaWindingOrder
+#  define RitaPrimitiveMode                  HglRitaPrimitiveMode
+#  define RitaTextureFilter                  HglRitaTextureFilter
+#  define RitaTextureWrapping                HglRitaTextureWrapping
+#  define RitaBlendMethod                    HglRitaBlendMethod
+#  define RitaBlitFBMask                     HglRitaBlitFBMask
+#  define RitaBlitFBSampler                  HglRitaBlitFBSampler
+#  define RitaColor                          HglRitaColor
+#  define RitaFragment                       HglRitaFragment
+#  define RitaVertex                         HglRitaVertex
+
+#  define RitaVertexBuffer                   HglRitaVertexBuffer
+#  define RitaIndexBuffer                    HglRitaIndexBuffer
+#  define RitaFragmentBuffer                 HglRitaFragmentBuffer
+
+#  define RitaGlyph                          HglRitaGlyph
+#  define RitaPixelFormat                    HglRitaPixelFormat
+#  define RitaTexture                        HglRitaTexture
+#  define RitaAABB                           HglRitaAABB
+#  define RitaTriangle                       HglRitaTriangle
+#  define RitaLine                           HglRitaLine
+#  define RitaPoint                          HglRitaPoint
+#  define RitaVertexBufferSegment            HglRitaVertexBufferSegment
+
+#  define RitaVertShaderFunc                 HglRitaVertShaderFunc
+#  define RitaFragShaderFunc                 HglRitaFragShaderFunc
+
+#  define RitaBlitInfo                       HglRitaBlitInfo
+#  define RitaOpKind                         HglRitaOpKind
+#  define RitaOp                             HglRitaOp
+#  define RitaOpQueue                        HglRitaOpQueue
+#  define RitaTile                           HglRitaTile
+#  define RitaContext                        HglRitaContext
+
+#  define rita_buf_reserve                   hgl_rita_buf_reserve
+#  define rita_buf_reserve_exact             hgl_rita_buf_reserve_exact
+#  define rita_buf_push                      hgl_rita_buf_push
+#  define rita_buf_pop                       hgl_rita_buf_pop
+#  define rita_buf_clear                     hgl_rita_buf_clear
+#  define rita_buf_destroy                   hgl_rita_buf_destroy
+
+#  define rita_init                          hgl_rita_init
+#  define rita_final                         hgl_rita_final
+#  define rita_bind_buffer                   hgl_rita_bind_buffer
+#  define rita_bind_texture                  hgl_rita_bind_texture
+#  define rita_bind_vert_shader              hgl_rita_bind_vert_shader
+#  define rita_bind_frag_shader              hgl_rita_bind_frag_shader
+#  define rita_enable                        hgl_rita_enable
+#  define rita_disable                       hgl_rita_disable
+#  define rita_use_frontface_winding_order   hgl_rita_use_frontface_winding_order
+#  define rita_use_default_color             hgl_rita_use_default_color
+#  define rita_use_clear_color               hgl_rita_use_clear_color
+#  define rita_use_texture_filter            hgl_rita_use_texture_filter
+#  define rita_use_texture_wrapping          hgl_rita_use_texture_wrapping
+#  define rita_use_vertex_buffer_mode        hgl_rita_use_vertex_buffer_mode
+#  define rita_use_model_matrix              hgl_rita_use_model_matrix
+#  define rita_use_view_matrix               hgl_rita_use_view_matrix
+#  define rita_use_proj_matrix               hgl_rita_use_proj_matrix
+#  define rita_use_camera_view               hgl_rita_use_camera_view
+#  define rita_use_perspective_proj          hgl_rita_use_perspective_proj
+#  define rita_use_orthographic_proj         hgl_rita_use_orthographic_proj
+#  define rita_use_viewport                  hgl_rita_use_viewport
+#  define rita_clear                         hgl_rita_clear
+#  define rita_finish                        hgl_rita_finish
+#  define rita_draw_text                     hgl_rita_draw_text
+#  define rita_draw                          hgl_rita_draw
+#  define rita_blit                          hgl_rita_blit
+
+#  define rita_texture_make                  hgl_rita_texture_make
+#  define rita_texture_destroy               hgl_rita_texture_destroy
+#  define rita_texture_get_subtexture        hgl_rita_texture_get_subtexture
+#  define rita_texture_flip_vertically       hgl_rita_texture_flip_vertically
+#  define rita_texture_blit                  hgl_rita_texture_blit
+
+#  define rita_vertex_eq                     hgl_rita_vertex_eq
+
+#  define rita_color_blend                   hgl_rita_color_blend
+#  define rita_color_lerp                    hgl_rita_color_lerp
+#  define rita_color_add                     hgl_rita_color_add
+#  define rita_color_sub                     hgl_rita_color_sub
+#  define rita_color_mul                     hgl_rita_color_mul
+#  define rita_color_mul_scalar              hgl_rita_color_mul_scalar
+#  define rita_color_eq                      hgl_rita_color_eq
+#  define rita_color_luminance               hgl_rita_color_luminance
+#  define rita_color_as_vector               hgl_rita_color_as_vector
+#  define rita_color_from_vector             hgl_rita_color_from_vector
+
+#  define rita_aabb_make                     hgl_rita_aabb_make
+#  define rita_aabb_from_line                hgl_rita_aabb_from_line
+#  define rita_aabb_from_tri                 hgl_rita_aabb_from_tri
+#  define rita_aabb_clip                     hgl_rita_aabb_clip
+#  define rita_aabb_intersection             hgl_rita_aabb_intersection
+#  define rita_aabb_intersects               hgl_rita_aabb_intersects
+
+#  define rita_sample                        hgl_rita_sample
+#  define rita_sample_uv                     hgl_rita_sample_uv
+#  define rita_sample_rectilinear            hgl_rita_sample_rectilinear
+#  define rita_sample_cubemap                hgl_rita_sample_cubemap
+#  define rita_sample_unit                   hgl_rita_sample_unit
+#  define rita_sample_unit_uv                hgl_rita_sample_unit_uv
+#  define rita_sample_unit_rectilinear       hgl_rita_sample_unit_rectilinear
+#  define rita_sample_unit_cubemap           hgl_rita_sample_unit_cubemap
+
+#  define RITA_VERTEX_BUFFER                 HGL_RITA_VERTEX_BUFFER
+#  define RITA_INDEX_BUFFER                  HGL_RITA_INDEX_BUFFER
+
+#  define RITA_COLOR                         HGL_RITA_COLOR
+#  define RITA_DEPTH                         HGL_RITA_DEPTH
+
+#  define RITA_BACKFACE_CULLING              HGL_RITA_BACKFACE_CULLING
+#  define RITA_DEPTH_TESTING                 HGL_RITA_DEPTH_TESTING
+#  define RITA_ORDER_DEPENDENT_ALPHA_BLEND   HGL_RITA_ORDER_DEPENDENT_ALPHA_BLEND
+#  define RITA_Z_CLIPPING                    HGL_RITA_Z_CLIPPING
+#  define RITA_DEPTH_BUFFER_WRITING          HGL_RITA_DEPTH_BUFFER_WRITING
+#  define RITA_WIRE_FRAMES                   HGL_RITA_WIRE_FRAMES
+
+#  define RITA_TEX_DEFAULT                   HGL_RITA_TEX_DEFAULT
+#  define RITA_TEX_DIFFUSE                   HGL_RITA_TEX_DIFFUSE
+#  define RITA_TEX_SPECULAR                  HGL_RITA_TEX_SPECULAR
+#  define RITA_TEX_ROUGHNESS                 HGL_RITA_TEX_ROUGHNESS
+#  define RITA_TEX_GLOSS                     HGL_RITA_TEX_GLOSS
+#  define RITA_TEX_EMISSIVE                  HGL_RITA_TEX_EMISSIVE
+#  define RITA_TEX_NORMAL                    HGL_RITA_TEX_NORMAL
+#  define RITA_TEX_DISPLACEMENT              HGL_RITA_TEX_DISPLACEMENT
+#  define RITA_TEX_FRAME_BUFFER              HGL_RITA_TEX_FRAME_BUFFER
+#  define RITA_TEX_DEPTH_BUFFER              HGL_RITA_TEX_DEPTH_BUFFER
+#  define RITA_N_TEXTURE_UNITS               HGL_RITA_N_TEXTURE_UNITS
+
+#  define RITA_ARRAY                         HGL_RITA_ARRAY
+#  define RITA_INDEXED                       HGL_RITA_INDEXED
+
+#  define RITA_CCW                           HGL_RITA_CCW
+#  define RITA_CW                            HGL_RITA_CW
+
+#  define RITA_LINES                         HGL_RITA_LINES
+#  define RITA_LINE_STRIP                    HGL_RITA_LINE_STRIP
+#  define RITA_POINTS                        HGL_RITA_POINTS
+#  define RITA_TRIANGLES                     HGL_RITA_TRIANGLES
+#  define RITA_TRIANGLE_STRIP                HGL_RITA_TRIANGLE_STRIP
+#  define RITA_TRIANGLE_FAN                  HGL_RITA_TRIANGLE_FAN
+
+#  define RITA_NEAREST                       HGL_RITA_NEAREST
+#  define RITA_BILINEAR                      HGL_RITA_BILINEAR
+
+#  define RITA_NO_WRAPPING                   HGL_RITA_NO_WRAPPING
+#  define RITA_CLAMP                         HGL_RITA_CLAMP
+#  define RITA_REPEAT                        HGL_RITA_REPEAT
+
+#  define RITA_REPLACE                       HGL_RITA_REPLACE
+#  define RITA_REPLACE_SKIP_ALPHA            HGL_RITA_REPLACE_SKIP_ALPHA
+#  define RITA_ALPHA                         HGL_RITA_ALPHA
+#  define RITA_ONE_MINUS_ALPHA               HGL_RITA_ONE_MINUS_ALPHA
+#  define RITA_ADD                           HGL_RITA_ADD
+#  define RITA_SUBTRACT                      HGL_RITA_SUBTRACT
+#  define RITA_SUBTRACT_SKIP_ALPHA           HGL_RITA_SUBTRACT_SKIP_ALPHA
+#  define RITA_MULTIPLY                      HGL_RITA_MULTIPLY
+
+#  define RITA_EVERYWHERE                    HGL_RITA_EVERYWHERE
+#  define RITA_CLEAR_COLOR                   HGL_RITA_CLEAR_COLOR
+#  define RITA_NON_CLEAR_COLOR               HGL_RITA_NON_CLEAR_COLOR
+#  define RITA_DEPTH_INF                     HGL_RITA_DEPTH_INF
+#  define RITA_DEPTH_NON_INF                 HGL_RITA_DEPTH_NON_INF
+
+#  define RITA_BOXCOORD                      HGL_RITA_BOXCOORD
+#  define RITA_SCREENCOORD                   HGL_RITA_SCREENCOORD
+#  define RITA_VIEW_DIR_RECTILINEAR          HGL_RITA_VIEW_DIR_RECTILINEAR
+#  define RITA_VIEW_DIR_CUBEMAP              HGL_RITA_VIEW_DIR_CUBEMAP
+#  define RITA_SHADER                        HGL_RITA_SHADER
+
+#  define RITA_RGBA8                         HGL_RITA_RGBA8
+#  define RITA_R32                           HGL_RITA_R32
+#endif
 
 // TODO Better (lockless) queues? Probably not the bottleneck. The entire hgl_rita_draw() function is.
 // TODO Documentation
