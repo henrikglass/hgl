@@ -105,3 +105,14 @@ TEST(test_vec2)
                                      vec2_make(1,0), 1.0f), vec2_make(1, 0)));
 }
 
+TEST(test_ortho_inv)
+{
+    Mat4 M;
+    Mat4 m = mat4_make_ortho(-5, 10, -10, 15, -2, 4);
+    Mat4 m_inv = mat4_make_ortho_inverse(-5, 10, -10, 15, -2, 4);
+
+    M = mat4_mul_mat4(m, m_inv);
+    ASSERT(mat4_eq(M, MAT4_IDENTITY));
+    M = mat4_mul_mat4(m_inv, m);
+    ASSERT(mat4_eq(M, MAT4_IDENTITY));
+}

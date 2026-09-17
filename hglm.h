@@ -332,6 +332,7 @@ __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_scale(
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_rotation(float angle, HglmVec3 axis);
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_translation(HglmVec3 v);
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_ortho(float left, float right, float bottom, float top,  float near,  float far);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_ortho_inverse(float left, float right, float bottom, float top,  float near,  float far);
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_perspective(float fov, float aspect, float znear, float zfar);
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_look_at(HglmVec3 camera, HglmVec3 target, HglmVec3 up);
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_look_to(HglmVec3 camera, HglmVec3 dir, HglmVec3 up);
@@ -965,7 +966,7 @@ __attribute__ ((const, unused))
 static HGL_INLINE HglmMat4 hglm_mat4_make_ortho(float left, float right, float bottom,
                                                 float top,  float near,  float far)
 {
-#if 1
+#if 0
     HglmMat4 m = HGLM_MAT4_IDENTITY;
     m.c0.x = 2 / (right - left);
     m.c1.y = 2 / (top - bottom);
@@ -982,6 +983,20 @@ static HGL_INLINE HglmMat4 hglm_mat4_make_ortho(float left, float right, float b
     m.c3.y = -((top + bottom) / (top - bottom));
     m.c3.z = -((far + near)   / (far - near));
 #endif
+    return m;
+}
+
+__attribute__ ((const, unused)) 
+static HGL_INLINE HglmMat4 hglm_mat4_make_ortho_inverse(float left, float right, float bottom,
+                                                        float top,  float near,  float far)
+{
+    HglmMat4 m = HGLM_MAT4_IDENTITY;
+    m.c0.x = (right - left) / 2.0f;
+    m.c1.y = (top - bottom) / 2.0f;
+    m.c2.z = -((far - near) / 2.0f); // Note: inversion
+    m.c3.x = (right + left) / 2.0f;
+    m.c3.y = (top + bottom) / 2.0f;
+    m.c3.z = -((far + near) / 2.0f);
     return m;
 }
 
@@ -1758,6 +1773,7 @@ typedef HglmMat    Mat;
 #define mat4_make_rotation       hglm_mat4_make_rotation
 #define mat4_make_translation    hglm_mat4_make_translation
 #define mat4_make_ortho          hglm_mat4_make_ortho
+#define mat4_make_ortho_inverse  hglm_mat4_make_ortho_inverse
 #define mat4_make_perspective    hglm_mat4_make_perspective
 #define mat4_look_at             hglm_mat4_look_at
 #define mat4_look_to             hglm_mat4_look_to
