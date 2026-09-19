@@ -317,13 +317,23 @@ static HGL_INLINE HglmVec4 hglm_vec4_bezier3(HglmVec4 v0, HglmVec4 v1, HglmVec4 
 
 static HGL_INLINE HglmMat2 hglm_mat2_make(HglmVec2 c0, HglmVec2 c1);
 static HGL_INLINE HglmMat2 hglm_mat2_make_identity(void);
+static HGL_INLINE HglmMat2 hglm_mat2_make_adjugate(HglmMat2 m);
+static HGL_INLINE HglmMat2 hglm_mat2_make_inverse(HglmMat2 m);
+static HGL_INLINE HglmMat2 hglm_mat2_mul_scalar(HglmMat2 m, float s);
+static HGL_INLINE HglmMat2 hglm_mat2_mul_mat2(HglmMat2 a, HglmMat2 b);
+static HGL_INLINE float hglm_mat2_det(HglmMat2 m);
 // TODO ...
 
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_make(HglmVec3 c0, HglmVec3 c1, HglmVec3 c2);
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_make_identity(void);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_make_adjugate(HglmMat3 m);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_make_inverse(HglmMat3 m);
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_make_from_mat4(HglmMat4 mat4);
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_transpose(HglmMat3 m);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_mul_scalar(HglmMat3 m, float s);
 __attribute__ ((const, unused)) static HGL_INLINE HglmVec3 hglm_mat3_mul_vec3(HglmMat3 m, HglmVec3 v);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_mul_mat3(HglmMat3 a, HglmMat3 b);
+__attribute__ ((const, unused)) static HGL_INLINE float hglm_mat3_det(HglmMat3 m);
 
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make(HglmVec4 c0, HglmVec4 c1, HglmVec4 c2, HglmVec4 c3);
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_zero(void);
@@ -334,6 +344,7 @@ __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_transl
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_ortho(float left, float right, float bottom, float top,  float near,  float far);
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_ortho_inverse(float left, float right, float bottom, float top,  float near,  float far);
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_perspective(float fov, float aspect, float znear, float zfar);
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_affine_inverse(HglmMat4 m);
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_look_at(HglmVec3 camera, HglmVec3 target, HglmVec3 up);
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_look_to(HglmVec3 camera, HglmVec3 dir, HglmVec3 up);
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_add(HglmMat4 a, HglmMat4 b);
@@ -834,6 +845,52 @@ static HGL_INLINE HglmMat2 hglm_mat2_make_identity()
     return HGLM_MAT2_IDENTITY;
 }
 
+static HGL_INLINE HglmMat2 hglm_mat2_make_adjugate(HglmMat2 m)
+{
+    float a, b, c, d;
+    a = m.m00; b = m.m01;
+    c = m.m10; d = m.m11;
+    return (HglmMat2){
+        .c0 = {.x =  d, .y = -c},
+        .c1 = {.x = -b, .y =  a},
+    };
+}
+
+static HGL_INLINE HglmMat2 hglm_mat2_make_inverse(HglmMat2 m)
+{
+    float r_det = 1.0f / hglm_mat2_det(m);
+    return hglm_mat2_mul_scalar(hglm_mat2_make_adjugate(m), r_det); 
+}
+
+static HGL_INLINE HglmMat2 hglm_mat2_mul_scalar(HglmMat2 m, float s)
+{
+    return (HglmMat2) {
+        .c0 = {.x = s * m.c0.x, .y = s * m.c0.y},
+        .c1 = {.x = s * m.c1.x, .y = s * m.c1.y},
+    };
+}
+
+static HGL_INLINE HglmMat2 hglm_mat2_mul_mat2(HglmMat2 a, HglmMat2 b)
+{
+    return (HglmMat2) {
+        /* c0 */
+        .m00 = a.c0.x * b.c0.x + a.c1.x * b.c0.y, 
+        .m10 = a.c0.y * b.c0.x + a.c1.y * b.c0.y, 
+        /* c1 */
+        .m01 = a.c0.x * b.c1.x + a.c1.x * b.c1.y, 
+        .m11 = a.c0.y * b.c1.x + a.c1.y * b.c1.y, 
+    };
+}
+
+static HGL_INLINE float hglm_mat2_det(HglmMat2 m)
+{
+    float a, b, c, d;
+    a = m.m00; b = m.m01;
+    c = m.m10; d = m.m11;
+    return a*d - b*c;
+}
+
+
 
 /* ========== HglmMat3 =======================================================*/
 
@@ -858,6 +915,32 @@ __attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_make_identi
     return HGLM_MAT3_IDENTITY;
 }
 
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_make_adjugate(HglmMat3 m)
+{
+    float a1, a2, a3, b1, b2, b3, c1, c2, c3;
+    a1 = m.m00; a2 = m.m01; a3 = m.m02;
+    b1 = m.m10; b2 = m.m11; b3 = m.m12;
+    c1 = m.m20; c2 = m.m21; c3 = m.m22;
+    HglmMat3 C = (HglmMat3) {
+        .m00 =  hglm_mat2_det((HglmMat2){.m00 = b2, .m10 = c2, .m01 = b3, .m11 = c3}),
+        .m01 = -hglm_mat2_det((HglmMat2){.m00 = b1, .m10 = c1, .m01 = b3, .m11 = c3}),
+        .m02 =  hglm_mat2_det((HglmMat2){.m00 = b1, .m10 = c1, .m01 = b2, .m11 = c2}),
+        .m10 = -hglm_mat2_det((HglmMat2){.m00 = a2, .m10 = c2, .m01 = a3, .m11 = c3}),
+        .m11 =  hglm_mat2_det((HglmMat2){.m00 = a1, .m10 = c1, .m01 = a3, .m11 = c3}),
+        .m12 = -hglm_mat2_det((HglmMat2){.m00 = a1, .m10 = c1, .m01 = a2, .m11 = c2}),
+        .m20 =  hglm_mat2_det((HglmMat2){.m00 = a2, .m10 = b2, .m01 = a3, .m11 = b3}),
+        .m21 = -hglm_mat2_det((HglmMat2){.m00 = a1, .m10 = b1, .m01 = a3, .m11 = b3}),
+        .m22 =  hglm_mat2_det((HglmMat2){.m00 = a1, .m10 = b1, .m01 = a2, .m11 = b2}),
+    };
+    return hglm_mat3_transpose(C);
+}
+
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_make_inverse(HglmMat3 m)
+{
+    float r_det = 1.0f / hglm_mat3_det(m);
+    return hglm_mat3_mul_scalar(hglm_mat3_make_adjugate(m), r_det); 
+}
+
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_make_from_mat4(HglmMat4 mat4)
 {
     return (HglmMat3){.c0 = mat4.c0.xyz, .c1 = mat4.c1.xyz, .c2 = mat4.c2.xyz};
@@ -872,6 +955,15 @@ __attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_transpose(H
     };
 }
 
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_mul_scalar(HglmMat3 m, float s)
+{
+    return (HglmMat3) {
+        .c0 = {.x = s * m.c0.x, .y = s * m.c0.y, .z = s * m.c0.z},
+        .c1 = {.x = s * m.c1.x, .y = s * m.c1.y, .z = s * m.c1.z},
+        .c2 = {.x = s * m.c2.x, .y = s * m.c2.y, .z = s * m.c2.z},
+    };
+}
+
 __attribute__ ((const, unused)) static HGL_INLINE HglmVec3 hglm_mat3_mul_vec3(HglmMat3 m, HglmVec3 v)
 {
     return (HglmVec3) {
@@ -879,6 +971,33 @@ __attribute__ ((const, unused)) static HGL_INLINE HglmVec3 hglm_mat3_mul_vec3(Hg
         .y = m.c0.y * v.x + m.c1.y * v.y + m.c2.y * v.z,
         .z = m.c0.z * v.x + m.c1.z * v.y + m.c2.z * v.z,
     };
+}
+
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat3 hglm_mat3_mul_mat3(HglmMat3 a, HglmMat3 b)
+{
+    return (HglmMat3) {
+        /* c0 */
+        .m00 = a.c0.x * b.c0.x + a.c1.x * b.c0.y + a.c2.x * b.c0.z,
+        .m10 = a.c0.y * b.c0.x + a.c1.y * b.c0.y + a.c2.y * b.c0.z,
+        .m20 = a.c0.z * b.c0.x + a.c1.z * b.c0.y + a.c2.z * b.c0.z,
+        /* c1 */
+        .m01 = a.c0.x * b.c1.x + a.c1.x * b.c1.y + a.c2.x * b.c1.z,
+        .m11 = a.c0.y * b.c1.x + a.c1.y * b.c1.y + a.c2.y * b.c1.z,
+        .m21 = a.c0.z * b.c1.x + a.c1.z * b.c1.y + a.c2.z * b.c1.z,
+        /* c2 */
+        .m02 = a.c0.x * b.c2.x + a.c1.x * b.c2.y + a.c2.x * b.c2.z,
+        .m12 = a.c0.y * b.c2.x + a.c1.y * b.c2.y + a.c2.y * b.c2.z,
+        .m22 = a.c0.z * b.c2.x + a.c1.z * b.c2.y + a.c2.z * b.c2.z,
+    };
+}
+
+__attribute__ ((const, unused)) static HGL_INLINE float hglm_mat3_det(HglmMat3 m)
+{
+    float a, b, c, d, e, f, g, h, i;
+    a = m.m00; b = m.m01; c = m.m02;
+    d = m.m10; e = m.m11; f = m.m12;
+    g = m.m20; h = m.m21; i = m.m22;
+    return a*e*i + b*f*g + c*d*h - c*e*g - b*d*i - a*f*h;
 }
 
 
@@ -956,9 +1075,7 @@ __attribute__ ((const, unused))
 static HGL_INLINE HglmMat4 hglm_mat4_make_translation(HglmVec3 v)
 {
     HglmMat4 t = HGLM_MAT4_IDENTITY;
-    t.c3.x = v.x;
-    t.c3.y = v.y;
-    t.c3.z = v.z;
+    t.c3.xyz = v;
     return t;
 }
 
@@ -1028,6 +1145,19 @@ static HGL_INLINE HglmMat4 hglm_mat4_make_perspective(float fov, float aspect, f
         .m30 =  0.0f, .m31 =  0.0f, .m32 =  1.0f, .m33 =  0.0f,
     };
 #endif
+}
+
+__attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_make_affine_inverse(HglmMat4 m)
+{
+    HglmMat3 L = (HglmMat3){.c0 = m.c0.xyz, .c1 = m.c1.xyz, .c2 = m.c2.xyz};
+    HglmVec3 t = m.c3.xyz;
+    HglmMat3 L_inv = hglm_mat3_make_inverse(L);
+    HglmMat4 M = hglm_mat4_make_identity();
+    M.c0.xyz = L_inv.c0;
+    M.c1.xyz = L_inv.c1;
+    M.c2.xyz = L_inv.c2;
+    M.c3.xyz = hglm_vec3_mul_scalar(hglm_mat3_mul_vec3(L_inv, t), -1.0f);
+    return M;
 }
 
 __attribute__ ((const, unused)) static HGL_INLINE HglmMat4 hglm_mat4_look_at(HglmVec3 camera, HglmVec3 target, HglmVec3 up)
@@ -1666,7 +1796,7 @@ static HGL_INLINE float hglm_perlin3D(float x, float y, float z)
 #endif
 
 #ifndef MAT2_IDENTITY
-#define MAT2_IDENTITY HGLM_MAT1_IDENTITY
+#define MAT2_IDENTITY HGLM_MAT2_IDENTITY
 #endif
 
 #ifndef MAT3_IDENTITY
@@ -1757,13 +1887,23 @@ typedef HglmMat    Mat;
 #define mat2_print               hglm_mat2_print
 #define mat2_make                hglm_mat2_make
 #define mat2_make_identity       hglm_mat2_make_identity
+#define mat2_make_adjugate       hglm_mat2_make_adjugate
+#define mat2_make_inverse        hglm_mat2_make_inverse
+#define mat2_mul_scalar          hglm_mat2_mul_scalar
+#define mat2_mul_mat2            hglm_mat2_mul_mat2
+#define mat2_det                 hglm_mat2_det
 
 #define mat3_print               hglm_mat3_print
 #define mat3_make                hglm_mat3_make
 #define mat3_make_identity       hglm_mat3_make_identity
+#define mat3_make_adjugate       hglm_mat3_make_adjugate
+#define mat3_make_inverse        hglm_mat3_make_inverse
 #define mat3_make_from_mat4      hglm_mat3_make_from_mat4
 #define mat3_transpose           hglm_mat3_transpose
+#define mat3_mul_scalar          hglm_mat3_mul_scalar
 #define mat3_mul_vec3            hglm_mat3_mul_vec3
+#define mat3_mul_mat3            hglm_mat3_mul_mat3
+#define mat3_det                 hglm_mat3_det
 
 #define mat4_print               hglm_mat4_print
 #define mat4_make                hglm_mat4_make
@@ -1775,6 +1915,7 @@ typedef HglmMat    Mat;
 #define mat4_make_ortho          hglm_mat4_make_ortho
 #define mat4_make_ortho_inverse  hglm_mat4_make_ortho_inverse
 #define mat4_make_perspective    hglm_mat4_make_perspective
+#define mat4_make_affine_inverse hglm_mat4_make_affine_inverse
 #define mat4_look_at             hglm_mat4_look_at
 #define mat4_look_to             hglm_mat4_look_to
 #define mat4_add                 hglm_mat4_add
