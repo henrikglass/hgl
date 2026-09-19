@@ -29,31 +29,26 @@
  *
  * hglm.h is a (mostly) vector math library (with some SIMD support).
  *
- * hglm_aliases.h contains aliases for types and functions inside hglm.h that
- * omit the `Hglm` and `hglm_` prefixes.
- *
  *
  * USAGE:
  *
  * Include `hglm.h` like this:
  *
+ *     #define HGLM_STRIP_PREFIX // optional
+ *     #define HGLM_USE_SIMD // optional
  *     #include "hglm.h"
- *
- * Optionally include `hglm_aliases.h`:
- *
- *     #include "hglm_aliases.h"
  *
  *
  * EXAMPLE:
  *
- * project vector a onto b (using aliases!):
+ * project vector a onto b (with stripped prefixes):
  *
  *     Vec2 a = vec2_make(10, 5);
  *     Vec2 b = vec2_make(20, 0);
  *     Vec2 projb_a = vec2_mul_scalar(b, (vec2_dot(a, b) / vec2_dot(b, b)));
  *     vec2_print(projb_a);
  *
- * spherical linear interpolation between a and b (using aliases!):
+ * spherical linear interpolation between a and b (with stripped prefixes):
  *
  *     Vec2 a = vec2_make(10, 0);
  *     Vec2 b = vec2_make(0, 10);
@@ -1786,6 +1781,51 @@ static HGL_INLINE float hglm_perlin3D(float x, float y, float z)
                                                 hglm_grad(P[BB+1], x - 1, y - 1, z - 1), u), v), w);
 }
 
+
+/**
+ * Fast fourier transform.
+ *
+ * EXAMPLE:
+ *
+ *     #define HGL_FFT_IMPLEMENTATION
+ *     #define HGL_FFT_USE_SIMD
+ *     #include "hgl_fft.h"
+ *
+ *     #define N (1 << 20)
+ *
+ *     float signal[N];
+ *     float complex signal_frequencies[N];
+ *     float complex reconstructed_signal[N];
+ *
+ *     int main(void)
+ *     {
+ *         // Generate some signal
+ *         for (int i = 0; i < N; i++) {
+ *             float t = 1.0f * (float)i/N;
+ *             signal[i] = sinf(1*2*PI*t) + sinf(2*2*PI*t) + cosf(3*2*PI*t);
+ *         }
+ *
+ *         // Normalize (not necessary)
+ *         float max = 0;
+ *         for (int i = 0; i < N; i++) {
+ *             max = (fabsf(signal[i]) > max) ? fabsf(signal[i]) : max;
+ *         }
+ *         for (int i = 0; i < N; i++) {
+ *             signal[i] /= max;
+ *         }
+ *
+ *         // Perform Fourier Transform on `signal`
+ *         fft(signal, signal_frequencies, N);
+ *
+ *         // Do something with frequency domain data
+ *         float cutoff_freq_hz = 120;
+ *         high_pass_filter(signal_frequencies, cutoff_freq_hz, N);
+ *
+ *         // Reconstruct signal from frequencies.
+ *         ifft(signal_frequencies, reconstructed_signal, N);
+ *     }
+ *
+ */
 static HGL_INLINE void hglm_fft(float in[], float complex out[], int n)
 {
     assert((n & (n - 1)) == 0); // n is power of 2
