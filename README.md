@@ -37,12 +37,11 @@ A collection of small (except maybe hgl\_rita.h) easy-to-use header only librari
 | hgl\_mem.h             | Utility                       | Endian-specific r/w functions, sized memcpy, memset, etc. (e.g. memset64, memcpy32, write32be).          |
 | hgl\_int.h             | Typedefs                      | Typedefs for fixed width integer types with Rust-style names (e.g. u16, i32, u8, etc).                   |
 | hgl\_float.h           | Typedefs/Utility              | Typedefs for fixed width float types + binary16 (half-precision), bfloat16, and fixed point conversions. |
-| hgl\_fft.h             | Algorithm                     | An implementation of the Fast Fourier Transform (FFT) using SIMD.                                        |
 | hgl\_base64.h          | Algorithm                     | Base64 encoding and decoding.                                                                            |
 | hgl\_rle.h             | Algorithm                     | Run-length encoding and decoding. Supports multiple data and run-length block sizes.                     |
 | hgl\_hamming.h         | Algorithm                     | Hamming(16,11) encoding and decoding system.                                                             |
 | hgl\_earchop.h         | Algorithm                     | Simple polygon triangulation using an earclipping style algorithm.                                       |
-| hglm.h                 | Math                          | Vector math library with some SIMD support.                                                              |
+| hglm.h                 | Math                          | Math library with some SIMD support. Mostly linear algebra stuff. Some other goodies like fft.           |
 | hgl\_test.h            | Unit Testing Framework.       | Simple but powerful unit testing framework.                                                              |
 | hgl.h                  | Utility/Misc.                 | Misc. stuff that might be useful from time to time.                                                      |
 | hgl\_rita.h            | 3D graphics/CPU rasterizer    | Multi-threaded (tiled) CPU-rasterizer and general purpose graphics library.                              |
@@ -68,7 +67,7 @@ $ make examples
 To build a specific example, run make followed by the name of the example program:
 
 ```bash
-$ make fft
+$ make hamming
 ```
 
 To build and run all tests, run:
