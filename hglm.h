@@ -71,6 +71,7 @@
 
 #include <math.h>
 #include <stdint.h>
+#include <complex.h>
 
 #include <assert.h> // DEBUG
 
@@ -383,6 +384,11 @@ static HGL_INLINE float hglm_smoothmin_sigmoid(float a, float b, float k);
 static HGL_INLINE HglmVec4 hglm_bezier3(float t);
 static HGL_INLINE HglmVec4 hglm_hermite3(float t);
 static HGL_INLINE float hglm_perlin3D(float x, float y, float z);
+
+static HGL_INLINE void hglm_fft(float in[], float complex out[], int n);
+static HGL_INLINE void hglm_ifft(float complex in[], float complex out[], int n);
+static void hglm_fft_internal_(float in[], float complex out[], int n, int stride);
+static void hglm_ifft_internal_(float complex in[], float complex out[], int n, int stride);
 
 /* ========== HglmIVec2 ======================================================*/
 
@@ -1780,6 +1786,130 @@ static HGL_INLINE float hglm_perlin3D(float x, float y, float z)
                                                 hglm_grad(P[BB+1], x - 1, y - 1, z - 1), u), v), w);
 }
 
+static HGL_INLINE void hglm_fft(float in[], float complex out[], int n)
+{
+    assert((n & (n - 1)) == 0); // n is power of 2
+    hglm_fft_internal_(in, out, n, 1);
+}
+
+static HGL_INLINE void hglm_ifft(float complex in[], float complex out[], int n)
+{
+    assert((n & (n - 1)) == 0); // n is power of 2
+    hglm_ifft_internal_(in, out, n, 1);
+    for (int i = 0; i < n; i++) {
+        out[i] = out[i]/n;
+    }
+}
+
+static void hglm_fft_internal_(float in[], float complex out[], int n, int stride)
+{
+    if (n == 1) {
+        out[0] = in[0];
+        return;
+    }
+
+    hglm_fft_internal_(in, out, n/2, 2*stride); // even
+    hglm_fft_internal_(in + stride, out + n/2, n/2, 2*stride); // odd
+
+#ifndef HGLM_USE_SIMD
+    for(int k = 0; k < n/2; k++) {
+        float w = -2*(float)HGLM_PI*((float)k/n);
+        float complex v = out[k + n/2] * (cosf(w) + I*sinf(w));
+        out[k + n/2]    = out[k] - v;
+        out[k]          = out[k] + v;
+    }
+#else
+    if (n/2 < 4) {
+        for(int k = 0; k < n/2; k++) {
+            float w = -2*(float)HGLM_PI*((float)k/n);
+            float complex v = out[k + n/2] * (cosf(w) + I*sinf(w));
+            //float complex v = out[k + n/2] * cexpf(-2*HGLM_PI*((float)k/n)*I);
+            out[k + n/2]    = out[k] - v;
+            out[k]          = out[k] + v;
+        }
+    } else {
+        for(int k = 0; k < n/2; k += 4) {
+            float ws[3]  __attribute__((aligned(16)));
+            __m128 vec_ks      = _mm_set_ps1((float)(k));          // (k, k, k, k)
+            __m128 vec_rns     = _mm_set_ps1(1.0f/n);              // (1/n, 1/n, 1/n, 1/n)
+            __m128 vec_2pi     = _mm_set_ps1(-2*HGLM_PI);          // (2*HGLM_PI, 2*HGLM_PI, 2*HGLM_PI, 2*HGLM_PI)
+            __m128 vec_offsets = _mm_set_ps(3, 2, 1, 0);           // (0, 1, 2, 3)
+            __m128 vec_indices = _mm_add_ps(vec_ks, vec_offsets);  // (k, k+1, k+2, k+3)
+            __m128 vec_ts      = _mm_mul_ps(vec_indices, vec_rns); // (k/n, (k+1)/n, (k+2)/n, (k+3)/n)
+            __m128 vec_ws      = _mm_mul_ps(vec_ts, vec_2pi);      // (2*HGLM_PI*(k/n), 2*HGLM_PI*((k+1)/n), 2*HGLM_PI*((k+2)/n), 2*HGLM_PI*((k+3)/n))
+            _mm_store_ps(ws, vec_ws);
+            float complex v0 = out[k + n/2] * (cosf(ws[0]) + I*sinf(ws[0]));
+            float complex v1 = out[k + n/2 + 1] * (cosf(ws[1]) + I*sinf(ws[1]));
+            float complex v2 = out[k + n/2 + 2] * (cosf(ws[2]) + I*sinf(ws[2]));
+            float complex v3 = out[k + n/2 + 3] * (cosf(ws[3]) + I*sinf(ws[3]));
+            out[k + n/2]     = out[k] - v0;
+            out[k]           = out[k] + v0;
+            out[k + n/2 + 1] = out[k + 1] - v1;
+            out[k + 1]       = out[k + 1] + v1;
+            out[k + n/2 + 2] = out[k + 2] - v2;
+            out[k + 2]       = out[k + 2] + v2;
+            out[k + n/2 + 3] = out[k + 3] - v3;
+            out[k + 3]       = out[k + 3] + v3;
+        }
+    }
+#endif
+}
+
+static void hglm_ifft_internal_(float complex in[], float complex out[], int n, int stride)
+{
+    if (n == 1) {
+        out[0] = in[0];
+        return;
+    }
+
+    hglm_ifft_internal_(in, out, n/2, 2*stride); // even
+    hglm_ifft_internal_(in + stride, out + n/2, n/2, 2*stride); // odd
+
+#ifndef HGLM_USE_SIMD
+    for(int k = 0; k < n/2; k++) {
+        float w = 2*(float)HGLM_PI*((float)k/n);
+        float complex v = out[k + n/2] * (cosf(w) + I*sinf(w));
+        out[k + n/2]    = out[k] - v;
+        out[k]          = out[k] + v;
+    }
+#else
+    if (n/2 < 4) {
+        for(int k = 0; k < n/2; k++) {
+            float w = 2*(float)HGLM_PI*((float)k/n);
+            float complex v = out[k + n/2] * (cosf(w) + I*sinf(w));
+            out[k + n/2]    = out[k] - v;
+            out[k]          = out[k] + v;
+        }
+    } else {
+        for(int k = 0; k < n/2; k += 4) {
+            float ws[3]  __attribute__((aligned(16)));
+            __m128 vec_ks      = _mm_set_ps1((float)(k));          // (k, k, k, k)
+            __m128 vec_rns     = _mm_set_ps1(1.0f/n);              // (1/n, 1/n, 1/n, 1/n)
+            __m128 vec_2pi     = _mm_set_ps1(2*HGLM_PI);           // (2*HGLM_PI, 2*HGLM_PI, 2*HGLM_PI, 2*HGLM_PI)
+            __m128 vec_offsets = _mm_set_ps(3, 2, 1, 0);           // (0, 1, 2, 3)
+            __m128 vec_indices = _mm_add_ps(vec_ks, vec_offsets);  // (k, k+1, k+2, k+3)
+            __m128 vec_ts      = _mm_mul_ps(vec_indices, vec_rns); // (k/n, (k+1)/n, (k+2)/n, (k+3)/n)
+            __m128 vec_ws      = _mm_mul_ps(vec_ts, vec_2pi);      // (2*HGLM_PI*(k/n), 2*HGLM_PI*((k+1)/n), 2*HGLM_PI*((k+2)/n), 2*HGLM_PI*((k+3)/n))
+            _mm_store_ps(ws, vec_ws);
+            float complex v0 = out[k + n/2] * (cosf(ws[0]) + I*sinf(ws[0]));
+            float complex v1 = out[k + n/2 + 1] * (cosf(ws[1]) + I*sinf(ws[1]));
+            float complex v2 = out[k + n/2 + 2] * (cosf(ws[2]) + I*sinf(ws[2]));
+            float complex v3 = out[k + n/2 + 3] * (cosf(ws[3]) + I*sinf(ws[3]));
+            out[k + n/2]        = out[k] - v0;
+            out[k]              = out[k] + v0;
+            out[k + n/2 + 1]    = out[k + 1] - v1;
+            out[k + 1]          = out[k + 1] + v1;
+            out[k + n/2 + 2]    = out[k + 2] - v2;
+            out[k + 2]          = out[k + 2] + v2;
+            out[k + n/2 + 3]    = out[k + 3] - v3;
+            out[k + 3]          = out[k + 3] + v3;
+        }
+    }
+#endif
+
+}
+
+
 #endif /* HGLM_H */
 
 #ifdef HGLM_STRIP_PREFIX
@@ -1957,6 +2087,8 @@ typedef HglmMat    Mat;
 #define hermite3                 hglm_hermite3
 #define perlin3D                 hglm_perlin3D
 
+#define fft                      hglm_fft
+#define ifft                     hglm_ifft
 #endif /* HGLM_STRIP_PREFIX */
 
 

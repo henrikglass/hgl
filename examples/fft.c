@@ -1,7 +1,7 @@
 
-#define HGL_FFT_IMPLEMENTATION
-#define HGL_FFT_USE_SIMD
-#include "hgl_fft.h"
+#define HGLM_USE_SIMD
+#define HGLM_STRIP_PREFIX
+#include "hglm.h"
 
 #include <stdio.h>
 #include <stdbool.h>

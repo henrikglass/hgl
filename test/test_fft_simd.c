@@ -1,9 +1,13 @@
 
 #include "hgl_test.h"
 
-#define HGL_FFT_USE_SIMD
-#define HGL_FFT_IMPLEMENTATION
-#include "hgl_fft.h"
+//#define HGL_FFT_USE_SIMD
+//#define HGL_FFT_IMPLEMENTATION
+//#include "hgl_fft.h"
+
+#define HGLM_USE_SIMD
+#define HGLM_STRIP_PREFIX
+#include "hglm.h"
 
 #define N 128
 float signal_sample[N];
