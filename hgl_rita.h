@@ -179,6 +179,7 @@
 
 /*--- Include files ---------------------------------------------------------------------*/
 
+#define HGLM_USE_GENERICS
 #define HGLM_STRIP_PREFIX
 #include "hglm.h"
 
@@ -1221,9 +1222,9 @@ static inline void hgl_rita_use_model_matrix(Mat4 m)
 {
     hgl_rita_ctx__.tform.model = m;
     Mat3 m_normals = mat3_make_from_mat4(m);
-    float c0_len = vec3_len(m_normals.c0);
-    float c1_len = vec3_len(m_normals.c1);
-    float c2_len = vec3_len(m_normals.c2);
+    float c0_len = vec3_length(m_normals.c0);
+    float c1_len = vec3_length(m_normals.c1);
+    float c2_len = vec3_length(m_normals.c2);
     m_normals.c0 = vec3_mul_scalar(m_normals.c0, 1.0f / c0_len);
     m_normals.c1 = vec3_mul_scalar(m_normals.c1, 1.0f / c1_len);
     m_normals.c2 = vec3_mul_scalar(m_normals.c2, 1.0f / c2_len);

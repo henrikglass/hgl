@@ -25,7 +25,7 @@ static inline float sdf_mandelbulb(Vec3 p, int *iter)
 
     int i;
     for (i = 0; i < 15; i++) {
-        r = vec3_len(z);
+        r = vec3_length(z);
         if (r > 2) break;
 
         float theta = acosf(z.z / r) * fractal_power;

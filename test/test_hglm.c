@@ -115,7 +115,7 @@ TEST(test_vec2)
     ASSERT(vec2_eq(hglm_vec2_add(v, u), vec2_make(15, 25)));
     ASSERT(vec2_eq(hglm_vec2_sub(v, u), vec2_make(5, 15)));
     ASSERT(float_eq(hglm_vec2_distance(v, u), sqrtf(5*5+15*15)));
-    ASSERT(float_eq(hglm_vec2_len(v), sqrtf(10*10+20*20)));
+    ASSERT(float_eq(hglm_vec2_length(v), sqrtf(10*10+20*20)));
     ASSERT(vec2_eq(hglm_vec2_normalize(u), vec2_make(1/sqrtf(2), 1/sqrtf(2))));
     ASSERT(float_eq(hglm_vec2_dot(u, t), 0.0f));
     ASSERT(float_eq(hglm_vec2_dot(u, u), 50.0f));

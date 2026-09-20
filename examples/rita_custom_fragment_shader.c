@@ -27,7 +27,7 @@ HglRitaColor my_shader(const struct HglRitaContext *ctx, const HglRitaFragment *
 
     for (size_t i = 0; i < sizeof(lights)/sizeof(lights[0]); i++) {
         Vec3 f_to_l = vec3_sub(lights[i].pos, in->world_pos);
-        float d = vec3_len(f_to_l);
+        float d = vec3_length(f_to_l);
         f_to_l = vec3_normalize(f_to_l);
         float intensity = clamp(0, 1, vec3_dot(vec3_normalize(in->world_normal), f_to_l));
         intensity *= lights[i].brightness / (d*d);

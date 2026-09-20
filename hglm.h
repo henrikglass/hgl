@@ -254,7 +254,7 @@ static HGL_INLINE HglmIVec2 hglm_ivec2_make(int x, int y);
 static HGL_INLINE HglmIVec2 hglm_ivec2_add(HglmIVec2 a, HglmIVec2 b);
 static HGL_INLINE HglmIVec2 hglm_ivec2_sub(HglmIVec2 a, HglmIVec2 b);
 static HGL_INLINE float hglm_ivec2_distance(HglmIVec2 a, HglmIVec2 b);
-static HGL_INLINE float hglm_ivec2_len(HglmIVec2 v);
+static HGL_INLINE float hglm_ivec2_length(HglmIVec2 v);
 static HGL_INLINE HglmIVec2 hglm_ivec2_mul_scalar(HglmIVec2 v, float s);
 static HGL_INLINE HglmIVec2 hglm_ivec2_lerp(HglmIVec2 a, HglmIVec2 b, float amount);
 
@@ -269,9 +269,10 @@ static HGL_INLINE HglmVec2 hglm_vec2_from_polar(float r, float phi);
 static HGL_INLINE HglmVec2 hglm_vec2_add(HglmVec2 a, HglmVec2 b);
 static HGL_INLINE HglmVec2 hglm_vec2_sub(HglmVec2 a, HglmVec2 b);
 static HGL_INLINE float hglm_vec2_distance(HglmVec2 a, HglmVec2 b);
-static HGL_INLINE float hglm_vec2_len(HglmVec2 v);
+static HGL_INLINE float hglm_vec2_length(HglmVec2 v);
 static HGL_INLINE HglmVec2 hglm_vec2_normalize(HglmVec2 v);
 static HGL_INLINE float hglm_vec2_dot(HglmVec2 a, HglmVec2 b);
+static HGL_INLINE float hglm_vec2_cross(HglmVec2 a, HglmVec2 b); // psuedo 2D cross product. I.e. 2x2 matrix determinant
 static HGL_INLINE HglmVec2 hglm_vec2_recip(HglmVec2 v);
 static HGL_INLINE HglmVec2 hglm_vec2_hadamard(HglmVec2 a, HglmVec2 b);
 static HGL_INLINE HglmVec2 hglm_vec2_mul_scalar(HglmVec2 v, float s);
@@ -285,7 +286,7 @@ static HGL_INLINE HglmVec3 hglm_vec3_from_spherical(float r, float phi, float th
 static HGL_INLINE HglmVec3 hglm_vec3_add(HglmVec3 a, HglmVec3 b);
 static HGL_INLINE HglmVec3 hglm_vec3_sub(HglmVec3 a, HglmVec3 b);
 static HGL_INLINE float hglm_vec3_distance(HglmVec3 a, HglmVec3 b);
-static HGL_INLINE float hglm_vec3_len(HglmVec3 v);
+static HGL_INLINE float hglm_vec3_length(HglmVec3 v);
 static HGL_INLINE HglmVec3 hglm_vec3_normalize(HglmVec3 v);
 static HGL_INLINE float hglm_vec3_dot(HglmVec3 a, HglmVec3 b);
 static HGL_INLINE HglmVec3 hglm_vec3_cross(HglmVec3 a, HglmVec3 b);
@@ -301,7 +302,7 @@ static HGL_INLINE HglmVec4 hglm_vec4_make(float x, float y, float z, float w);
 static HGL_INLINE HglmVec4 hglm_vec4_add(HglmVec4 a, HglmVec4 b);
 static HGL_INLINE HglmVec4 hglm_vec4_sub(HglmVec4 a, HglmVec4 b);
 static HGL_INLINE float hglm_vec4_distance(HglmVec4 a, HglmVec4 b);
-static HGL_INLINE float hglm_vec4_len(HglmVec4 v);
+static HGL_INLINE float hglm_vec4_length(HglmVec4 v);
 static HGL_INLINE HglmVec4 hglm_vec4_normalize(HglmVec4 v);
 static HGL_INLINE float hglm_vec4_dot(HglmVec4 a, HglmVec4 b);
 static HGL_INLINE HglmVec4 hglm_vec4_recip(HglmVec4 v);
@@ -367,8 +368,8 @@ static HGL_INLINE void hglm_mat_transpose(HglmMat res, HglmMat m);
 
 static HGL_INLINE float hglm_pid(float error, float last_error, float *i, 
                                  float Kp, float Ki, float Kd, float dt);
-static HGL_INLINE float hglm_lerp(float a, float b, float t);
-static HGL_INLINE float hglm_ilerp(float a, float b, float value);
+static HGL_INLINE float hglm_lerpf(float a, float b, float t);
+static HGL_INLINE float hglm_ilerpf(float a, float b, float value);
 static HGL_INLINE float hglm_clamp(float min, float max, float value);
 static HGL_INLINE float hglm_remap(float in_min, float in_max, float out_min, float out_max, float value);
 static HGL_INLINE float hglm_smoothstep(float t);
@@ -376,8 +377,8 @@ static HGL_INLINE float hglm_sinstep(float t);
 static HGL_INLINE float hglm_lerpsmooth(float a, float b, float dt, float omega);
 static HGL_INLINE float hglm_smoothmin_quadratic(float a, float b, float k);
 static HGL_INLINE float hglm_smoothmin_sigmoid(float a, float b, float k);
-static HGL_INLINE HglmVec4 hglm_bezier3(float t);
-static HGL_INLINE HglmVec4 hglm_hermite3(float t);
+static HGL_INLINE HglmVec4 hglm_bezier3f(float t);
+static HGL_INLINE HglmVec4 hglm_hermite3f(float t);
 static HGL_INLINE float hglm_perlin3D(float x, float y, float z);
 
 static HGL_INLINE void hglm_fft(float in[], float complex out[], int n);
@@ -411,7 +412,7 @@ static HGL_INLINE float hglm_ivec2_distance(HglmIVec2 a, HglmIVec2 b)
     return (int) sqrtf(dx*dx + dy*dy);
 }
 
-static HGL_INLINE float hglm_ivec2_len(HglmIVec2 v)
+static HGL_INLINE float hglm_ivec2_length(HglmIVec2 v)
 {
     return (int) sqrtf(v.x * v.x + v.y * v.y);
 }
@@ -424,8 +425,8 @@ static HGL_INLINE HglmIVec2 hglm_ivec2_mul_scalar(HglmIVec2 v, float s)
 static HGL_INLINE HglmIVec2 hglm_ivec2_lerp(HglmIVec2 a, HglmIVec2 b, float amount)
 {
     return hglm_ivec2_make(
-        (int)hglm_lerp(a.x, b.x, amount),
-        (int)hglm_lerp(a.y, b.y, amount)
+        (int)hglm_lerpf(a.x, b.x, amount),
+        (int)hglm_lerpf(a.y, b.y, amount)
     );
 }
 
@@ -484,20 +485,25 @@ static HGL_INLINE float hglm_vec2_distance(HglmVec2 a, HglmVec2 b)
     return sqrtf(dx*dx + dy*dy);
 }
 
-static HGL_INLINE float hglm_vec2_len(HglmVec2 v)
+static HGL_INLINE float hglm_vec2_length(HglmVec2 v)
 {
     return sqrtf(v.x * v.x + v.y * v.y);
 }
 
 static HGL_INLINE HglmVec2 hglm_vec2_normalize(HglmVec2 v)
 {
-    float ilen = 1.0f / hglm_vec2_len(v);
+    float ilen = 1.0f / hglm_vec2_length(v);
     return (HglmVec2) {.x = v.x * ilen, .y = v.y * ilen};
 }
 
 static HGL_INLINE float hglm_vec2_dot(HglmVec2 a, HglmVec2 b)
 {
     return a.x * b.x + a.y *b.y;
+}
+
+static HGL_INLINE float hglm_vec2_cross(HglmVec2 a, HglmVec2 b)
+{
+    return (a.x * b.y) - (a.y * b.x);
 }
 
 static HGL_INLINE HglmVec2 hglm_vec2_recip(HglmVec2 v)
@@ -539,7 +545,7 @@ static HGL_INLINE HglmVec2 hglm_vec2_slerp(HglmVec2 a, HglmVec2 b, float t)
 
 static HGL_INLINE HglmVec2 hglm_vec2_bezier3(HglmVec2 v0, HglmVec2 v1, HglmVec2 v2, HglmVec2 v3, float t)
 {
-    HglmVec4 bezier3 = hglm_bezier3(t);
+    HglmVec4 bezier3 = hglm_bezier3f(t);
     return hglm_vec2_add(
         hglm_vec2_add(
             hglm_vec2_mul_scalar(v0, bezier3.x),
@@ -589,14 +595,14 @@ static HGL_INLINE float hglm_vec3_distance(HglmVec3 a, HglmVec3 b)
     return sqrtf(dx*dx + dy*dy + dz*dz);
 }
 
-static HGL_INLINE float hglm_vec3_len(HglmVec3 v)
+static HGL_INLINE float hglm_vec3_length(HglmVec3 v)
 {
     return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
 static HGL_INLINE HglmVec3 hglm_vec3_normalize(HglmVec3 v)
 {
-    float ilen = 1.0f / hglm_vec3_len(v);
+    float ilen = 1.0f / hglm_vec3_length(v);
     return (HglmVec3) {.x = v.x * ilen, .y = v.y * ilen, .z = v.z * ilen};
 }
 
@@ -653,7 +659,7 @@ static HGL_INLINE HglmVec3 hglm_vec3_slerp(HglmVec3 a, HglmVec3 b, float t)
 
 static HGL_INLINE HglmVec3 hglm_vec3_bezier3(HglmVec3 v0, HglmVec3 v1, HglmVec3 v2, HglmVec3 v3, float t)
 {
-    HglmVec4 bezier3 = hglm_bezier3(t);
+    HglmVec4 bezier3 = hglm_bezier3f(t);
     return hglm_vec3_add(
         hglm_vec3_add(
             hglm_vec3_mul_scalar(v0, bezier3.x),
@@ -723,7 +729,7 @@ static HGL_INLINE float hglm_vec4_distance(HglmVec4 a, HglmVec4 b)
 #endif
 }
 
-static HGL_INLINE float hglm_vec4_len(HglmVec4 v)
+static HGL_INLINE float hglm_vec4_length(HglmVec4 v)
 {
 #ifdef HGLM_USE_SIMD
     __m128 d = _mm_mul_ps(v.v, v.v);
@@ -738,11 +744,11 @@ static HGL_INLINE float hglm_vec4_len(HglmVec4 v)
 static HGL_INLINE HglmVec4 hglm_vec4_normalize(HglmVec4 v)
 {
 #ifdef HGLM_USE_SIMD
-    float rlen = 1.0f / hglm_vec4_len(v);
+    float rlen = 1.0f / hglm_vec4_length(v);
     __m128 vrlen = _mm_broadcast_ss(&rlen);
     return (HglmVec4) {.v = _mm_mul_ps(v.v, vrlen)};
 #else
-    float len = hglm_vec4_len(v);
+    float len = hglm_vec4_length(v);
     return (HglmVec4) {.x = v.x / len, .y = v.y / len, .z = v.z / len, .w = v.w / len};
 #endif
 }
@@ -811,7 +817,7 @@ static HGL_INLINE HglmVec4 hglm_vec4_lerp(HglmVec4 a, HglmVec4 b, float t)
 
 static HGL_INLINE HglmVec4 hglm_vec4_bezier3(HglmVec4 v0, HglmVec4 v1, HglmVec4 v2, HglmVec4 v3, float t)
 {
-    HglmVec4 bezier3 = hglm_bezier3(t);
+    HglmVec4 bezier3 = hglm_bezier3f(t);
     return hglm_vec4_add(
         hglm_vec4_add(
             hglm_vec4_mul_scalar(v0, bezier3.x),
@@ -1634,12 +1640,12 @@ static HGL_INLINE float hglm_pid(float error, float last_error, float *i,
     return Kp*p + Ki*(*i) + Kd*d;
 }
 
-static HGL_INLINE float hglm_lerp(float a, float b, float t)
+static HGL_INLINE float hglm_lerpf(float a, float b, float t)
 {
     return (1.0f - t) * a + t * b; // value
 }
 
-static HGL_INLINE float hglm_ilerp(float a, float b, float value)
+static HGL_INLINE float hglm_ilerpf(float a, float b, float value)
 {
     return (value - a) / (b - a); // t
 }
@@ -1658,8 +1664,8 @@ static HGL_INLINE float hglm_remap(float in_min,
                                    float out_max,
                                    float value)
 {
-    float t = hglm_ilerp(in_min, in_max, value);
-    return hglm_lerp(out_min, out_max, t);
+    float t = hglm_ilerpf(in_min, in_max, value);
+    return hglm_lerpf(out_min, out_max, t);
 }
 
 static HGL_INLINE float hglm_smoothstep(float t)
@@ -1696,7 +1702,7 @@ static HGL_INLINE float hglm_smoothmin_sigmoid(float a, float b, float k)
     return a + x / (1.0f - exp2f(x / k));
 }
 
-static HGL_INLINE HglmVec4 hglm_bezier3(float t)
+static HGL_INLINE HglmVec4 hglm_bezier3f(float t)
 {
     HglmMat4 bezier3 = ((HglmMat4) {.m00 =  1.0f, .m01 =  0.0f, .m02 =  0.0f, .m03 =  0.0f,
                                     .m10 = -3.0f, .m11 =  3.0f, .m12 =  0.0f, .m13 =  0.0f,
@@ -1711,7 +1717,7 @@ static HGL_INLINE HglmVec4 hglm_bezier3(float t)
     };
 }
 
-static HGL_INLINE HglmVec4 hglm_hermite3(float t)
+static HGL_INLINE HglmVec4 hglm_hermite3f(float t)
 {
     HglmMat4 hermite3 = ((HglmMat4) {.m00 =  1.0f, .m01 =  0.0f, .m02 =  0.0f, .m03 =  0.0f,
                                      .m10 =  0.0f, .m11 =  1.0f, .m12 =  0.0f, .m13 =  0.0f,
@@ -1771,14 +1777,14 @@ static HGL_INLINE float hglm_perlin3D(float x, float y, float z)
     int B  = P[X+1] + Y;
     int BA = P[B] + Z;
     int BB = P[B+1] + Z;
-    return 0.5f + hglm_lerp(hglm_lerp(hglm_lerp(hglm_grad(P[AA  ], x    , y    , z    ),
-                                                hglm_grad(P[BA  ], x - 1, y    , z    ), u),
-                                      hglm_lerp(hglm_grad(P[AB  ], x    , y - 1, z    ),
-                                                hglm_grad(P[BB  ], x - 1, y - 1, z    ), u), v),
-                            hglm_lerp(hglm_lerp(hglm_grad(P[AA+1], x    , y    , z - 1),
-                                                hglm_grad(P[BA+1], x - 1, y    , z - 1), u),
-                                      hglm_lerp(hglm_grad(P[AB+1], x    , y - 1, z - 1),
-                                                hglm_grad(P[BB+1], x - 1, y - 1, z - 1), u), v), w);
+    return 0.5f + hglm_lerpf(hglm_lerpf(hglm_lerpf(hglm_grad(P[AA  ], x    , y    , z    ),
+                                                   hglm_grad(P[BA  ], x - 1, y    , z    ), u),
+                                        hglm_lerpf(hglm_grad(P[AB  ], x    , y - 1, z    ),
+                                                   hglm_grad(P[BB  ], x - 1, y - 1, z    ), u), v),
+                             hglm_lerpf(hglm_lerpf(hglm_grad(P[AA+1], x    , y    , z - 1),
+                                                   hglm_grad(P[BA+1], x - 1, y    , z - 1), u),
+                                        hglm_lerpf(hglm_grad(P[AB+1], x    , y - 1, z - 1),
+                                                   hglm_grad(P[BB+1], x - 1, y - 1, z - 1), u), v), w);
 }
 
 
@@ -1952,6 +1958,179 @@ static void hglm_ifft_internal_(float complex in[], float complex out[], int n, 
 
 #endif /* HGLM_H */
 
+
+#ifdef HGLM_USE_GENERICS
+
+#define hglm_lerp(a, b, t)        \
+    _Generic((a),                 \
+        float:    hglm_lerpf,     \
+        HglmVec2: hglm_vec2_lerp, \
+        HglmVec3: hglm_vec3_lerp, \
+        HglmVec4: hglm_vec4_lerp  \
+    ) ((a), (b), (t))
+
+#define hglm_slerp(a, b, t)        \
+    _Generic((a),                  \
+        HglmVec2: hglm_vec2_slerp, \
+        HglmVec3: hglm_vec3_slerp, \
+    ) ((a), (b), (t))
+
+#define hglm_add(a, b)             \
+    _Generic((a),                  \
+        HglmIVec2: hglm_ivec2_add, \
+        HglmIVec3: hglm_ivec2_add, \
+        HglmIVec4: hglm_ivec2_add, \
+        HglmVec2:  hglm_vec2_add,  \
+        HglmVec3:  hglm_vec3_add,  \
+        HglmVec4:  hglm_vec4_add,  \
+        HglmMat2:  hglm_mat2_add,  \
+        HglmMat3:  hglm_mat3_add,  \
+        HglmMat4:  hglm_mat4_add   \
+    ) ((a), (b))
+
+#define hglm_sub(a, b)             \
+    _Generic((a),                  \
+        HglmIVec2: hglm_ivec2_sub, \
+        HglmIVec3: hglm_ivec2_sub, \
+        HglmIVec4: hglm_ivec2_sub, \
+        HglmVec2:  hglm_vec2_sub,  \
+        HglmVec3:  hglm_vec3_sub,  \
+        HglmVec4:  hglm_vec4_sub,  \
+        HglmMat2:  hglm_mat2_sub,  \
+        HglmMat3:  hglm_mat3_sub,  \
+        HglmMat4:  hglm_mat4_sub   \
+    ) ((a), (b))
+
+#define hglm_distance(a, b)             \
+    _Generic((a),                       \
+        HglmIVec2: hglm_ivec2_distance, \
+        HglmIVec3: hglm_ivec2_distance, \
+        HglmIVec4: hglm_ivec2_distance, \
+        HglmVec2:  hglm_vec2_distance,  \
+        HglmVec3:  hglm_vec3_distance,  \
+        HglmVec4:  hglm_vec4_distance   \
+    ) ((a), (b))
+
+#define hglm_length(v)                  \
+    _Generic((v),                       \
+        HglmVec2:  hglm_vec2_length,    \
+        HglmVec3:  hglm_vec3_length,    \
+        HglmVec4:  hglm_vec4_length     \
+    ) ((v))
+
+#define hglm_normalize(v)               \
+    _Generic((v),                       \
+        HglmVec2:  hglm_vec2_normalize, \
+        HglmVec3:  hglm_vec3_normalize, \
+        HglmVec4:  hglm_vec4_normalize  \
+    ) ((v))
+
+#define hglm_dot(a, b)            \
+    _Generic((a),                 \
+        HglmVec2:  hglm_vec2_dot, \
+        HglmVec3:  hglm_vec3_dot, \
+        HglmVec4:  hglm_vec4_dot  \
+    ) ((a), (b))
+
+#define hglm_cross(a, b)            \
+    _Generic((a),                   \
+        HglmVec2:  hglm_vec2_cross, \
+        HglmVec3:  hglm_vec3_cross  \
+    ) ((a), (b))
+
+#define hglm_recip(v)               \
+    _Generic((v),                   \
+        HglmVec2:  hglm_vec2_recip, \
+        HglmVec3:  hglm_vec3_recip, \
+        HglmVec4:  hglm_vec4_recip  \
+    ) ((v))
+
+#define hglm_hadamard(a, b)            \
+    _Generic((a),                      \
+        HglmVec2:  hglm_vec2_hadamard, \
+        HglmVec3:  hglm_vec3_hadamard, \
+        HglmVec4:  hglm_vec4_hadamard  \
+    ) ((a), (b))
+
+#define hglm_reflect(v, normal)       \
+    _Generic((v),                     \
+        HglmVec2:  hglm_vec2_reflect, \
+        HglmVec3:  hglm_vec3_reflect, \
+    ) ((v), (normal))
+
+#define hglm_bezier3(a, b, c, d, t)    \
+    _Generic((a),                      \
+        float:     hglm_bezier3f,      \
+        HglmVec2:  hglm_vec2_bezier3,  \
+        HglmVec3:  hglm_vec3_bezier3,  \
+        HglmVec4:  hglm_vec4_bezier3   \
+    ) ((a), (b), (c), (d), (t))
+
+#define hglm_det(m)                 \
+    _Generic((m),                   \
+        HglmVec2:  hglm_mat2_det,   \
+        HglmVec3:  hglm_mat3_det,   \
+        HglmVec4:  hglm_mat4_det    \
+    ) ((m))
+
+#define hglm_transpose(m)                 \
+    _Generic((m),                         \
+        HglmVec2:  hglm_mat2_transpose,   \
+        HglmVec3:  hglm_mat3_transpose,   \
+        HglmVec4:  hglm_mat4_transpose    \
+    ) ((m))
+
+#define hglm_mul(a, b)                    \
+    _Generic((a),                         \
+        HglmIVec2: _Generic((b),          \
+            float: hglm_ivec2_mul_scalar  \
+        ),                                \
+        HglmVec2: _Generic((b),           \
+            float: hglm_vec2_mul_scalar   \
+        ),                                \
+        HglmVec3: _Generic((b),           \
+            float: hglm_vec3_mul_scalar   \
+        ),                                \
+        HglmVec4: _Generic((b),           \
+            float: hglm_vec4_mul_scalar   \
+        ),                                \
+        HglmMat2: _Generic((b),           \
+            float: hglm_mat2_mul_scalar,  \
+            HglmVec2: hglm_mat2_mul_vec2, \
+            HglmMat2: hglm_mat2_mul_mat2  \
+        ),                                \
+        HglmMat3: _Generic((b),           \
+            float: hglm_mat3_mul_scalar,  \
+            HglmVec3: hglm_mat3_mul_vec3, \
+            HglmMat3: hglm_mat3_mul_mat3  \
+        ),                                \
+        HglmMat4: _Generic((b),           \
+            float: hglm_mat4_mul_scalar,  \
+            HglmVec4: hglm_mat4_mul_vec4, \
+            HglmMat4: hglm_mat4_mul_mat4  \
+        ),                                \
+    ) ((a), (b))
+
+#ifdef HGLM_STRIP_PREFIX
+#  define lerp          hglm_lerp
+#  define slerp         hglm_slerp
+#  define add           hglm_add
+#  define sub           hglm_sub
+#  define distance      hglm_distance
+#  define length        hglm_length
+#  define normalize     hglm_normalize
+#  define dot           hglm_dot
+#  define cross         hglm_cross
+#  define recip         hglm_recip
+#  define hadamard      hglm_hadamard
+#  define reflect       hglm_reflect
+#  define bezier3       hglm_bezier3
+#  define det           hglm_det
+#  define mul           hglm_mul
+#endif
+
+#endif /* HGLM_USE_GENERICS */
+
 #ifdef HGLM_STRIP_PREFIX
  
 #ifndef PI
@@ -1993,7 +2172,7 @@ typedef HglmMat    Mat;
 #define ivec2_add                hglm_ivec2_add
 #define ivec2_sub                hglm_ivec2_sub
 #define ivec2_distance           hglm_ivec2_distance
-#define ivec2_len                hglm_ivec2_len
+#define ivec2_length             hglm_ivec2_length
 #define ivec2_mul_scalar         hglm_ivec2_mul_scalar
 #define ivec2_lerp               hglm_ivec2_lerp
 
@@ -2009,9 +2188,10 @@ typedef HglmMat    Mat;
 #define vec2_add                 hglm_vec2_add
 #define vec2_sub                 hglm_vec2_sub
 #define vec2_distance            hglm_vec2_distance
-#define vec2_len                 hglm_vec2_len
+#define vec2_length              hglm_vec2_length
 #define vec2_normalize           hglm_vec2_normalize
 #define vec2_dot                 hglm_vec2_dot
+#define vec2_cross               hglm_vec2_cross
 #define vec2_recip               hglm_vec2_recip
 #define vec2_hadamard            hglm_vec2_hadamard
 #define vec2_mul_scalar          hglm_vec2_mul_scalar
@@ -2026,7 +2206,7 @@ typedef HglmMat    Mat;
 #define vec3_add                 hglm_vec3_add
 #define vec3_sub                 hglm_vec3_sub
 #define vec3_distance            hglm_vec3_distance
-#define vec3_len                 hglm_vec3_len
+#define vec3_length              hglm_vec3_length
 #define vec3_normalize           hglm_vec3_normalize
 #define vec3_dot                 hglm_vec3_dot
 #define vec3_cross               hglm_vec3_cross
@@ -2043,7 +2223,7 @@ typedef HglmMat    Mat;
 #define vec4_add                 hglm_vec4_add
 #define vec4_sub                 hglm_vec4_sub
 #define vec4_distance            hglm_vec4_distance
-#define vec4_len                 hglm_vec4_len
+#define vec4_length              hglm_vec4_length
 #define vec4_normalize           hglm_vec4_normalize
 #define vec4_dot                 hglm_vec4_dot
 #define vec4_recip               hglm_vec4_recip
@@ -2113,8 +2293,8 @@ typedef HglmMat    Mat;
 #define mat_transpose            hglm_mat_transpose
 
 #define pid                      hglm_pid
-#define lerp                     hglm_lerp
-#define ilerp                    hglm_ilerp
+#define lerpf                    hglm_lerpf
+#define ilerpf                   hglm_ilerpf
 #define clamp                    hglm_clamp
 #define remap                    hglm_remap
 #define smoothstep               hglm_smoothstep
@@ -2123,12 +2303,13 @@ typedef HglmMat    Mat;
 #define lerpsmooth               hglm_lerpsmooth
 #define smoothmin_quadratic      hglm_smoothmin_quadratic
 #define smoothmin_sigmoid        hglm_smoothmin_sigmoid
-#define bezier3                  hglm_bezier3
-#define hermite3                 hglm_hermite3
+#define bezier3f                 hglm_bezier3f
+#define hermite3f                hglm_hermite3f
 #define perlin3D                 hglm_perlin3D
 
 #define fft                      hglm_fft
 #define ifft                     hglm_ifft
+
 #endif /* HGLM_STRIP_PREFIX */
 
 
