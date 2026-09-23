@@ -43,7 +43,7 @@ static inline HglRitaColor analog_camera(const HglRitaContext *ctx, const HglRit
     const float grain_amount = 0.21;
 
     /* Chromatic abberation */
-    float strength = powf(vec2_distance(in->uv, vec2_make(0.5f, 0.5f)), 1.4142);
+    float strength = powf(vec2_distance(in->uv, vec2(0.5f, 0.5f)), 1.4142);
     Vec2 uv_r = in->uv;
     Vec2 uv_g = in->uv;
     Vec2 uv_b = in->uv;
@@ -102,11 +102,11 @@ static inline HglRitaColor sobel_sharpen(const HglRitaContext *ctx, const HglRit
     int b = 0;
     float du = 1.0f / (float)image.width;
     float dv = 1.0f / (float)image.height;
-    texel = hgl_rita_sample_uv(&image, vec2_make(in->uv.x, in->uv.y - dv));
+    texel = hgl_rita_sample_uv(&image, vec2(in->uv.x, in->uv.y - dv));
     r += -1.0f * texel.r;
     g += -1.0f * texel.g;
     b += -1.0f * texel.b;
-    texel = hgl_rita_sample_uv(&image, vec2_make(in->uv.x - du, in->uv.y));
+    texel = hgl_rita_sample_uv(&image, vec2(in->uv.x - du, in->uv.y));
     r += -1.0f * texel.r;
     g += -1.0f * texel.g;
     b += -1.0f * texel.b;
@@ -114,11 +114,11 @@ static inline HglRitaColor sobel_sharpen(const HglRitaContext *ctx, const HglRit
     r += 5.0f * texel.r;
     g += 5.0f * texel.g;
     b += 5.0f * texel.b;
-    texel = hgl_rita_sample_uv(&image, vec2_make(in->uv.x + du, in->uv.y));
+    texel = hgl_rita_sample_uv(&image, vec2(in->uv.x + du, in->uv.y));
     r += -1.0f * texel.r;
     g += -1.0f * texel.g;
     b += -1.0f * texel.b;
-    texel = hgl_rita_sample_uv(&image, vec2_make(in->uv.x, in->uv.y + dv));
+    texel = hgl_rita_sample_uv(&image, vec2(in->uv.x, in->uv.y + dv));
     r += -1.0f * texel.r;
     g += -1.0f * texel.g;
     b += -1.0f * texel.b;

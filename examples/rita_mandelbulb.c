@@ -33,7 +33,7 @@ static inline float sdf_mandelbulb(Vec3 p, int *iter)
         float zr = powf(r, fractal_power);
         dr = powf(r, fractal_power - 1) * fractal_power * dr + 1;
 
-        z = vec3_mul_scalar(vec3_make(sinf(theta) * cosf(phi), sinf(phi) * sinf(theta), cosf(theta)), zr);
+        z = vec3_mul_scalar(vec3(sinf(theta) * cosf(phi), sinf(phi) * sinf(theta), cosf(theta)), zr);
         z = vec3_add(z, p);
     }
     
@@ -43,11 +43,11 @@ static inline float sdf_mandelbulb(Vec3 p, int *iter)
 
 static inline Vec3 calc_view_dir(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
-    Mat3 iview = mat3_transpose(mat3_make_from_mat4(ctx->tform.view));
+    Mat3 iview = mat3_transpose(mat3_demote_from_mat4(ctx->tform.view));
     float x = 2.0f * in->uv.x - 1.0f;
     float y = 2.0f * in->uv.y - 1.0f;
     float z = ctx->tform.proj.m11; 
-    Vec3 dir = vec3_make(x * ctx->tform.camera.aspect, -y, -z);
+    Vec3 dir = vec3(x * ctx->tform.camera.aspect, -y, -z);
     dir = vec3_normalize(dir);
     dir = mat3_mul_vec3(iview, dir);
     return dir; 
@@ -55,10 +55,10 @@ static inline Vec3 calc_view_dir(const HglRitaContext *ctx, const HglRitaFragmen
 
 static Vec3 calc_normal(Vec3 p) {
     int dummy;
-    float x = sdf_mandelbulb(vec3_make(p.x + EPSILON, p.y, p.z), &dummy) - sdf_mandelbulb(vec3_make(p.x - EPSILON, p.y, p.z), &dummy);
-    float y = sdf_mandelbulb(vec3_make(p.x, p.y + EPSILON, p.z), &dummy) - sdf_mandelbulb(vec3_make(p.x, p.y - EPSILON, p.z), &dummy);
-    float z = sdf_mandelbulb(vec3_make(p.x, p.y, p.z + EPSILON), &dummy) - sdf_mandelbulb(vec3_make(p.x, p.y, p.z - EPSILON), &dummy);
-    return vec3_normalize(vec3_make(x, y, z));
+    float x = sdf_mandelbulb(vec3(p.x + EPSILON, p.y, p.z), &dummy) - sdf_mandelbulb(vec3(p.x - EPSILON, p.y, p.z), &dummy);
+    float y = sdf_mandelbulb(vec3(p.x, p.y + EPSILON, p.z), &dummy) - sdf_mandelbulb(vec3(p.x, p.y - EPSILON, p.z), &dummy);
+    float z = sdf_mandelbulb(vec3(p.x, p.y, p.z + EPSILON), &dummy) - sdf_mandelbulb(vec3(p.x, p.y, p.z - EPSILON), &dummy);
+    return vec3_normalize(vec3(x, y, z));
 }
 
 static inline HglRitaColor raymarch(const HglRitaContext *ctx, const HglRitaFragment *in)
@@ -85,7 +85,7 @@ static inline HglRitaColor raymarch(const HglRitaContext *ctx, const HglRitaFrag
         if (d < EPSILON) {
             Vec3 N = calc_normal(vec3_sub(p, vec3_mul_scalar(rd, EPSILON*2.0f)));
             N = mat3_mul_vec3(ctx->tform.iview, N);
-            float l = 0.5f*(vec3_dot(N, vec3_normalize(vec3_make(1,1,-1))) + 1.0f);
+            float l = 0.5f*(vec3_dot(N, vec3_normalize(vec3(1,1,-1))) + 1.0f);
             HglRitaColor c0 = hgl_rita_color_mul_scalar(HGL_RITA_MAGENTA, l);
             HglRitaColor c1 = hgl_rita_color_mul_scalar(HGL_RITA_DARK_GREEN, (float)iter / 16.0f);
             color = hgl_rita_color_add(c0, c1);
@@ -133,9 +133,9 @@ int main()
     while (!WindowShouldClose() && !IsKeyPressed(KEY_Q))
     {
         /* animate */
-        hgl_rita_use_camera_view(vec3_make(2.5f*sinf(frame_count*0.005f), 0, 2.5f*cosf(frame_count*0.005f)), 
-                                 vec3_make(0,0,0), 
-                                 vec3_make(0, 1, 0));
+        hgl_rita_use_camera_view(vec3(2.5f*sinf(frame_count*0.005f), 0, 2.5f*cosf(frame_count*0.005f)), 
+                                 vec3(0,0,0), 
+                                 vec3(0, 1, 0));
         fractal_power = -5 * cosf(frame_count*0.005f) + 6;
 
         /* Draw! */

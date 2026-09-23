@@ -46,8 +46,8 @@ int main()
     MyModel model = load_model_from_obj("assets/castle.obj");
     model.diffuse = load_texture("assets/castle4k.png");
     model.winding_order = RITA_CCW;
-    model.tform = mat4_scale(model.tform, vec3_make(1.8f, 1.8f, 1.8f));
-    model.tform = mat4_translate(model.tform, vec3_make(0.0, -30.0, 0));
+    model.tform = mat4_scale(model.tform, vec3(1.8f, 1.8f, 1.8f));
+    model.tform = mat4_translate(model.tform, vec3(0.0, -30.0, 0));
     rita_use_vertex_buffer_mode(RITA_INDEXED);
     rita_bind_buffer(RITA_VERTEX_BUFFER, &model.vbuf);
     rita_bind_buffer(RITA_INDEX_BUFFER, &model.ibuf);
@@ -76,10 +76,10 @@ int main()
 
         /* update */
         float d = 80;
-        //Mat4 view = mat4_look_at(vec3_make(d*sinf(0.01*frame_count), 20, d*cosf(0.01*frame_count)), 
-        //                         vec3_make(0, 0, 0), vec3_make(0,1,0));
-        rita_use_camera_view(vec3_make(d*sinf(0.01*frame_count), 20, d*cosf(0.01*frame_count)), 
-                             vec3_make(0, 0, 0), vec3_make(0,1,0));
+        //Mat4 view = mat4_look_at(vec3(d*sinf(0.01*frame_count), 20, d*cosf(0.01*frame_count)), 
+        //                         vec3(0, 0, 0), vec3(0,1,0));
+        rita_use_camera_view(vec3(d*sinf(0.01*frame_count), 20, d*cosf(0.01*frame_count)), 
+                             vec3(0, 0, 0), vec3(0,1,0));
 
         /* raylib stuff */
         UpdateTexture(color_tex, color_image.data);

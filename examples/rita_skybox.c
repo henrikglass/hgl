@@ -101,13 +101,13 @@ int main()
         /* animate the camera */
         float d = 35;
         float h = 20;
-        camera_pos = vec3_make(d*cosf(frame*0.01f), 
-                               h*sinf(frame*0.05f), 
-                               d*sinf(frame*0.01f));
+        camera_pos = vec3(d*cosf(frame*0.01f), 
+                          h*sinf(frame*0.05f), 
+                          d*sinf(frame*0.01f));
         hgl_rita_use_camera_view(
             camera_pos, 
-            vec3_make(0, 0, 0), 
-            vec3_make(0, 1, 0)
+            vec3(0, 0, 0), 
+            vec3(0, 1, 0)
         );
 
         /* raylib stuff: IGNORE */

@@ -53,8 +53,8 @@ int main()
     hgl_rita_use_clear_color(HGL_RITA_MORTEL_BLACK);
 
     /* Setup the camera */
-    Mat4 view = mat4_look_at(vec3_make(0, 10, 100), vec3_make(0,  0,   0), vec3_make(0,  1,   0));
-    Mat4 proj = mat4_make_perspective(3.1415f/4.0f, (float)WIDTH/(float)HEIGHT, 2.0f, 1000.0f);
+    Mat4 view = mat4_look_at(vec3(0, 10, 100), vec3(0,  0,   0), vec3(0,  1,   0));
+    Mat4 proj = mat4_perspective(3.1415f/4.0f, (float)WIDTH/(float)HEIGHT, 2.0f, 1000.0f);
     hgl_rita_use_view_matrix(view);
     hgl_rita_use_proj_matrix(proj);
 
@@ -101,8 +101,8 @@ int main()
         hgl_rita_finish();
 
         /* move the teapot a tiny bit per frame. */
-        teapot.tform = mat4_make_rotation(0.01*frame, vec3_make(0,1,0));
-        teapot.tform = mat4_translate(teapot.tform, vec3_make(30*sinf(frame*0.01f),0.0,0.0));
+        teapot.tform = mat4_make_rotation(0.01*frame, vec3(0,1,0));
+        teapot.tform = mat4_translate(teapot.tform, vec3(30*sinf(frame*0.01f),0.0,0.0));
         hgl_rita_use_model_matrix(teapot.tform);
 
         /* raylib stuff: IGNORE */

@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
     hgl_rita_bind_texture(HGL_RITA_TEX_FRAME_BUFFER, &fb_color);
     hgl_rita_use_clear_color(HGL_RITA_MORTEL_BLACK);
     hgl_rita_use_viewport(512, 512);
-    Mat4 view = mat4_make_ortho(-10, 10, -10, 10, -10, 10);
+    Mat4 view = mat4_ortho(-10, 10, -10, 10, -10, 10);
     hgl_rita_use_view_matrix(view);
     hgl_rita_disable(HGL_RITA_DEPTH_BUFFER_WRITING);
     hgl_rita_disable(HGL_RITA_DEPTH_TESTING);

@@ -1020,15 +1020,15 @@ static inline void hgl_rita_init()
     hgl_rita_ctx__.opts.show_tile_outlines                      = false;
 
     /* setup default transforms */
-    hgl_rita_ctx__.tform.model           = mat4_make_identity();
-    hgl_rita_ctx__.tform.view            = mat4_make_identity();
-    hgl_rita_ctx__.tform.proj            = mat4_make_identity();
-    hgl_rita_ctx__.tform.viewport        = mat4_make_identity();
-    hgl_rita_ctx__.tform.normals         = mat3_make_identity();
-    hgl_rita_ctx__.tform.iview           = mat3_make_identity();
-    hgl_rita_ctx__.tform.camera.position = vec3_make(0,0,0);
-    hgl_rita_ctx__.tform.camera.target   = vec3_make(0,0,0);
-    hgl_rita_ctx__.tform.camera.up       = vec3_make(0,1,0);
+    hgl_rita_ctx__.tform.model           = mat4_identity();
+    hgl_rita_ctx__.tform.view            = mat4_identity();
+    hgl_rita_ctx__.tform.proj            = mat4_identity();
+    hgl_rita_ctx__.tform.viewport        = mat4_identity();
+    hgl_rita_ctx__.tform.normals         = mat3_identity();
+    hgl_rita_ctx__.tform.iview           = mat3_identity();
+    hgl_rita_ctx__.tform.camera.position = vec3(0,0,0);
+    hgl_rita_ctx__.tform.camera.target   = vec3(0,0,0);
+    hgl_rita_ctx__.tform.camera.up       = vec3(0,1,0);
     hgl_rita_ctx__.tform.camera.fov      = 0.0f;
     hgl_rita_ctx__.tform.camera.aspect   = 1.0f;
     hgl_rita_ctx__.tform.camera.znear    = 0.0f;
@@ -1221,7 +1221,7 @@ static inline void hgl_rita_use_vertex_buffer_mode(HglRitaVertexBufferMode mode)
 static inline void hgl_rita_use_model_matrix(Mat4 m)
 {
     hgl_rita_ctx__.tform.model = m;
-    Mat3 m_normals = mat3_make_from_mat4(m);
+    Mat3 m_normals = mat3_demote_from_mat4(m);
     float c0_len = vec3_length(m_normals.c0);
     float c1_len = vec3_length(m_normals.c1);
     float c2_len = vec3_length(m_normals.c2);
@@ -1234,7 +1234,7 @@ static inline void hgl_rita_use_model_matrix(Mat4 m)
 static inline void hgl_rita_use_view_matrix(Mat4 m)
 {
     hgl_rita_ctx__.tform.view = m;
-    hgl_rita_ctx__.tform.iview = mat3_transpose(mat3_make_from_mat4(m));
+    hgl_rita_ctx__.tform.iview = mat3_transpose(mat3_demote_from_mat4(m));
 }
 
 static inline void hgl_rita_use_proj_matrix(Mat4 m)
@@ -1254,7 +1254,7 @@ static inline void hgl_rita_use_camera_view(Vec3 pos, Vec3 tgt, Vec3 up)
 static inline void hgl_rita_use_perspective_proj(float fov, float aspect, 
                                                  float znear, float zfar)
 {
-    Mat4 m = mat4_make_perspective(fov, aspect, znear, zfar);
+    Mat4 m = mat4_perspective(fov, aspect, znear, zfar);
     hgl_rita_use_proj_matrix(m);
     hgl_rita_ctx__.tform.camera.fov    = fov;
     hgl_rita_ctx__.tform.camera.aspect = aspect;
@@ -1266,7 +1266,7 @@ static inline void hgl_rita_use_orthographic_proj(float left, float right,
                                                   float bottom, float top,
                                                   float near, float far)
 {
-    Mat4 m = mat4_make_ortho(left, right, bottom, top, near, far);
+    Mat4 m = mat4_ortho(left, right, bottom, top, near, far);
     hgl_rita_ctx__.tform.proj          = m;
     hgl_rita_ctx__.tform.camera.fov    = 0.0f;
     hgl_rita_ctx__.tform.camera.aspect = 1.0f;
@@ -1277,8 +1277,8 @@ static inline void hgl_rita_use_orthographic_proj(float left, float right,
 
 static inline void hgl_rita_use_viewport(int width, int height)
 {
-    Mat4 m = mat4_make_translation(vec3_make((float)width/2.0f, (float)height/2.0f, 0.0f));
-    m = mat4_scale(m, vec3_make(width/2.0f, -height/2.0f, 1.0f));
+    Mat4 m = mat4_make_translation(vec3((float)width/2.0f, (float)height/2.0f, 0.0f));
+    m = mat4_scale(m, vec3(width/2.0f, -height/2.0f, 1.0f));
     hgl_rita_ctx__.tform.viewport = m;
 }
 
@@ -2866,7 +2866,7 @@ static inline void hgl_rita_process_op_internal_(HglRitaOp op, HglRitaAABB bound
                             float sn_x = 2.0f*((float)screen_x / (float)fb_w) - 1.0f;
                             float sn_y = 2.0f*((float)screen_y / (float)fb_h) - 1.0f;
                             float z = hgl_rita_ctx__.tform.proj.m11;
-                            Vec3 dir = vec3_make(hgl_rita_ctx__.tform.camera.aspect * sn_x, -sn_y, -z);
+                            Vec3 dir = vec3(hgl_rita_ctx__.tform.camera.aspect * sn_x, -sn_y, -z);
                             dir = vec3_normalize(dir);
                             dir = mat3_mul_vec3(hgl_rita_ctx__.tform.iview, dir);
                             src_color = hgl_rita_sample_rectilinear(src, dir);
@@ -2876,7 +2876,7 @@ static inline void hgl_rita_process_op_internal_(HglRitaOp op, HglRitaAABB bound
                             float sn_x = 2.0f*((float)screen_x / (float)fb_w) - 1.0f;
                             float sn_y = 2.0f*((float)screen_y / (float)fb_h) - 1.0f;
                             float z = hgl_rita_ctx__.tform.proj.m11;
-                            Vec3 dir = vec3_make(hgl_rita_ctx__.tform.camera.aspect * sn_x, -sn_y, -z);
+                            Vec3 dir = vec3(hgl_rita_ctx__.tform.camera.aspect * sn_x, -sn_y, -z);
                             //dir = vec3_normalize(dir); // not needed
                             dir = mat3_mul_vec3(hgl_rita_ctx__.tform.iview, dir);
                             src_color = hgl_rita_sample_cubemap(src, dir);

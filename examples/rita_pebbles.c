@@ -43,12 +43,12 @@ static inline RitaVertex my_vertex_shader(const RitaContext *ctx, const RitaVert
 static inline RitaColor my_fragment_shader(const RitaContext *ctx, const RitaFragment *in)
 {
     (void) ctx;
-    Vec3 L  = vec3_normalize(vec3_make(1,1, sinf(frame_count*0.09f))); // light vector
+    Vec3 L  = vec3_normalize(vec3(1,1, sinf(frame_count*0.09f))); // light vector
     Vec3 IV = vec3_normalize(vec3_sub(in->world_pos, camera_pos)); // inverse view vector
     Vec3 N  = in->world_normal;
     Vec3 T  = in->world_tangent;
     Vec3 B  = vec3_cross(N, T);
-    Mat3 TBN = mat3_make(T, B, N); 
+    Mat3 TBN = mat3(T, B, N); 
 
     RitaColor n0c = rita_sample_unit_uv(RITA_TEX_NORMAL, in->uv);
     Vec3 n0;
@@ -101,8 +101,8 @@ int main()
     rita_bind_texture(RITA_TEX_DEPTH_BUFFER, &fb_depth);
 
     /* Setup the camera (the view matrix is created in the draw loop) */
-    camera_pos = vec3_make(0, 0, 0);
-    Mat4 proj = mat4_make_perspective(3.1415f/4.0f, (float)WIDTH/(float)HEIGHT, 2.0f, 1000.0f);
+    camera_pos = vec3(0, 0, 0);
+    Mat4 proj = mat4_perspective(3.1415f/4.0f, (float)WIDTH/(float)HEIGHT, 2.0f, 1000.0f);
     rita_use_proj_matrix(proj);
 
     /* Specify the viewport (maps NDC:s to x \in [0,800], y \in [0,600]) */
@@ -163,10 +163,10 @@ int main()
 
         float t1 = clamp(0, 0.99, 0.5f + 1.4f*sinf(frame_count*0.03f));
         float t2 = clamp(0, 0.99, 0.5f + 1.4f*sinf(frame_count*0.03f + 3.1415f));
-        camera_pos = vec3_lerp(vec3_make(0,20,0),vec3_make(0,20,20), t1);
+        camera_pos = vec3_lerp(vec3(0,20,0),vec3(0,20,20), t1);
         Mat4 view = mat4_look_at(camera_pos, 
-                                 vec3_make(0,0,0), 
-                                 vec3_lerp(vec3_make(0,0,-1),vec3_make(0,1,0), t2));
+                                 vec3(0,0,0), 
+                                 vec3_lerp(vec3(0,0,-1),vec3(0,1,0), t2));
         if (!pause_animation) {
             rita_use_view_matrix(view);
         }

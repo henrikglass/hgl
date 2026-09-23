@@ -165,7 +165,7 @@ static inline HglRitaVertex HGL_RITA_VERTEX_DIRECTIONAL_LIGHT_SHADER(const HglRi
 #endif
 
     Vec3 n = mat3_mul_vec3(ctx->tform.normals, in->normal);
-    float light = 0.2f + 0.8f*clamp(0, 1, vec3_dot(n, vec3_normalize(vec3_make(1,1,1))));
+    float light = 0.2f + 0.8f*clamp(0, 1, vec3_dot(n, vec3_normalize(vec3(1,1,1))));
     out.color = hgl_rita_color_mul_scalar(out.color, light);
     out.color.a = 255;
 
@@ -230,7 +230,7 @@ static inline HglRitaColor HGL_RITA_LAMBERT_DIFFUSE(const HglRitaContext *ctx, c
         color = hgl_rita_color_mul(color, hgl_rita_sample_unit_uv(HGL_RITA_TEX_DIFFUSE, in->uv));
     }
 #endif
-    float light = 0.2f + 0.8f*clamp(0, 1, vec3_dot(in->world_normal, vec3_normalize(vec3_make(1,1,1))));
+    float light = 0.2f + 0.8f*clamp(0, 1, vec3_dot(in->world_normal, vec3_normalize(vec3(1,1,1))));
     color.r *= light;
     color.g *= light;
     color.b *= light;
@@ -242,7 +242,7 @@ static inline HglRitaColor HGL_RITA_LAMBERT_DIFFUSE(const HglRitaContext *ctx, c
 static inline HglRitaColor HGL_RITA_PHONG(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
     (void) ctx;
-    Vec3 L  = vec3_normalize(vec3_make(1,1,1)); // light vector
+    Vec3 L  = vec3_normalize(vec3(1,1,1)); // light vector
     Vec3 IV = vec3_normalize(vec3_sub(in->world_pos, ctx->tform.camera.position)); // inverse view vector
     Vec3 N  = in->world_normal;
 
@@ -277,7 +277,7 @@ static inline HglRitaColor HGL_RITA_PHONG(const HglRitaContext *ctx, const HglRi
 #if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_FRAGMENT_USE_WORLD_NORMAL) && defined(HGL_RITA_FRAGMENT_USE_WORLD_POS)
 static inline HglRitaColor HGL_RITA_BLINN_PHONG(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
-    Vec3 L = vec3_normalize(vec3_make(1,1,1));
+    Vec3 L = vec3_normalize(vec3(1,1,1));
     Vec3 V = vec3_normalize(vec3_sub(ctx->tform.camera.position, in->world_pos));
     Vec3 N = in->world_normal;
     Vec3 H = vec3_normalize(vec3_add(L, V)); // half vector (Blinn-Phong)
@@ -313,7 +313,7 @@ static inline HglRitaColor HGL_RITA_BLINN_PHONG(const HglRitaContext *ctx, const
 #if defined(HGL_RITA_VERTEX_USE_3D) && defined(HGL_RITA_FRAGMENT_USE_WORLD_NORMAL) && defined(HGL_RITA_FRAGMENT_USE_WORLD_POS)
 static inline HglRitaColor HGL_RITA_GOOCH(const HglRitaContext *ctx, const HglRitaFragment *in)
 {
-    Vec3 L  = vec3_normalize(vec3_make(1,1,1)); // light vector
+    Vec3 L  = vec3_normalize(vec3(1,1,1)); // light vector
     Vec3 IV = vec3_normalize(vec3_sub(in->world_pos, ctx->tform.camera.position)); // inverse view vector
     Vec3 N  = in->world_normal;
 

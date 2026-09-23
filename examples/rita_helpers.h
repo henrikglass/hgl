@@ -52,7 +52,7 @@ static inline MyModel load_model_from_obj(const char *filepath)
         .vbuf    = {0},
         .ibuf    = {0},
         .diffuse = {0},
-        .tform   = mat4_make_identity(),
+        .tform   = mat4_identity(),
         .winding_order = HGL_RITA_CCW,
     };
 

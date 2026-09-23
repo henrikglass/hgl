@@ -121,7 +121,7 @@ int main()
     float camera_distance = 100.0f;
     float camera_angle = 0;
     float camera_height = 20;
-    Vec3 camera_pos = vec3_make(100*sinf(camera_angle), camera_height, 100*cosf(camera_angle));
+    Vec3 camera_pos = vec3(100*sinf(camera_angle), camera_height, 100*cosf(camera_angle));
     rita_use_perspective_proj(3.1415f/3.0f,               // FOV (60 degrees)
                               (float)WIDTH/(float)HEIGHT, // aspect ratio
                               2.0f,                       // near clipping plane
@@ -141,19 +141,19 @@ int main()
     memset(models, 0, sizeof(models));
     models[0] = load_model_from_obj("assets/cube.obj");
     models[0].diffuse = load_texture("assets/box64x64.png");
-    models[0].tform = mat4_scale(models[0].tform, vec3_make(10, 10, 10));
+    models[0].tform = mat4_scale(models[0].tform, vec3(10, 10, 10));
     models[1] = load_model_from_obj("assets/skull.obj");
     models[1].diffuse = load_texture("assets/skull.png");
-    models[1].tform = mat4_scale(models[1].tform, vec3_make(1, 1, 1));
-    models[1].tform = mat4_rotate(models[1].tform, -3.1415f/2.0f, vec3_make(1, 0, 0));
-    models[1].tform = mat4_translate(models[1].tform, vec3_make(0, -10, 0));
+    models[1].tform = mat4_scale(models[1].tform, vec3(1, 1, 1));
+    models[1].tform = mat4_rotate(models[1].tform, -3.1415f/2.0f, vec3(1, 0, 0));
+    models[1].tform = mat4_translate(models[1].tform, vec3(0, -10, 0));
     models[2] = load_model_from_obj("assets/hcandersen.obj");
     models[2].diffuse = load_texture("assets/hcandersen_albedo.png");
-    models[2].tform = mat4_scale(models[2].tform, vec3_make(1, 1, 1));
-    models[2].tform = mat4_translate(models[2].tform, vec3_make(0, -20, 0));
+    models[2].tform = mat4_scale(models[2].tform, vec3(1, 1, 1));
+    models[2].tform = mat4_translate(models[2].tform, vec3(0, -20, 0));
     models[3] = load_model_from_obj("assets/cavetroll.obj");
     models[3].diffuse = load_texture("assets/cavetroll.png");
-    models[3].tform = mat4_scale(models[2].tform, vec3_make(8, 8, 8));
+    models[3].tform = mat4_scale(models[2].tform, vec3(8, 8, 8));
 
     /* Setup hgl_rita to render our models */
     rita_use_vertex_buffer_mode(RITA_INDEXED);
@@ -327,8 +327,8 @@ int main()
         if (backface_culling) rita_enable(RITA_BACKFACE_CULLING); else rita_disable(RITA_BACKFACE_CULLING);
         if (depth_testing) rita_enable(RITA_DEPTH_TESTING); else rita_disable(RITA_DEPTH_TESTING);
         if (frontface_winding_ccw) rita_use_frontface_winding_order(RITA_CCW); else rita_use_frontface_winding_order(RITA_CW);
-        camera_pos = vec3_make(camera_distance*sinf(camera_angle), camera_height, camera_distance*cosf(camera_angle));
-        rita_use_camera_view(camera_pos, vec3_make(0, 0, 0), vec3_make(0, 1, 0));
+        camera_pos = vec3(camera_distance*sinf(camera_angle), camera_height, camera_distance*cosf(camera_angle));
+        rita_use_camera_view(camera_pos, vec3(0, 0, 0), vec3(0, 1, 0));
         //rita_use_view_matrix(view);
         
         /* raylib stuff: IGNORE */

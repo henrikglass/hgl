@@ -84,7 +84,7 @@ int main()
     randomize_grid(&fbs[0]);
 
     /* Setup hgl_rita so we can draw stuff using screen coordinates */
-    Mat4 view = mat4_make_ortho(0, DISPLAY_SCALE*WIDTH, DISPLAY_SCALE*HEIGHT, 0, -10, 10);
+    Mat4 view = mat4_ortho(0, DISPLAY_SCALE*WIDTH, DISPLAY_SCALE*HEIGHT, 0, -10, 10);
     hgl_rita_use_view_matrix(view);
     hgl_rita_use_viewport(WIDTH, HEIGHT);
     HglRitaVertexBuffer vbuf = {0};

@@ -24,13 +24,13 @@ int main()
 
 
     /* Setup the camera */
-    Mat4 view = mat4_look_at(vec3_make(0, 0, 3),                  // camera position
-                             vec3_make(0, 0, 0),                  // target position
-                             vec3_make(0, 1, 0));                 // Y-axis is up
-    Mat4 proj = mat4_make_perspective(3.1415f/4.0f,               // FOV (45 degrees)
-                                      (float)WIDTH/(float)HEIGHT, // aspect ratio
-                                      2.0f,                       // near clipping plane
-                                      1000.0f);                   // far clipping plane
+    Mat4 view = mat4_look_at(vec3(0, 0, 3),                  // camera position
+                             vec3(0, 0, 0),                  // target position
+                             vec3(0, 1, 0));                 // Y-axis is up
+    Mat4 proj = mat4_perspective(3.1415f/4.0f,               // FOV (45 degrees)
+                                 (float)WIDTH/(float)HEIGHT, // aspect ratio
+                                 2.0f,                       // near clipping plane
+                                 1000.0f);                   // far clipping plane
     hgl_rita_use_view_matrix(view);
     hgl_rita_use_proj_matrix(proj);
 
@@ -81,7 +81,7 @@ int main()
     hgl_rita_bind_buffer(HGL_RITA_INDEX_BUFFER, &ibuf);
 
     /* Set up a model matrix for our cube */
-    Mat4 model = mat4_make_identity();
+    Mat4 model = mat4_identity();
     hgl_rita_use_model_matrix(model);
 
     /* Raylib stuff: IGNORE */
@@ -108,7 +108,7 @@ int main()
         hgl_rita_finish();
 
         /* rotate the cube around the Y-axis a tiny bit per frame. */
-        model = mat4_rotate(model, 0.01, vec3_normalize(vec3_make(0.3, 1, 0.4)));
+        model = mat4_rotate(model, 0.01, vec3_normalize(vec3(0.3, 1, 0.4)));
         hgl_rita_use_model_matrix(model);
         
         /* raylib stuff: IGNORE */
