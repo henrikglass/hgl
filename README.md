@@ -30,6 +30,7 @@ A collection of small (except maybe hgl\_rita.h) easy-to-use header only librari
 | hgl\_profile.h         | Utility                       | Quick and dirty profiling.                                                                               |
 | hgl\_process.h         | Utility                       | Utility for spawning, running, and chaining together subprocesses. Basically execvp minus the headache.  |
 | hgl\_serialize.h       | Utility                       | Powerful binary parsing and serializing/unserializing with a simple regex-like language.                 |
+| hgl\_progress\_bar.h   | Utility                       | Quick and dirty progress bar.                                                                            |
 | hgl\_cmd.h             | Utility                       | Simple command prompt user interface with tab completion.                                                |
 | hgl\_flags.h           | Utility                       | Simple utility for parsing command-line arguments.                                                       |
 | hgl\_ini.h             | Utility                       | Simple utility for parsing (and generating) \*.ini files                                                 |
