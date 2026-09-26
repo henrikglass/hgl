@@ -57,6 +57,7 @@ examples: vec         					\
    	  	  tqueue                        \
    	  	  fsm                           \
    	  	  earchop                       \
+   	  	  progress_bar                  \
 		  xar
 
 misc: prep
@@ -134,6 +135,9 @@ tqueue: prep
 
 earchop: prep
 	gcc -I. -Iexternal/include -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE=199309L -ggdb3 $(EXAMPLES_DIR)/earchop.c -o $(EXAMPLES_BUILD_DIR)/earchop -Lexternal/lib -lraylib -lm
+
+progress_bar: prep
+	gcc -I. -Iexternal/include -std=c17 -Wall -Wextra -Wno-unused-variable -Werror -O0 -D_POSIX_C_SOURCE=199309L -ggdb3 $(EXAMPLES_DIR)/progress_bar.c -o $(EXAMPLES_BUILD_DIR)/progress_bar
 
 xar: prep
 	gcc -I. -std=c17 -Wall -Wextra -Wno-unused-variable -Wno-override-init -Werror -O0 -ggdb3 $(EXAMPLES_DIR)/xar.c -o $(EXAMPLES_BUILD_DIR)/xar
