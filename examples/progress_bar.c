@@ -48,4 +48,14 @@ int main(int argc, char *argv[])
     }
     hgl_progress_bar_end();
 
+    hgl_progress_bar_use_style(HGL_PROGRESS_BAR_BLOCK_PRECISE);
+    hgl_progress_bar_begin("progress:");
+    N = 100000;
+    for (int i = 0; i <= N; i++) {
+        sleep_ms(1.0);
+        float t = (float)i/(float)N;
+        hgl_progress_bar_update(t);
+    }
+    hgl_progress_bar_end();
+
 }
