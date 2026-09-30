@@ -48,6 +48,7 @@ examples: vec         					\
           rita_filters                  \
           rita_game_of_life             \
           rita_blit                     \
+          rita_downsample               \
           rita_custom_fragment_shader   \
           rita_skybox                   \
           rita_vertex_displacement      \
@@ -198,6 +199,10 @@ rita_game_of_life: prep
 rita_blit: prep
 	gcc -I. -Iexternal/include -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_blit.c -o $(EXAMPLES_BUILD_DIR)/rita_blit -Lexternal/lib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iexternal/include -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_blit.c -o $(EXAMPLES_BUILD_DIR)/rita_blit_optimized -Lexternal/lib -lraylib -lm -ldl -lpthread
+
+rita_downsample: prep
+	gcc -I. -Iexternal/include -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_downsample.c -o $(EXAMPLES_BUILD_DIR)/rita_downsample -Lexternal/lib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iexternal/include -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_downsample.c -o $(EXAMPLES_BUILD_DIR)/rita_blit_optimized -Lexternal/lib -lraylib -lm -ldl -lpthread
 
 rita_custom_fragment_shader: prep
 	gcc -I. -Iexternal/include -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_custom_fragment_shader.c -o $(EXAMPLES_BUILD_DIR)/rita_custom_fragment_shader -Lexternal/lib -lraylib -lm -ldl -lpthread
