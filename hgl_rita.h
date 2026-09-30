@@ -719,6 +719,7 @@ typedef enum
     HGL_RITA_OP_PROCESS_VBUF_SEGMENT,
     HGL_RITA_OP_BLIT,
     HGL_RITA_OP_DRAW_TILE_BORDER,
+    HGL_RITA_OP_REFRESH,
     HGL_RITA_OP_TERMINATE,
 } HglRitaOpKind;
 
@@ -1105,6 +1106,18 @@ static inline void hgl_rita_bind_texture(HglRitaTexUnit unit, HglRitaTexture *te
             exit(1);
         }
 
+        /* Update tile boundaries for active workers */
+        for (int i = 0; i < n_active_tiles; i++) {
+            HglRitaTile *tile = &hgl_rita_ctx__.renderer.tile[i];
+            tile->aabb = hgl_rita_aabb_make((i%cols)*HGL_RITA_TILE_SIZE_X,
+                                            (i/cols)*HGL_RITA_TILE_SIZE_Y,
+                                            HGL_RITA_TILE_SIZE_X,
+                                            HGL_RITA_TILE_SIZE_Y);
+            tile->aabb = hgl_rita_aabb_clip(tile->aabb, 0, 0, w, h);
+            HglRitaOp op = { .kind = HGL_RITA_OP_REFRESH };
+            hgl_rita_op_queue_push(&hgl_rita_ctx__.renderer.tile[i].op_queue, op);
+        }
+
         /* Spawn more tile workers if necessary */
         for (int i = n_active_tiles; i < n_needed_tiles; i++) {
             HglRitaTile *tile = &hgl_rita_ctx__.renderer.tile[i];
@@ -1120,6 +1133,9 @@ static inline void hgl_rita_bind_texture(HglRitaTexUnit unit, HglRitaTexture *te
         hgl_rita_ctx__.renderer.n_tiles = n_needed_tiles;
         hgl_rita_ctx__.renderer.n_tile_cols = cols;
         hgl_rita_ctx__.renderer.n_tile_rows = rows;
+
+        /* Synchronize */
+        hgl_rita_finish();
 #endif
     } else if (unit == HGL_RITA_TEX_DEPTH_BUFFER) {
         assert(tex->format == HGL_RITA_R32);
@@ -2529,6 +2545,11 @@ static inline void *hgl_rita_tile_thread_internal_(void *arg)
         hgl_rita_process_op_internal_(op, tile_aabb);
         hgl_rita_op_queue_ack(q);
 
+        /* handle refresh */
+        if (op.kind == HGL_RITA_OP_REFRESH) {
+            tile_aabb = tile->aabb;
+        }
+
         /* handle termination */
         if (op.kind == HGL_RITA_OP_TERMINATE) {
             return NULL; 
@@ -2918,6 +2939,10 @@ static inline void hgl_rita_process_op_internal_(HglRitaOp op, HglRitaAABB bound
                 fb_color[y * stride + bounds.min_x]       = HGL_RITA_MORTEL_MAGENTA;
                 fb_color[y * stride + (bounds.max_x - 1)] = HGL_RITA_MORTEL_GREEN;
             } 
+        } break;
+
+        case HGL_RITA_OP_REFRESH: {
+            /* special case: not handled here */
         } break;
 
         case HGL_RITA_OP_TERMINATE: {

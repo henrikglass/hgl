@@ -202,7 +202,7 @@ rita_blit: prep
 
 rita_downsample: prep
 	gcc -I. -Iexternal/include -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_downsample.c -o $(EXAMPLES_BUILD_DIR)/rita_downsample -Lexternal/lib -lraylib -lm -ldl -lpthread
-	gcc -I. -Iexternal/include -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_downsample.c -o $(EXAMPLES_BUILD_DIR)/rita_blit_optimized -Lexternal/lib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iexternal/include -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_downsample.c -o $(EXAMPLES_BUILD_DIR)/rita_downsample_optimized -Lexternal/lib -lraylib -lm -ldl -lpthread
 
 rita_custom_fragment_shader: prep
 	gcc -I. -Iexternal/include -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_custom_fragment_shader.c -o $(EXAMPLES_BUILD_DIR)/rita_custom_fragment_shader -Lexternal/lib -lraylib -lm -ldl -lpthread
