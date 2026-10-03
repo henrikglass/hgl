@@ -531,6 +531,8 @@ typedef enum
 {
     HGL_RITA_LINES,
     HGL_RITA_LINE_STRIP,
+    HGL_RITA_LINES_SMOOTH,
+    HGL_RITA_LINE_STRIP_SMOOTH,
     HGL_RITA_POINTS,
     HGL_RITA_TRIANGLES,
     HGL_RITA_TRIANGLE_STRIP,
@@ -711,13 +713,22 @@ typedef struct
     HglRitaFragShaderFunc shader;
 } HglRitaBlitInfo;
 
+typedef struct
+{
+    HglRitaColor clear_color;
+    uint32_t attachments;
+} HglRitaClearInfo;
+
 typedef enum
 {
     HGL_RITA_OP_RASTERIZE_TRIANGLE,
     HGL_RITA_OP_RASTERIZE_LINE,
+    HGL_RITA_OP_RASTERIZE_LINE_SMOOTH,
     HGL_RITA_OP_RASTERIZE_POINT,
     HGL_RITA_OP_PROCESS_VBUF_SEGMENT,
     HGL_RITA_OP_BLIT,
+    HGL_RITA_OP_CLEAR,
+    HGL_RITA_OP_FAST_BLUR,
     HGL_RITA_OP_DRAW_TILE_BORDER,
     HGL_RITA_OP_REFRESH,
     HGL_RITA_OP_TERMINATE,
@@ -731,6 +742,7 @@ typedef struct
         HglRitaPoint point;
         HglRitaVertexBufferSegment vbuf_segment;
         HglRitaBlitInfo blit_info;
+        HglRitaClearInfo clear_info;
     };
     HglRitaOpKind kind;
 } HglRitaOp;
@@ -871,6 +883,7 @@ static inline void hgl_rita_draw_text(int pos_x, int pos_y,
                                       HglRitaColor color,
                                       const char *fmt, ...);                                /* Draws text at the given screen-space position. */
 static inline void hgl_rita_draw(HglRitaPrimitiveMode primitive_mode);                      /* Draws the contents of the current bound vertex buffer using the selected primitive mode. This is an asynchronous operation. */
+static inline void hgl_rita_fast_blur(void);                                                /* Performs a 3x3 gaussian blur on the entire image */
 static inline void hgl_rita_blit(int x, int y, int w, int h,
                                  HglRitaTexture *src,
                                  HglRitaBlendMethod blend_method,
@@ -886,6 +899,10 @@ static inline HglRitaTexture hgl_rita_texture_get_subtexture(HglRitaTexture tex,
                                                              int x, int y,
                                                              int width, int height);        /* Creates a subtexture of `tex` at the given region. Must not be freed.*/
 static inline void hgl_rita_texture_flip_vertically(HglRitaTexture *tex);                   /* Vertically flips the texture `tex`. */
+static inline void hgl_rita_texture_fast_blur(HglRitaTexture dst,
+                                              HglRitaTexture src);                          /* Blues the image `src` with a fast 3x3 gassian blur and places it into `dst` */
+static inline void hgl_rita_texture_decimate(HglRitaTexture dst,
+                                             HglRitaTexture src);                           /* Scales the image `src` down by a factor of 2 by decimation and places it into `dst` */
 static inline void hgl_rita_texture_blit(HglRitaTexture dst,
                                          HglRitaTexture src,
                                          HglRitaBlendMethod blend_method,
@@ -915,7 +932,8 @@ static inline HglRitaAABB hgl_rita_aabb_from_tri(HglRitaTriangle tri);          
 static inline HglRitaAABB hgl_rita_aabb_clip(HglRitaAABB aabb, int min_x,
                                              int min_y, int max_x, int max_y);              /* Clips `aabb` such that it is contained inside [x_min, x_max] on the x-axis and [y_min, y_max] on the y-axis. */
 static inline HglRitaAABB hgl_rita_aabb_intersection(HglRitaAABB a, HglRitaAABB b);         /* Returns the intersection of two bounding boxes `a` and `b` */
-static inline bool hgl_rita_aabb_intersects(HglRitaAABB a, HglRitaAABB b);                  /* Returns true if the two bounding boxes `a` and `b` intersect. */
+static inline bool hgl_rita_aabb_intersects_aabb(HglRitaAABB a, HglRitaAABB b);             /* Returns true if the two bounding boxes `a` and `b` intersect. */
+static inline bool hgl_rita_aabb_intersects_point(HglRitaAABB aabb, int x, int y);          /* Returns true if the point (x, y) intesects `aabb`. */
 
 /* texture sampling */
 static inline HglRitaColor hgl_rita_sample(HglRitaTexture *tex, int x, int y);              /* Samples `tex` at the texel position (`x`, `y`).*/
@@ -941,7 +959,8 @@ static inline void *hgl_rita_tile_thread_internal_(void *arg);                  
 static inline void hgl_rita_process_op_internal_(HglRitaOp op, HglRitaAABB bounds);         /* Performs the work for the given operation `op` within the given `bounds` of the framebuffer */
 static inline void hgl_rita_dispatch_point_internal_(HglRitaFragment f0);                   /* Dispatches a point/pixel primitive to the thread of the tile containing it */
 static inline void hgl_rita_dispatch_line_internal_(HglRitaFragment f0,
-                                                    HglRitaFragment f1);                    /* Dispatches a line primitive to the threads of the tiles intersecting its AABB */
+                                                    HglRitaFragment f1,
+                                                    bool smooth);                           /* Dispatches a line primitive to the threads of the tiles intersecting its AABB */
 static inline void hgl_rita_dispatch_tri_internal_(HglRitaFragment f0,
                                                    HglRitaFragment f1,
                                                    HglRitaFragment f2);                     /* Dispatches a triangle primitive to the threads of the tiles intersecting its AABB */
@@ -959,6 +978,9 @@ static inline HglRitaFragment hgl_rita_frag_berp_internal_(HglRitaFragment f0,
 static inline float hgl_rita_det_internal_(int f0_x, int f0_y,
                                            int f1_x, int f1_y,
                                            int f2_x, int f2_y);                             /* Cheeky determinant which isn't really a determinant. Something to do with a '2D cross product'. */
+static inline bool hgl_rita_cohen_sutherland_line_clip_internal_(int *x0, int *y0,
+                                                                 int *x1, int *y1,
+                                                                 HglRitaAABB bounds);       /* Cohen-Sutherland clip of line to AABB */
 static inline int hgl_rita_next_vbuf_index_internal_(void);                                 /* Fetches the next vertex in the vertex buffer given the current vertex buffer mode (HGL_RITA_ARRAY or HGL_RITA_INDEXED) */
 
 #endif /* HGL_RITA_H */
@@ -1305,6 +1327,7 @@ static inline void hgl_rita_use_viewport(int width, int height)
 
 static inline void hgl_rita_clear(uint32_t attachments)
 {
+#ifdef HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
     int w, h;
 
     if (attachments & HGL_RITA_COLOR) {
@@ -1322,6 +1345,19 @@ static inline void hgl_rita_clear(uint32_t attachments)
             hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_DEPTH_BUFFER]->data.r32[i] = 1.0f;
         }
     }
+#else
+    HglRitaOp op = { 
+        .clear_info = {
+            .clear_color = hgl_rita_ctx__.opts.clear_color,
+            .attachments = attachments,
+        },
+        .kind = HGL_RITA_OP_CLEAR,
+    };
+    for (int i = 0; i < hgl_rita_ctx__.renderer.n_tiles; i++) {
+        hgl_rita_op_queue_push(&hgl_rita_ctx__.renderer.tile[i].op_queue, op);
+    }
+    //hgl_rita_finish(); // Is not necessary (except for when drawing smooth lines, which is a bit buggy atm)
+#endif
 }
 
 static inline void hgl_rita_finish(void)
@@ -1615,7 +1651,8 @@ static inline void hgl_rita_draw(HglRitaPrimitiveMode primitive_mode)
             }
         } break;
 
-        case HGL_RITA_LINES: {
+        case HGL_RITA_LINES: 
+        case HGL_RITA_LINES_SMOOTH: {
             for (;;) {
                 i0 = hgl_rita_next_vbuf_index_internal_();
                 i1 = hgl_rita_next_vbuf_index_internal_();
@@ -1632,11 +1669,12 @@ static inline void hgl_rita_draw(HglRitaPrimitiveMode primitive_mode)
                 f0 = hgl_rita_process_vertex_internal_(v0);
                 f1 = hgl_rita_process_vertex_internal_(v1);
 #endif
-                hgl_rita_dispatch_line_internal_(f0, f1);
+                hgl_rita_dispatch_line_internal_(f0, f1, primitive_mode == HGL_RITA_LINES_SMOOTH);
             }
         } break;
 
-        case HGL_RITA_LINE_STRIP: {
+        case HGL_RITA_LINE_STRIP:
+        case HGL_RITA_LINE_STRIP_SMOOTH: {
 #ifdef HGL_RITA_PARALLEL_VERTEX_PROCESSING
             i0 = hgl_rita_next_vbuf_index_internal_(); if (i0 == -1) { break; }
             f0 = hgl_rita_ctx__.vertices.fbuf.arr[i0];
@@ -1644,7 +1682,7 @@ static inline void hgl_rita_draw(HglRitaPrimitiveMode primitive_mode)
             for (;;) {
                 i1 = hgl_rita_next_vbuf_index_internal_(); if (i1 == -1) { break; }
                 f1 = hgl_rita_ctx__.vertices.fbuf.arr[i1];
-                hgl_rita_dispatch_line_internal_(f0, f1);
+                hgl_rita_dispatch_line_internal_(f0, f1, primitive_mode == HGL_RITA_LINE_STRIP_SMOOTH);
                 f0 = f1;
             }
 #else
@@ -1656,7 +1694,7 @@ static inline void hgl_rita_draw(HglRitaPrimitiveMode primitive_mode)
                 i1 = hgl_rita_next_vbuf_index_internal_(); if (i1 == -1) { break; }
                 v1 = &hgl_rita_ctx__.vertices.vbuf->arr[i1];
                 f1 = hgl_rita_process_vertex_internal_(v1);
-                hgl_rita_dispatch_line_internal_(f0, f1);
+                hgl_rita_dispatch_line_internal_(f0, f1, primitive_mode == HGL_RITA_LINE_STRIP_SMOOTH);
 
                 f0 = f1;
                 v0 = v1;
@@ -1786,6 +1824,44 @@ static inline void hgl_rita_draw(HglRitaPrimitiveMode primitive_mode)
     //}
 }
 
+static inline void hgl_rita_fast_blur()
+{
+    HglRitaOp op = {
+        .kind = HGL_RITA_OP_FAST_BLUR,
+    };
+#ifdef HGL_RITA_RENDERER_PRESET_SINGLE_THREAD
+    hgl_rita_process_op_internal_(op, hgl_rita_ctx__.renderer.framebuffer_bounds);
+#else
+    /* dispatch blit operation to intersecting tiles in a checkerboard pattern */
+    int fb_w = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER]->width;
+    int fb_h = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER]->height;
+    HglRitaAABB aabb = hgl_rita_aabb_make(0, 0, fb_w - 1, fb_h - 1);
+    int start_x = aabb.min_x / HGL_RITA_TILE_SIZE_X;
+    int start_y = aabb.min_y / HGL_RITA_TILE_SIZE_Y;
+    int end_x = aabb.max_x / HGL_RITA_TILE_SIZE_X + 1;
+    int end_y = aabb.max_y / HGL_RITA_TILE_SIZE_Y + 1;
+    int stride = hgl_rita_ctx__.renderer.n_tile_cols;
+    
+    /* wait for previous ops to finish then dispatch the first half of the checkerboard */
+    hgl_rita_finish();
+    for (int y = start_y; y < end_y; y ++) {
+        for (int x = start_x + (y & 1); x < end_x; x += 2) {
+            int i = y*stride + x;
+            hgl_rita_op_queue_push(&(hgl_rita_ctx__.renderer.tile[i].op_queue), op);
+        }
+    }
+
+    /* wait for previous blur pass to finish then dispatch the second half of the checkerboard */
+    hgl_rita_finish();
+    for (int y = start_y; y < end_y; y ++) {
+        for (int x = start_x + ((y+1) & 1); x < end_x; x += 2) {
+            int i = y*stride + x;
+            hgl_rita_op_queue_push(&(hgl_rita_ctx__.renderer.tile[i].op_queue), op);
+        }
+    }
+#endif
+}
+
 static inline void hgl_rita_blit(int x, int y, int w, int h,
                                  HglRitaTexture *src,
                                  HglRitaBlendMethod blend_method,
@@ -1910,6 +1986,57 @@ static inline void hgl_rita_texture_flip_vertically(HglRitaTexture *tex)
         memcpy(temp_row, lower_row, row_size);
         memcpy(lower_row, upper_row, row_size);
         memcpy(upper_row, temp_row, row_size);
+    }
+}
+
+static inline void hgl_rita_texture_fast_blur(HglRitaTexture dst,
+                                              HglRitaTexture src)
+{
+    assert(dst.format == HGL_RITA_RGBA8);
+    assert(src.format == HGL_RITA_RGBA8);
+    assert(dst.width >= src.width);
+    assert(dst.height >= src.height);
+
+    /* horizontal pass*/
+    for (int y = 0; y < src.height; y++) {
+        for (int x = 0; x < src.width; x++) {
+            HglRitaColor left   = hgl_rita_sample(&src, x - 1, y);
+            HglRitaColor center = hgl_rita_sample(&src, x,     y);
+            HglRitaColor right  = hgl_rita_sample(&src, x + 1, y);
+            uint32_t r = (left.r + center.r + center.r + right.r) >> 2;
+            uint32_t g = (left.g + center.g + center.g + right.g) >> 2;
+            uint32_t b = (left.b + center.b + center.b + right.b) >> 2;
+            uint32_t a = (left.a + center.a + center.a + right.a) >> 2;
+            dst.data.rgba8[y * dst.stride + x] = (HglRitaColor) {r, g, b, a};
+        }
+    }
+
+    /* vertical pass*/
+    for (int y = 0; y < src.height; y++) {
+        for (int x = 0; x < src.width; x++) {
+            HglRitaColor top    = hgl_rita_sample(&dst, x, y - 1);
+            HglRitaColor center = hgl_rita_sample(&dst, x, y);
+            HglRitaColor bottom = hgl_rita_sample(&dst, x, y + 1);
+            uint32_t r = (top.r + center.r + center.r + bottom.r) >> 2;
+            uint32_t g = (top.g + center.g + center.g + bottom.g) >> 2;
+            uint32_t b = (top.b + center.b + center.b + bottom.b) >> 2;
+            uint32_t a = (top.a + center.a + center.a + bottom.a) >> 2;
+            dst.data.rgba8[y * dst.stride + x] = (HglRitaColor) {r, g, b, a};
+        }
+    }
+}
+ 
+static inline void hgl_rita_texture_decimate(HglRitaTexture dst,
+                                             HglRitaTexture src)
+{
+    assert(dst.format == HGL_RITA_RGBA8);
+    assert(src.format == HGL_RITA_RGBA8);
+    assert(dst.width >= src.width / 2);
+    assert(dst.height >= src.height / 2);
+    for (int y = 0; y < src.height / 2; y++) {
+        for (int x = 0; x < src.width / 2; x++) {
+            dst.data.rgba8[y * dst.stride + x] = hgl_rita_sample(&src, x << 1, y << 1);
+        }
     }
 }
 
@@ -2221,10 +2348,16 @@ static inline HglRitaAABB hgl_rita_aabb_intersection(HglRitaAABB a, HglRitaAABB 
     };
 }
 
-static inline bool hgl_rita_aabb_intersects(HglRitaAABB a, HglRitaAABB b)
+static inline bool hgl_rita_aabb_intersects_aabb(HglRitaAABB a, HglRitaAABB b)
 {
     return (a.min_x <= b.max_x && a.max_x >= b.min_x) &&
            (a.min_y <= b.max_y && a.max_y >= b.min_y);
+}
+
+static inline bool hgl_rita_aabb_intersects_point(HglRitaAABB aabb, int x, int y)
+{
+    return (aabb.min_x <= x && x <= aabb.max_x) &&
+           (aabb.min_y <= y && y <= aabb.max_y);
 }
 
 /*---------------------------------------------------------------------------------------*/
@@ -2535,15 +2668,14 @@ static inline void *hgl_rita_tile_thread_internal_(void *arg)
     if (niceness == -1 && errno != 0) {
         fprintf(stderr, "Unable to set niceness value. <%s:%d>\n", __FILE__, __LINE__);
     }
-
+    bool alive = true;
     HglRitaTile *tile = (HglRitaTile *) arg;
     HglRitaOpQueue *q = &tile->op_queue;
     HglRitaAABB tile_aabb = tile->aabb;
 
-    for (;;) {
+    while (alive) {
         HglRitaOp op = hgl_rita_op_queue_fetch(q);
         hgl_rita_process_op_internal_(op, tile_aabb);
-        hgl_rita_op_queue_ack(q);
 
         /* handle refresh */
         if (op.kind == HGL_RITA_OP_REFRESH) {
@@ -2552,9 +2684,13 @@ static inline void *hgl_rita_tile_thread_internal_(void *arg)
 
         /* handle termination */
         if (op.kind == HGL_RITA_OP_TERMINATE) {
-            return NULL; 
+            alive = false;
         }
+
+        hgl_rita_op_queue_ack(q);
     }
+
+    return NULL;
 }
 
 static inline void hgl_rita_process_op_internal_(HglRitaOp op, HglRitaAABB bounds)
@@ -2631,87 +2767,18 @@ static inline void hgl_rita_process_op_internal_(HglRitaOp op, HglRitaAABB bound
             HglRitaFragment f0 = op.line.f0;
             HglRitaFragment f1 = op.line.f1;
 
-            /* Cohen-Sutherland clip to AABB of tile */
-            const int INSIDE = 0; // 0b0000;
-            const int LEFT   = 1; // 0b0001;
-            const int RIGHT  = 2; // 0b0010;
-            const int BOTTOM = 4; // 0b0100;
-            const int TOP    = 8; // 0b1000;
-
             int x0 = f0.x;
             int y0 = f0.y;
             int x1 = f1.x;
             int y1 = f1.y;
 
-            int outcode0 = INSIDE;
-            if      (x0 < bounds.min_x) outcode0 |= LEFT;
-            else if (x0 > bounds.max_x) outcode0 |= RIGHT;
-            if      (y0 < bounds.min_y) outcode0 |= BOTTOM;
-            else if (y0 > bounds.max_y) outcode0 |= TOP;
-
-            int outcode1 = INSIDE;
-            if      (x1 < bounds.min_x) outcode1 |= LEFT;
-            else if (x1 > bounds.max_x) outcode1 |= RIGHT;
-            if      (y1 < bounds.min_y) outcode1 |= BOTTOM;
-            else if (y1 > bounds.max_y) outcode1 |= TOP;
-
-            bool accept = false;
-            while (true) {
-                if (0 == (outcode0 | outcode1)) {
-                    /* trivial accept */
-                    accept = true;
-                    break;
-                } else if (0 != (outcode0 & outcode1)) {
-                    /* trivial reject */
-                    break;
-                } else {
-                    /* non-trivial case: clip line */
-                    int x;
-                    int y;
-
-                    /* Pick any outside point */
-                    int outside_outcode = outcode0 > outcode1 ? outcode0 : outcode1;
-
-                    /* find intersection point */
-                    if ((outside_outcode & TOP) != 0) {
-                        x = x0 + (x1 - x0) * (bounds.max_y - y0) / (y1 - y0);
-                        y = bounds.max_y;
-                    } else if ((outside_outcode & BOTTOM) != 0) {
-                        x = x0 + (x1 - x0) * (bounds.min_y - y0) / (y1 - y0);
-                        y = bounds.min_y;
-                    } else if ((outside_outcode & RIGHT) != 0) {
-                        y = y0 + (y1 - y0) * (bounds.max_x - x0) / (x1 - x0);
-                        x = bounds.max_x;
-                    } else /* LEFT */ {
-                        y = y0 + (y1 - y0) * (bounds.min_x - x0) / (x1 - x0);
-                        x = bounds.min_x;
-                    }
-
-                    if (outside_outcode == outcode0) {
-                        x0 = x;
-                        y0 = y;
-                        outcode0 = INSIDE;
-                        if      (x0 < bounds.min_x) outcode0 |= LEFT;
-                        else if (x0 > bounds.max_x) outcode0 |= RIGHT;
-                        if      (y0 < bounds.min_y) outcode0 |= BOTTOM;
-                        else if (y0 > bounds.max_y) outcode0 |= TOP;
-                    } else {
-                        x1 = x;
-                        y1 = y;
-                        outcode1 = INSIDE;
-                        if      (x1 < bounds.min_x) outcode1 |= LEFT;
-                        else if (x1 > bounds.max_x) outcode1 |= RIGHT;
-                        if      (y1 < bounds.min_y) outcode1 |= BOTTOM;
-                        else if (y1 > bounds.max_y) outcode1 |= TOP;
-                    }
-                }
-            }
-
-            /* line was not accepted (outside AABB) */
+            /* Cohen-Sutherland clip to AABB of tile */
+            bool accept = hgl_rita_cohen_sutherland_line_clip_internal_(&x0, &y0, &x1, &y1, bounds);
             if (!accept) {
                 break;
             }
 
+#if 0
             /* recalculate fragments */
             float t;
             int dx = x1 - x0;
@@ -2750,14 +2817,162 @@ static inline void hgl_rita_process_op_internal_(HglRitaOp op, HglRitaAABB bound
                 /* swap so we iterate on y in the positive direction */
                 if (dy < 0) {
                     temp_frag = f0; f0 = f1; f1 = temp_frag;
+                    dy = -dy;
                 }
 
                 float x_step = (float)dx / (float)dy;
-                for (int i = 0; i < abs(dy); i++) {
-                    t = (float) i / (float) abs(dy);
+                for (int i = 0; i < dy; i++) {
+                    t = (float) i / (float) dy;
                     int x = f0.x + i*x_step;
                     int y = f0.y + i;
                     HglRitaFragment frag = hgl_rita_frag_lerp_internal_(x, y, f0, f1, t);
+                    hgl_rita_process_fragment_internal_(&frag);
+                }
+            }
+
+#else 
+            /* swap so that x0 < x1 */
+            HglRitaFragment temp_frag;
+            int temp_x;
+            int temp_y;
+            if (f0.x > f1.x) {
+                temp_frag = f0; f0 = f1; f1 = temp_frag;
+                temp_x = x0; x0 = x1; x1 = temp_x;
+                temp_y = y0; y0 = y1; y1 = temp_y;
+            }
+
+            int dx = (int)f1.x - (int)f0.x;
+            int dy = (int)f1.y - (int)f0.y;
+
+            if (dx > abs(dy)) {
+                float y_step = (float)dy / (float)dx;
+
+                for (int i = x0; i <= x1; i++) {
+                    int s = i - f0.x;
+                    float t = (float) (i - f0.x) / (float) dx;
+                    int x = i;
+                    int y = f0.y + s*y_step;
+                    HglRitaFragment frag = hgl_rita_frag_lerp_internal_(x, y, f0, f1, t);
+                    hgl_rita_process_fragment_internal_(&frag);
+                }
+            } else {
+                float x_step = (float)dx / (float)dy;
+
+                /* swap so we iterate on y in the positive direction */
+                if (dy < 0) {
+                    temp_frag = f0; f0 = f1; f1 = temp_frag;
+                    temp_x = x0; x0 = x1; x1 = temp_x;
+                    temp_y = y0; y0 = y1; y1 = temp_y;
+                    dy = -dy;
+                }
+
+                for (int i = y0; i <= y1; i++) {
+                    int s = i - f0.y;
+                    float t = (float) (i - f0.y) / (float)dy;
+                    int y = i;
+                    int x = f0.x + s*x_step;
+                    HglRitaFragment frag = hgl_rita_frag_lerp_internal_(x, y, f0, f1, t);
+                    hgl_rita_process_fragment_internal_(&frag);
+                }
+            }
+#endif
+        } break;
+
+        case HGL_RITA_OP_RASTERIZE_LINE_SMOOTH: {
+            HglRitaFragment f0 = op.line.f0;
+            HglRitaFragment f1 = op.line.f1;
+
+            /* Cohen-Sutherland clip to AABB of tile */
+            int x0 = f0.x;
+            int y0 = f0.y;
+            int x1 = f1.x;
+            int y1 = f1.y;
+            bool accept = hgl_rita_cohen_sutherland_line_clip_internal_(&x0, &y0, &x1, &y1, bounds);
+            if (!accept) {
+                break;
+            }
+
+            /* swap so that x0 < x1 */
+            HglRitaFragment temp_frag;
+            int temp_x;
+            int temp_y;
+            if (f0.x > f1.x) {
+                temp_frag = f0; f0 = f1; f1 = temp_frag;
+                temp_x = x0; x0 = x1; x1 = temp_x;
+                temp_y = y0; y0 = y1; y1 = temp_y;
+            }
+
+            int dx = (int)f1.x - (int)f0.x;
+            int dy = (int)f1.y - (int)f0.y;
+
+            if (dx > abs(dy)) {
+                float y_step = (float)dy / (float)dx;
+
+                for (int i = x0; i <= x1; i++) {
+                    int s = i - f0.x;
+                    float t = (float) (i - f0.x) / (float) dx;
+                    int x = i;
+                    float y = s*y_step;
+#ifdef HGL_RITA_FRAGMENT_USE_COLOR
+                    float y_fract = fract(y);
+#endif
+                    int y_floor = f0.y + (int)floorf(y);
+                    int y_ceil = y_floor + 1; 
+
+                    /* 
+                     * Note: It's not completely correct to clamp here, since the same pixel might be 
+                     * shaded twice. But it's good enough (tm) for me :)
+                     */
+                    HglRitaFragment frag = hgl_rita_frag_lerp_internal_(x, y_floor, f0, f1, t);
+#ifdef HGL_RITA_FRAGMENT_USE_COLOR
+                    frag.color.a = 255 * (1.0f - y_fract);
+#endif
+                    hgl_rita_process_fragment_internal_(&frag);
+
+                    /* See the comment above */
+                    frag = hgl_rita_frag_lerp_internal_(x, y_ceil, f0, f1, t);
+#ifdef HGL_RITA_FRAGMENT_USE_COLOR
+                    frag.color.a = 255 * y_fract;
+#endif
+                    hgl_rita_process_fragment_internal_(&frag);
+                }
+            } else {
+                float x_step = (float)dx / (float)dy;
+
+                /* swap so we iterate on y in the positive direction */
+                if (dy < 0) {
+                    temp_frag = f0; f0 = f1; f1 = temp_frag;
+                    temp_x = x0; x0 = x1; x1 = temp_x;
+                    temp_y = y0; y0 = y1; y1 = temp_y;
+                    dy = -dy;
+                }
+
+                for (int i = y0; i <= y1; i++) {
+                    int s = i - f0.y;
+                    float t = (float) (i - f0.y) / (float) dy;
+                    int y = i;
+                    float x = s*x_step;
+#ifdef HGL_RITA_FRAGMENT_USE_COLOR
+                    float x_fract = fract(x);
+#endif
+                    int x_floor = f0.x + (int)floorf(x);
+                    int x_ceil = x_floor + 1; 
+
+                    /* 
+                     * Note: It's not completely correct to clamp here, since the same pixel might be 
+                     * shaded twice. But it's good enough (tm) for me :)
+                     */
+                    HglRitaFragment frag = hgl_rita_frag_lerp_internal_(x_floor, y, f0, f1, t);
+#ifdef HGL_RITA_FRAGMENT_USE_COLOR
+                    frag.color.a = 255 * (1.0f - x_fract);
+#endif
+                    hgl_rita_process_fragment_internal_(&frag);
+
+                    /* See the comment above */
+                    frag = hgl_rita_frag_lerp_internal_(x_ceil, y, f0, f1, t);
+#ifdef HGL_RITA_FRAGMENT_USE_COLOR
+                    frag.color.a = 255 * x_fract;
+#endif
                     hgl_rita_process_fragment_internal_(&frag);
                 }
             }
@@ -2928,6 +3143,58 @@ static inline void hgl_rita_process_op_internal_(HglRitaOp op, HglRitaAABB bound
             }
         } break;
 
+        case HGL_RITA_OP_FAST_BLUR: {
+            HglRitaTexture *fb = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER];
+
+            /* horizontal pass*/
+            for (int y = bounds.min_y; y < bounds.max_y; y++) {
+                for (int x = bounds.min_x; x < bounds.max_x; x++) {
+                    HglRitaColor left   = hgl_rita_sample(fb, x - 1, y);
+                    HglRitaColor center = hgl_rita_sample(fb, x,     y);
+                    HglRitaColor right  = hgl_rita_sample(fb, x + 1, y);
+                    uint32_t r = (left.r + center.r + center.r + right.r) >> 2;
+                    uint32_t g = (left.g + center.g + center.g + right.g) >> 2;
+                    uint32_t b = (left.b + center.b + center.b + right.b) >> 2;
+                    uint32_t a = (left.a + center.a + center.a + right.a) >> 2;
+                    fb->data.rgba8[y * fb->stride + x] = (HglRitaColor) {r, g, b, a};
+                }
+            }
+
+            /* vertical pass*/
+            for (int y = bounds.min_y; y < bounds.max_y; y++) {
+                for (int x = bounds.min_x; x < bounds.max_x; x++) {
+                    HglRitaColor top    = hgl_rita_sample(fb, x, y - 1);
+                    HglRitaColor center = hgl_rita_sample(fb, x, y);
+                    HglRitaColor bottom = hgl_rita_sample(fb, x, y + 1);
+                    uint32_t r = (top.r + center.r + center.r + bottom.r) >> 2;
+                    uint32_t g = (top.g + center.g + center.g + bottom.g) >> 2;
+                    uint32_t b = (top.b + center.b + center.b + bottom.b) >> 2;
+                    uint32_t a = (top.a + center.a + center.a + bottom.a) >> 2;
+                    fb->data.rgba8[y * fb->stride + x] = (HglRitaColor) {r, g, b, a};
+                }
+            }
+        } break;
+
+        case HGL_RITA_OP_CLEAR: {
+            if (op.clear_info.attachments & HGL_RITA_COLOR) {
+                HglRitaTexture *fb_color = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER];
+                for (int y = bounds.min_y; y < bounds.max_y; y++) {
+                    for (int x = bounds.min_x; x < bounds.max_x; x++) {
+                        fb_color->data.rgba8[y * fb_color->stride + x] = op.clear_info.clear_color;
+                    } 
+                } 
+            }
+
+            if (op.clear_info.attachments & HGL_RITA_DEPTH) {
+                HglRitaTexture *fb_depth = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_DEPTH_BUFFER];
+                for (int y = bounds.min_y; y < bounds.max_y; y++) {
+                    for (int x = bounds.min_x; x < bounds.max_x; x++) {
+                        fb_depth->data.r32[y * fb_depth->stride + x] = 1.0f;
+                    } 
+                } 
+            }
+        } break;
+
         case HGL_RITA_OP_DRAW_TILE_BORDER: {
             int stride = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER]->stride;
             HglRitaColor *fb_color = hgl_rita_ctx__.tex_unit[HGL_RITA_TEX_FRAME_BUFFER]->data.rgba8;
@@ -2975,11 +3242,12 @@ static inline void hgl_rita_dispatch_point_internal_(HglRitaFragment f0)
 #endif
 }
 
-static inline void hgl_rita_dispatch_line_internal_(HglRitaFragment f0, HglRitaFragment f1)
+static inline void hgl_rita_dispatch_line_internal_(HglRitaFragment f0, HglRitaFragment f1, bool smooth)
 {
     HglRitaOp op = {
         .line = {f0, f1},
-        .kind = HGL_RITA_OP_RASTERIZE_LINE,
+        .kind = smooth ? HGL_RITA_OP_RASTERIZE_LINE_SMOOTH : 
+                         HGL_RITA_OP_RASTERIZE_LINE,
     };
 
     /* discard clipping */
@@ -3012,9 +3280,9 @@ static inline void hgl_rita_dispatch_line_internal_(HglRitaFragment f0, HglRitaF
 static inline void hgl_rita_dispatch_tri_internal_(HglRitaFragment f0, HglRitaFragment f1, HglRitaFragment f2)
 {
     if (hgl_rita_ctx__.opts.draw_wire_frames) {
-        hgl_rita_dispatch_line_internal_(f0, f1);
-        hgl_rita_dispatch_line_internal_(f1, f2);
-        hgl_rita_dispatch_line_internal_(f2, f0);
+        hgl_rita_dispatch_line_internal_(f0, f1, false);
+        hgl_rita_dispatch_line_internal_(f1, f2, false);
+        hgl_rita_dispatch_line_internal_(f2, f0, false);
         return;
     }
 
@@ -3151,8 +3419,8 @@ static inline HglRitaFragment hgl_rita_process_vertex_internal_(const HglRitaVer
 #ifdef HGL_RITA_FRAGMENT_USE_COLOR
     frag_out.color         = vert_out.color;
 #endif
-    frag_out.x             = v_ss.x;
-    frag_out.y             = v_ss.y;
+    frag_out.x             = roundf(v_ss.x);
+    frag_out.y             = roundf(v_ss.y);
 #ifdef HGL_RITA_VERTEX_USE_3D
     frag_out.inv_z         = 1.0f / v_ndc.z; // <-- N.B.
 #endif
@@ -3306,6 +3574,84 @@ static inline float hgl_rita_det_internal_(int f0_x, int f0_y,
     return (f1_y - f0_y) * (f2_x - f0_x) - (f1_x - f0_x) * (f2_y - f0_y);
 }
 
+static inline bool hgl_rita_cohen_sutherland_line_clip_internal_(int *x0, int *y0,
+                                                                 int *x1, int *y1,
+                                                                 HglRitaAABB bounds)
+{
+    bool accept = false;
+
+    const int INSIDE = 0; // 0b0000;
+    const int LEFT   = 1; // 0b0001;
+    const int RIGHT  = 2; // 0b0010;
+    const int BOTTOM = 4; // 0b0100;
+    const int TOP    = 8; // 0b1000;
+
+    int outcode0 = INSIDE;
+    if      (*x0 < bounds.min_x) outcode0 |= LEFT;
+    else if (*x0 > bounds.max_x) outcode0 |= RIGHT;
+    if      (*y0 < bounds.min_y) outcode0 |= BOTTOM;
+    else if (*y0 > bounds.max_y) outcode0 |= TOP;
+
+    int outcode1 = INSIDE;
+    if      (*x1 < bounds.min_x) outcode1 |= LEFT;
+    else if (*x1 > bounds.max_x) outcode1 |= RIGHT;
+    if      (*y1 < bounds.min_y) outcode1 |= BOTTOM;
+    else if (*y1 > bounds.max_y) outcode1 |= TOP;
+
+    while (true) {
+        if (0 == (outcode0 | outcode1)) {
+            /* trivial accept */
+            accept = true;
+            break;
+        } else if (0 != (outcode0 & outcode1)) {
+            /* trivial reject */
+            break;
+        } else {
+            /* non-trivial case: clip line */
+            int x;
+            int y;
+
+            /* Pick any outside point */
+            int outside_outcode = outcode0 > outcode1 ? outcode0 : outcode1;
+
+            /* find intersection point */
+            if ((outside_outcode & TOP) != 0) {
+                x = *x0 + (*x1 - *x0) * (bounds.max_y - *y0) / (*y1 - *y0);
+                y = bounds.max_y;
+            } else if ((outside_outcode & BOTTOM) != 0) {
+                x = *x0 + (*x1 - *x0) * (bounds.min_y - *y0) / (*y1 - *y0);
+                y = bounds.min_y;
+            } else if ((outside_outcode & RIGHT) != 0) {
+                y = *y0 + (*y1 - *y0) * (bounds.max_x - *x0) / (*x1 - *x0);
+                x = bounds.max_x;
+            } else /* LEFT */ {
+                y = *y0 + (*y1 - *y0) * (bounds.min_x - *x0) / (*x1 - *x0);
+                x = bounds.min_x;
+            }
+
+            if (outside_outcode == outcode0) {
+                *x0 = x;
+                *y0 = y;
+                outcode0 = INSIDE;
+                if      (*x0 < bounds.min_x) outcode0 |= LEFT;
+                else if (*x0 > bounds.max_x) outcode0 |= RIGHT;
+                if      (*y0 < bounds.min_y) outcode0 |= BOTTOM;
+                else if (*y0 > bounds.max_y) outcode0 |= TOP;
+            } else {
+                *x1 = x;
+                *y1 = y;
+                outcode1 = INSIDE;
+                if      (*x1 < bounds.min_x) outcode1 |= LEFT;
+                else if (*x1 > bounds.max_x) outcode1 |= RIGHT;
+                if      (*y1 < bounds.min_y) outcode1 |= BOTTOM;
+                else if (*y1 > bounds.max_y) outcode1 |= TOP;
+            }
+        }
+    }
+
+    return accept;
+}
+
 static inline int hgl_rita_next_vbuf_index_internal_(void)
 {
     switch (hgl_rita_ctx__.vertices.mode) {
@@ -3428,12 +3774,15 @@ static inline int hgl_rita_next_vbuf_index_internal_(void)
 #  define rita_finish                        hgl_rita_finish
 #  define rita_draw_text                     hgl_rita_draw_text
 #  define rita_draw                          hgl_rita_draw
+#  define rita_fast_blur                     hgl_rita_fast_blur
 #  define rita_blit                          hgl_rita_blit
 
 #  define rita_texture_make                  hgl_rita_texture_make
 #  define rita_texture_destroy               hgl_rita_texture_destroy
 #  define rita_texture_get_subtexture        hgl_rita_texture_get_subtexture
 #  define rita_texture_flip_vertically       hgl_rita_texture_flip_vertically
+#  define rita_texture_fast_blur             hgl_rita_texture_fast_blur
+#  define rita_texture_decimate              hgl_rita_texture_decimate
 #  define rita_texture_blit                  hgl_rita_texture_blit
 
 #  define rita_vertex_eq                     hgl_rita_vertex_eq
@@ -3454,7 +3803,7 @@ static inline int hgl_rita_next_vbuf_index_internal_(void)
 #  define rita_aabb_from_tri                 hgl_rita_aabb_from_tri
 #  define rita_aabb_clip                     hgl_rita_aabb_clip
 #  define rita_aabb_intersection             hgl_rita_aabb_intersection
-#  define rita_aabb_intersects               hgl_rita_aabb_intersects
+#  define rita_aabb_intersects_aabb          hgl_rita_aabb_intersects_aabb
 
 #  define rita_sample                        hgl_rita_sample
 #  define rita_sample_uv                     hgl_rita_sample_uv

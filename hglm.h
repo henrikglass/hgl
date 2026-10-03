@@ -404,6 +404,7 @@ static HGL_INLINE void hglm_mat_transpose_in_place(HglmMat m);
 static HGL_INLINE void hglm_mat_transpose(HglmMat t, HglmMat m);
 static HGL_INLINE float hglm_mat_inverse(HglmMat inv, HglmMat m);
 
+static HGL_INLINE float hglm_fract(float x); 
 static HGL_INLINE float hglm_pid(float error, float last_error, float *i, 
                                  float Kp, float Ki, float Kd, float dt);
 static HGL_INLINE float hglm_lerp(float a, float b, float t);
@@ -2076,6 +2077,11 @@ out:
 
 /* ========== scalar & misc. math functions ==================================*/
 
+static HGL_INLINE float hglm_fract(float x)
+{
+    return x - floorf(x);
+}
+
 static HGL_INLINE float hglm_pid(float error, float last_error, float *i, 
                                  float Kp, float Ki, float Kd, float dt)
 {
@@ -2802,6 +2808,7 @@ typedef HglmMat    Mat;
 #define mat_transpose            hglm_mat_transpose
 #define mat_inverse              hglm_mat_inverse
 
+#define fract                    hglm_fract
 #define pid                      hglm_pid
 #define lerp                     hglm_lerp
 #define ilerp                    hglm_ilerp

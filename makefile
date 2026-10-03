@@ -55,6 +55,7 @@ examples: vec         					\
           rita_vertex_displacement_maps \
           rita_pebbles                  \
           rita_mandelbulb               \
+          rita_lines                    \
    	  	  tqueue                        \
    	  	  fsm                           \
    	  	  earchop                       \
@@ -227,6 +228,10 @@ rita_pebbles: prep
 rita_mandelbulb: prep
 	gcc -I. -Iexternal/include -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_mandelbulb.c external/include/ffmpeg_linux.c -o $(EXAMPLES_BUILD_DIR)/rita_mandelbulb -Lexternal/lib -lraylib -lm -ldl -lpthread
 	gcc -I. -Iexternal/include -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_mandelbulb.c external/include/ffmpeg_linux.c -o $(EXAMPLES_BUILD_DIR)/rita_mandelbulb_optimized -Lexternal/lib -lraylib -lm -ldl -lpthread
+
+rita_lines: prep
+	gcc -I. -Iexternal/include -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -O0 -ggdb3 $(EXAMPLES_DIR)/rita_lines.c -o $(EXAMPLES_BUILD_DIR)/rita_lines -Lexternal/lib -lraylib -lm -ldl -lpthread
+	gcc -I. -Iexternal/include -std=c17 -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Ofast -march=native -ffast-math $(EXAMPLES_DIR)/rita_lines.c -o $(EXAMPLES_BUILD_DIR)/rita_lines_optimized -Lexternal/lib -lraylib -lm -ldl -lpthread
 
 
 ## Unit tests
