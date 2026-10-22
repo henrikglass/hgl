@@ -404,6 +404,10 @@ static HGL_INLINE void hglm_mat_transpose_in_place(HglmMat m);
 static HGL_INLINE void hglm_mat_transpose(HglmMat t, HglmMat m);
 static HGL_INLINE float hglm_mat_inverse(HglmMat inv, HglmMat m);
 
+static HGL_INLINE int hglm_maxi(int a, int b);
+static HGL_INLINE int hglm_mini(int a, int b);
+static HGL_INLINE float hglm_max(float a, float b);
+static HGL_INLINE float hglm_min(float a, float b);
 static HGL_INLINE float hglm_fract(float x); 
 static HGL_INLINE float hglm_pid(float error, float last_error, float *i, 
                                  float Kp, float Ki, float Kd, float dt);
@@ -2077,6 +2081,26 @@ out:
 
 /* ========== scalar & misc. math functions ==================================*/
 
+static HGL_INLINE int hglm_maxi(int a, int b)
+{
+    return (a > b) ? a : b;
+}
+
+static HGL_INLINE int hglm_mini(int a, int b)
+{
+    return (a < b) ? a : b;
+}
+
+static HGL_INLINE float hglm_max(float a, float b)
+{
+    return (a > b) ? a : b;
+}
+
+static HGL_INLINE float hglm_min(float a, float b)
+{
+    return (a < b) ? a : b;
+} 
+
 static HGL_INLINE float hglm_fract(float x)
 {
     return x - floorf(x);
@@ -2808,6 +2832,10 @@ typedef HglmMat    Mat;
 #define mat_transpose            hglm_mat_transpose
 #define mat_inverse              hglm_mat_inverse
 
+#define mini                     hglm_mini
+#define maxi                     hglm_maxi
+#define min                      hglm_min
+#define max                      hglm_max
 #define fract                    hglm_fract
 #define pid                      hglm_pid
 #define lerp                     hglm_lerp

@@ -222,8 +222,8 @@ void hgl_flags_generate_completion_cmd(FILE *stream, const char *program_name);
 #include <float.h>
 #include <stddef.h>
 
-#define max(a, b) ((a) > (b)) ? (a) : (b)
-#define min(a, b) ((a) < (b)) ? (a) : (b)
+#define MAX(a, b) ((a) > (b)) ? (a) : (b)
+#define MIN(a, b) ((a) < (b)) ? (a) : (b)
 
 #define BOLD   "\033[0;1m"
 #define RED    "\033[1;31m"
@@ -409,7 +409,7 @@ int hgl_flags_parse(int argc, char *argv[])
                     int64_t range_min = flag->range_min.i64;
                     int64_t range_max = flag->range_max.i64;
                     int64_t old_value = value;
-                    value = min(max(old_value, range_min), range_max);
+                    value = MIN(MAX(old_value, range_min), range_max);
 
                     flag->status |= (value > old_value) ? HGL_FLAGS_STATUS_RANGE_UNDERFLOW : 0;
                     flag->status |= (value < old_value) ? HGL_FLAGS_STATUS_RANGE_OVERFLOW : 0;
@@ -430,7 +430,7 @@ int hgl_flags_parse(int argc, char *argv[])
                     uint64_t range_min = flag->range_min.u64;
                     uint64_t range_max = flag->range_max.u64;
                     uint64_t old_value = value;
-                    value = min(max(old_value, range_min), range_max);
+                    value = MIN(MAX(old_value, range_min), range_max);
 
                     flag->status |= (value > old_value) ? HGL_FLAGS_STATUS_RANGE_UNDERFLOW : 0;
                     flag->status |= (value < old_value) ? HGL_FLAGS_STATUS_RANGE_OVERFLOW : 0;
@@ -452,7 +452,7 @@ int hgl_flags_parse(int argc, char *argv[])
                     double range_min = flag->range_min.f64;
                     double range_max = flag->range_max.f64;
                     double old_value = value;
-                    value = min(max(old_value, range_min), range_max);
+                    value = MIN(MAX(old_value, range_min), range_max);
 
                     flag->status |= (value > old_value) ? HGL_FLAGS_STATUS_RANGE_UNDERFLOW : 0;
                     flag->status |= (value < old_value) ? HGL_FLAGS_STATUS_RANGE_OVERFLOW : 0;

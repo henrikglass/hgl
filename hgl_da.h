@@ -66,6 +66,8 @@
 #define HGL_FREE free
 #endif
 
+#define MAX(a, b) ((a) > (b)) ? (a) : (b)
+
 #define HglDynamicArray(T) \
     struct {               \
         T *arr;            \
@@ -106,7 +108,7 @@
     do {                                                                             \
         if ((da)->arr == NULL) {                                                     \
             (da)->length = 0;                                                        \
-            (da)->capacity = max(HGL_DA_INITIAL_CAPACITY,                            \
+            (da)->capacity = MAX(HGL_DA_INITIAL_CAPACITY,                            \
                                  (int)hgl_da_next_pow2_((n)));                       \
             (da)->arr = HGL_ALLOC((da)->capacity * sizeof(*(da)->arr));              \
         }                                                                            \
@@ -125,7 +127,7 @@
     do {                                                                             \
         if ((da)->arr == NULL) {                                                     \
             (da)->length = 0;                                                        \
-            (da)->capacity = max(HGL_DA_INITIAL_CAPACITY,                            \
+            (da)->capacity = MAX(HGL_DA_INITIAL_CAPACITY,                            \
                                  (int) hgl_da_next_pow2_(new_capacity));             \
             (da)->arr = HGL_ALLOC((da)->capacity * sizeof(*(da)->arr));              \
         }                                                                            \
@@ -138,7 +140,7 @@
     do {                                                                             \
         if ((da)->arr == NULL) {                                                     \
             (da)->length = 0;                                                        \
-            (da)->capacity = max(HGL_DA_INITIAL_CAPACITY, (int)new_capacity);        \
+            (da)->capacity = MAX(HGL_DA_INITIAL_CAPACITY, (int)new_capacity);        \
             (da)->arr = HGL_ALLOC((da)->capacity * sizeof(*(da)->arr));              \
         }                                                                            \
         if ((da)->capacity >= (new_capacity)) break;                                 \
