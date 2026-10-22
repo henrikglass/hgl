@@ -406,16 +406,14 @@ static HGL_INLINE float hglm_mat_inverse(HglmMat inv, HglmMat m);
 
 static HGL_INLINE int hglm_maxi(int a, int b);
 static HGL_INLINE int hglm_mini(int a, int b);
-static HGL_INLINE float hglm_max(float a, float b);
-static HGL_INLINE float hglm_min(float a, float b);
-static HGL_INLINE double hglm_maxd(double a, double b);
-static HGL_INLINE double hglm_mind(double a, double b);
 static HGL_INLINE float hglm_fract(float x); 
 static HGL_INLINE float hglm_pid(float error, float last_error, float *i, 
                                  float Kp, float Ki, float Kd, float dt);
 static HGL_INLINE float hglm_lerp(float a, float b, float t);
 static HGL_INLINE float hglm_ilerp(float a, float b, float value);
+static HGL_INLINE int hglm_clampi(int min, int max, int value);
 static HGL_INLINE float hglm_clamp(float min, float max, float value);
+static HGL_INLINE double hglm_clampd(double min, double max, double value);
 static HGL_INLINE float hglm_remap(float in_min, float in_max, float out_min, float out_max, float value);
 static HGL_INLINE float hglm_smoothstep(float t);
 static HGL_INLINE float hglm_smootherstep(float t);
@@ -2093,26 +2091,6 @@ static HGL_INLINE int hglm_mini(int a, int b)
     return (a < b) ? a : b;
 }
 
-static HGL_INLINE float hglm_max(float a, float b)
-{
-    return (a > b) ? a : b;
-}
-
-static HGL_INLINE float hglm_min(float a, float b)
-{
-    return (a < b) ? a : b;
-} 
-
-static HGL_INLINE double hglm_maxd(double a, double b)
-{
-    return (a > b) ? a : b;
-}
-
-static HGL_INLINE double hglm_mind(double a, double b)
-{
-    return (a < b) ? a : b;
-}
-
 static HGL_INLINE float hglm_fract(float x)
 {
     return x - floorf(x);
@@ -2138,9 +2116,23 @@ static HGL_INLINE float hglm_ilerp(float a, float b, float value)
     return (value - a) / (b - a); // t
 }
 
+static HGL_INLINE int hglm_clampi(int min, int max, int value)
+{
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+}
+
 static HGL_INLINE float hglm_clamp(float min, float max, float value)
 {
     //return fminf(fmaxf(min, value), max);
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+}
+
+static HGL_INLINE double hglm_clampd(double min, double max, double value)
+{
     if (value < min) return min;
     if (value > max) return max;
     return value;
@@ -2846,15 +2838,13 @@ typedef HglmMat    Mat;
 
 #define mini                     hglm_mini
 #define maxi                     hglm_maxi
-#define min                      hglm_min
-#define max                      hglm_max
-#define mind                     hglm_mind
-#define maxd                     hglm_maxd
 #define fract                    hglm_fract
 #define pid                      hglm_pid
 #define lerp                     hglm_lerp
 #define ilerp                    hglm_ilerp
+#define clampi                   hglm_clampi
 #define clamp                    hglm_clamp
+#define clampd                   hglm_clampd
 #define remap                    hglm_remap
 #define smoothstep               hglm_smoothstep
 #define smootherstep             hglm_smootherstep
