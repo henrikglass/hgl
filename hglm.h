@@ -408,6 +408,8 @@ static HGL_INLINE int hglm_maxi(int a, int b);
 static HGL_INLINE int hglm_mini(int a, int b);
 static HGL_INLINE float hglm_max(float a, float b);
 static HGL_INLINE float hglm_min(float a, float b);
+static HGL_INLINE double hglm_maxd(double a, double b);
+static HGL_INLINE double hglm_mind(double a, double b);
 static HGL_INLINE float hglm_fract(float x); 
 static HGL_INLINE float hglm_pid(float error, float last_error, float *i, 
                                  float Kp, float Ki, float Kd, float dt);
@@ -2101,6 +2103,16 @@ static HGL_INLINE float hglm_min(float a, float b)
     return (a < b) ? a : b;
 } 
 
+static HGL_INLINE double hglm_maxd(double a, double b)
+{
+    return (a > b) ? a : b;
+}
+
+static HGL_INLINE double hglm_mind(double a, double b)
+{
+    return (a < b) ? a : b;
+}
+
 static HGL_INLINE float hglm_fract(float x)
 {
     return x - floorf(x);
@@ -2836,6 +2848,8 @@ typedef HglmMat    Mat;
 #define maxi                     hglm_maxi
 #define min                      hglm_min
 #define max                      hglm_max
+#define mind                     hglm_mind
+#define maxd                     hglm_maxd
 #define fract                    hglm_fract
 #define pid                      hglm_pid
 #define lerp                     hglm_lerp
